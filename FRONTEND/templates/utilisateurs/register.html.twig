@@ -1,77 +1,476 @@
-{% extends 'base.html.twig' %}
+<!DOCTYPE html>
+<html lang="fr">
 
-{% block title %}Inscription - Agricore{% endblock %}
+<head>
+    <meta charset="utf-8">
+    <title>Inscription - Agricore</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link href="{{ asset('img/logoo.png') }}" rel="icon">
 
-{% block body %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-success text-white text-center py-3 border-0">
-                    <h4 class="mb-0">Inscription</h4>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=Open+Sans:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Icon Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Libraries CSS -->
+    <link href="{{ asset('lib/animate/animate.min.css') }}" rel="stylesheet">
+
+    <!-- Bootstrap & Custom CSS -->
+    <link href="{{ asset('css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/style.css') }}" rel="stylesheet">
+
+    <style>
+        .auth-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .auth-section {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #E8F5E9 0%, #ffffff 50%, #E8F5E9 100%);
+            padding: 60px 0;
+        }
+        .auth-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(15, 66, 41, 0.12);
+            overflow: hidden;
+            max-width: 1000px;
+            width: 100%;
+        }
+        .auth-card .auth-sidebar {
+            background: linear-gradient(135deg, #0F4229 0%, #348E38 100%);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 50px 30px;
+            text-align: center;
+        }
+        .auth-sidebar img {
+            width: 120px;
+            margin-bottom: 25px;
+            filter: brightness(0) invert(1);
+        }
+        .auth-sidebar h2 {
+            font-family: 'Jost', sans-serif;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        .auth-sidebar p {
+            font-family: 'Open Sans', sans-serif;
+            opacity: 0.9;
+            font-size: 15px;
+        }
+        .auth-sidebar .feature-item {
+            display: flex;
+            align-items: center;
+            text-align: left;
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            width: 100%;
+        }
+        .auth-sidebar .feature-item i {
+            font-size: 20px;
+            margin-right: 12px;
+            min-width: 30px;
+            text-align: center;
+        }
+        .auth-sidebar .feature-item span {
+            font-size: 14px;
+        }
+        .auth-form-section {
+            padding: 45px 40px;
+        }
+        .auth-form-section h3 {
+            font-family: 'Jost', sans-serif;
+            font-weight: 700;
+            color: #0F4229;
+            margin-bottom: 8px;
+        }
+        .auth-form-section .subtitle {
+            color: #525368;
+            font-size: 15px;
+            margin-bottom: 25px;
+        }
+        .auth-form-section .form-control {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 11px 15px 11px 45px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        .auth-form-section .form-control:focus {
+            border-color: #348E38;
+            box-shadow: 0 0 0 3px rgba(52, 142, 56, 0.15);
+        }
+        .auth-form-section .form-label {
+            font-weight: 500;
+            color: #0F4229;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .input-icon-wrapper {
+            position: relative;
+        }
+        .input-icon-wrapper i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #348E38;
+            font-size: 16px;
+            z-index: 2;
+        }
+        .btn-auth {
+            background: linear-gradient(135deg, #348E38, #0F4229);
+            border: none;
+            color: #fff;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Jost', sans-serif;
+            transition: all 0.3s;
+        }
+        .btn-auth:hover {
+            background: linear-gradient(135deg, #0F4229, #348E38);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(15, 66, 41, 0.3);
+        }
+        .auth-link {
+            color: #348E38;
+            font-weight: 600;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .auth-link:hover {
+            color: #0F4229;
+            text-decoration: underline;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e0e0e0;
+        }
+        .divider span {
+            padding: 0 15px;
+            color: #999;
+            font-size: 14px;
+        }
+        .upload-area {
+            border: 2px dashed #348E38;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8fdf8;
+        }
+        .upload-area:hover {
+            background: #E8F5E9;
+            border-color: #0F4229;
+        }
+        .upload-area i {
+            font-size: 28px;
+            color: #348E38;
+            margin-bottom: 8px;
+        }
+        .upload-area p {
+            margin: 0;
+            font-size: 13px;
+            color: #525368;
+        }
+        .form-error {
+            color: #dc3545;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+        @media (max-width: 767px) {
+            .auth-sidebar {
+                padding: 30px 20px;
+            }
+            .auth-form-section {
+                padding: 30px 25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- Topbar -->
+<div class="container-fluid bg-dark text-light px-0 py-2">
+    <div class="row gx-0 d-none d-lg-flex">
+        <div class="col-lg-7 px-5 text-start">
+            <div class="h-100 d-inline-flex align-items-center me-4">
+                <span class="fa fa-phone-alt me-2"></span>
+                <span>+216 21 987 654</span>
+            </div>
+            <div class="h-100 d-inline-flex align-items-center">
+                <span class="far fa-envelope me-2"></span>
+                <span>info.agricore@gmail.com</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg bg-white navbar-light sticky-top p-0">
+    <a href="{{ path('app_home') }}" class="navbar-brand d-flex align-items-center px-4 px-lg-5">
+        <img src="{{ asset('img/logo.png') }}" alt="Logo" style="height:50px;">
+    </a>
+
+    <button type="button" class="navbar-toggler me-4" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarCollapse">
+        <div class="navbar-nav ms-auto p-4 p-lg-0">
+            <a href="{{ path('app_home') }}" class="nav-item nav-link">Accueil</a>
+            <a href="{{ path('app_about') }}" class="nav-item nav-link">A propos</a>
+            <a href="{{ path('app_contact') }}" class="nav-item nav-link">Contact</a>
+
+            <div class="nav-item dropdown">
+                <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">Services</a>
+                <div class="dropdown-menu bg-light m-0">
+                    <a href="{{ path('app_maintenance') }}" class="dropdown-item">Maintenance</a>
+                    <a href="{{ path('app_evenements') }}" class="dropdown-item">Evenements</a>
+                    <a href="{{ path('app_suivi_animal') }}" class="dropdown-item">Suivi animal</a>
+                    <a href="{{ path('app_achat_equipement') }}" class="dropdown-item">Achat d'equipement</a>
+                    <a href="{{ path('app_ventes_depenses') }}" class="dropdown-item">Ventes & depenses</a>
                 </div>
-                <div class="card-body p-4">
-                    {{ form_start(registrationForm) }}
+            </div>
+        </div>
+    </div>
+</nav>
 
-                        <div class="mb-3">
-                            {{ form_label(registrationForm.nom) }}
-                            {{ form_widget(registrationForm.nom, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(registrationForm.nom) }}
+<!-- Auth Section -->
+<div class="auth-page">
+    <div class="auth-section">
+        <div class="container">
+            <div class="auth-card mx-auto">
+                <div class="row g-0">
+
+                    <!-- Sidebar -->
+                    <div class="col-lg-4 auth-sidebar d-none d-lg-flex">
+                        <img src="{{ asset('img/logo.png') }}" alt="Agricore">
+                        <h2>Rejoignez-nous !</h2>
+                        <p class="mb-4">Creez votre compte Agricore et profitez de tous nos services.</p>
+
+                        <div class="feature-item">
+                            <i class="fas fa-tractor"></i>
+                            <span>Gestion de vos equipements</span>
                         </div>
-
-                        <div class="mb-3">
-                            {{ form_label(registrationForm.prenom) }}
-                            {{ form_widget(registrationForm.prenom, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(registrationForm.prenom) }}
+                        <div class="feature-item">
+                            <i class="fas fa-paw"></i>
+                            <span>Suivi de vos animaux</span>
                         </div>
-
-                        <div class="mb-3">
-                            {{ form_label(registrationForm.email) }}
-                            {{ form_widget(registrationForm.email, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(registrationForm.email) }}
+                        <div class="feature-item">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Suivi ventes & depenses</span>
                         </div>
-
-                        <div class="mb-3">
-                            {{ form_label(registrationForm.plainPassword) }}
-                            {{ form_widget(registrationForm.plainPassword, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(registrationForm.plainPassword) }}
+                        <div class="feature-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Evenements agricoles</span>
                         </div>
-
-                        <div class="mb-3">
-                            {{ form_label(registrationForm.adresse) }}
-                            {{ form_widget(registrationForm.adresse, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(registrationForm.adresse) }}
-                        </div>
-
-                        <div class="mb-3">
-                            {{ form_label(registrationForm.telephone) }}
-                            {{ form_widget(registrationForm.telephone, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(registrationForm.telephone) }}
-                        </div>
-
-                        <div class="mb-3">
-                            {{ form_label(registrationForm.image) }}
-                            {{ form_widget(registrationForm.image, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(registrationForm.image) }}
-                        </div>
-
-                        <button type="submit" class="btn btn-success w-100 py-2">
-                            <i class="fas fa-user-plus me-2"></i>S'inscrire
-                        </button>
-
-                    {{ form_end(registrationForm) }}
-
-                    <hr class="my-4">
-
-                    <div class="text-center">
-                        <p class="mb-0">
-                            Vous avez deja un compte ?
-                            <a href="{{ path('app_login') }}" class="text-success">Connectez-vous</a>
-                        </p>
                     </div>
+
+                    <!-- Form -->
+                    <div class="col-lg-8">
+                        <div class="auth-form-section">
+                            <h3>Inscription</h3>
+                            <p class="subtitle">Remplissez le formulaire pour creer votre compte</p>
+
+                            {% for message in app.flashes('success') %}
+                                <div class="alert alert-success d-flex align-items-center" role="alert">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+
+                            {{ form_start(registrationForm, {'attr': {'novalidate': 'novalidate'}}) }}
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Nom</label>
+                                        <div class="input-icon-wrapper">
+                                            <i class="fas fa-user"></i>
+                                            {{ form_widget(registrationForm.nom, {'attr': {'class': 'form-control', 'placeholder': 'Votre nom'}}) }}
+                                        </div>
+                                        <div class="form-error">{{ form_errors(registrationForm.nom) }}</div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Prenom</label>
+                                        <div class="input-icon-wrapper">
+                                            <i class="fas fa-user"></i>
+                                            {{ form_widget(registrationForm.prenom, {'attr': {'class': 'form-control', 'placeholder': 'Votre prenom'}}) }}
+                                        </div>
+                                        <div class="form-error">{{ form_errors(registrationForm.prenom) }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <div class="input-icon-wrapper">
+                                        <i class="fas fa-envelope"></i>
+                                        {{ form_widget(registrationForm.email, {'attr': {'class': 'form-control', 'placeholder': 'votre@email.com'}}) }}
+                                    </div>
+                                    <div class="form-error">{{ form_errors(registrationForm.email) }}</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Mot de passe</label>
+                                    <div class="input-icon-wrapper">
+                                        <i class="fas fa-lock"></i>
+                                        {{ form_widget(registrationForm.plainPassword, {'attr': {'class': 'form-control', 'placeholder': 'Minimum 6 caracteres'}}) }}
+                                    </div>
+                                    <div class="form-error">{{ form_errors(registrationForm.plainPassword) }}</div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Adresse</label>
+                                        <div class="input-icon-wrapper">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                            {{ form_widget(registrationForm.adresse, {'attr': {'class': 'form-control', 'placeholder': 'Votre adresse'}}) }}
+                                        </div>
+                                        <div class="form-error">{{ form_errors(registrationForm.adresse) }}</div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Telephone</label>
+                                        <div class="input-icon-wrapper">
+                                            <i class="fas fa-phone-alt"></i>
+                                            {{ form_widget(registrationForm.telephone, {'attr': {'class': 'form-control', 'placeholder': '+216 XX XXX XXX'}}) }}
+                                        </div>
+                                        <div class="form-error">{{ form_errors(registrationForm.telephone) }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label">Photo de profil</label>
+                                    <div class="upload-area" onclick="document.getElementById('{{ registrationForm.image.vars.id }}').click();">
+                                        <i class="fas fa-cloud-upload-alt d-block"></i>
+                                        <p>Cliquez pour choisir une photo</p>
+                                    </div>
+                                    <div class="d-none">
+                                        {{ form_widget(registrationForm.image, {'attr': {'class': 'form-control'}}) }}
+                                    </div>
+                                    <div class="form-error">{{ form_errors(registrationForm.image) }}</div>
+                                </div>
+
+                                <button type="submit" class="btn btn-auth w-100">
+                                    <i class="fas fa-user-plus me-2"></i>Creer mon compte
+                                </button>
+
+                            {{ form_end(registrationForm) }}
+
+                            <div class="divider">
+                                <span>ou</span>
+                            </div>
+
+                            <div class="text-center">
+                                <p class="mb-0">
+                                    Vous avez deja un compte ?
+                                    <a href="{{ path('app_login') }}" class="auth-link">Connectez-vous</a>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="container-fluid bg-dark text-light footer py-5">
+        <div class="container py-5">
+            <div class="row g-5">
+                <div class="col-lg-3 col-md-6">
+                    <h4 class="text-white mb-4">Contact</h4>
+                    <p class="mb-2"><i class="fa fa-map-marker-alt me-3"></i>Tunisie, Ariana</p>
+                    <p class="mb-2"><i class="fa fa-phone-alt me-3"></i>+216 21 987 654</p>
+                    <p class="mb-2"><i class="fa fa-envelope me-3"></i>contact@agricore.com</p>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h4 class="text-white mb-4">Services</h4>
+                    <ul class="list-unstyled">
+                        <li><a class="btn btn-link text-white ps-0" href="{{ path('app_maintenance') }}">Maintenance</a></li>
+                        <li><a class="btn btn-link text-white ps-0" href="{{ path('app_evenements') }}">Evenements</a></li>
+                        <li><a class="btn btn-link text-white ps-0" href="{{ path('app_suivi_animal') }}">Suivi animal</a></li>
+                        <li><a class="btn btn-link text-white ps-0" href="{{ path('app_achat_equipement') }}">Achat d'equipement</a></li>
+                        <li><a class="btn btn-link text-white ps-0" href="{{ path('app_ventes_depenses') }}">Suivi des ventes & depenses</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h4 class="text-white mb-4">Liens rapides</h4>
+                    <a class="btn btn-link" href="{{ path('app_home') }}">Accueil</a>
+                    <a class="btn btn-link" href="{{ path('app_about') }}">A propos</a>
+                    <a class="btn btn-link" href="{{ path('app_services') }}">Services</a>
+                    <a class="btn btn-link" href="{{ path('app_contact') }}">Contact</a>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h4 class="text-white mb-4">Inscrivez-vous</h4>
+                    <p>Rejoignez Agricore des maintenant pour gerer efficacement votre ferme et vos equipements.</p>
+                    <a href="{{ path('app_register') }}" class="btn btn-primary py-2 px-4 mt-2">Sign Up</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid copyright py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                    &copy; <a class="border-bottom" href="#">Agricore</a>, Tous droits reserves.
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
+
+<!-- JavaScript Libraries -->
+<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ asset('lib/wow/wow.min.js') }}"></script>
+<script src="{{ asset('lib/easing/easing.min.js') }}"></script>
+<script src="{{ asset('lib/waypoints/waypoints.min.js') }}"></script>
+<script src="{{ asset('js/main.js') }}"></script>
+
+<script>
+    // Show filename when file is selected
+    document.addEventListener('DOMContentLoaded', function() {
+        var fileInput = document.getElementById('{{ registrationForm.image.vars.id }}');
+        if (fileInput) {
+            fileInput.addEventListener('change', function() {
+                var uploadArea = this.closest('.mb-4').querySelector('.upload-area');
+                if (this.files.length > 0) {
+                    uploadArea.innerHTML = '<i class="fas fa-check-circle d-block" style="color: #348E38;"></i><p><strong>' + this.files[0].name + '</strong></p>';
+                }
+            });
+        }
+    });
+</script>
+
+</body>
+</html>
