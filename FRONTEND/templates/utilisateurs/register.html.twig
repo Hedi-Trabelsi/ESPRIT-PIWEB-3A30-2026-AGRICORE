@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Inscription - Agricore{% endblock %}
+
+{% block body %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-success text-white text-center py-3 border-0">
+                    <h4 class="mb-0">Inscription</h4>
+                </div>
+                <div class="card-body p-4">
+                    {{ form_start(registrationForm) }}
+
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.nom) }}
+                            {{ form_widget(registrationForm.nom, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(registrationForm.nom) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.prenom) }}
+                            {{ form_widget(registrationForm.prenom, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(registrationForm.prenom) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.email) }}
+                            {{ form_widget(registrationForm.email, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(registrationForm.email) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.plainPassword) }}
+                            {{ form_widget(registrationForm.plainPassword, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(registrationForm.plainPassword) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.adresse) }}
+                            {{ form_widget(registrationForm.adresse, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(registrationForm.adresse) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.telephone) }}
+                            {{ form_widget(registrationForm.telephone, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(registrationForm.telephone) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(registrationForm.image) }}
+                            {{ form_widget(registrationForm.image, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(registrationForm.image) }}
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100 py-2">
+                            <i class="fas fa-user-plus me-2"></i>S'inscrire
+                        </button>
+
+                    {{ form_end(registrationForm) }}
+
+                    <hr class="my-4">
+
+                    <div class="text-center">
+                        <p class="mb-0">
+                            Vous avez deja un compte ?
+                            <a href="{{ path('app_login') }}" class="text-success">Connectez-vous</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

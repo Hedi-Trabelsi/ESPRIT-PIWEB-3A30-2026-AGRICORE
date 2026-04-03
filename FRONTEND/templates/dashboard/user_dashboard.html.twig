@@ -1,0 +1,10 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard - Agricore{% endblock %}
+
+{% block body %}
+<div class="container py-5">
+    <h1>Dashboard</h1>
+    <p>Bienvenue, {{ app.user.prenom }} {{ app.user.nom }}</p>
+</div>
+{% endblock %}
