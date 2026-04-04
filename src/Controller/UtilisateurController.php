@@ -42,6 +42,7 @@ class UtilisateurController extends AbstractController
         }
 
         $session = $request->getSession();
+        $user->prepareForSession();
         $session->set('user', $user);
 
         // Role 0 = Admin → backend dashboard
@@ -110,6 +111,7 @@ class UtilisateurController extends AbstractController
         // Refresh user from DB to get latest data
         $user = $userRepo->find($sessionUser->getId());
         if ($user) {
+            $user->prepareForSession();
             $request->getSession()->set('user', $user);
         }
         return $this->render('front/utilisateurs/profil.html.twig');
@@ -157,6 +159,7 @@ class UtilisateurController extends AbstractController
             $em->flush();
 
             // Update session
+            $user->prepareForSession();
             $request->getSession()->set('user', $user);
 
             $this->addFlash('success', 'Profil mis a jour avec succes.');

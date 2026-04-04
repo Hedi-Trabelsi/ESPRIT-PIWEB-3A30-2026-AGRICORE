@@ -145,7 +145,7 @@ class User
     public function getImage(): ?string
     {
         if (is_resource($this->image)) {
-            return stream_get_contents($this->image);
+            $this->image = stream_get_contents($this->image);
         }
         return $this->image;
     }
@@ -153,6 +153,17 @@ class User
     public function setImage(mixed $image): self
     {
         $this->image = $image;
+        return $this;
+    }
+
+    /**
+     * Convert the image resource to string so the object can be serialized into the session.
+     */
+    public function prepareForSession(): self
+    {
+        if (is_resource($this->image)) {
+            $this->image = stream_get_contents($this->image);
+        }
         return $this;
     }
 
