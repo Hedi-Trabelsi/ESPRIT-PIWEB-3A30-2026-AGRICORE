@@ -46,10 +46,18 @@ class TacheType extends AbstractType
                 'label' => 'Date prévue',
                 'widget' => 'single_text',
                 'required' => true,
+                'attr' => [
+                    'min' => date('Y-m-d'), // Date minimum = aujourd'hui
+                ],
             ])
             ->add('cout_estimee', TextType::class, [
                 'label' => 'Coût estimé',
                 'required' => true,
+                'attr' => [
+                    'type' => 'number',
+                    'step' => '0.01',
+                    'min' => '0',
+                ],
             ])
             ->add('evaluation', IntegerType::class, [
                 'label' => 'Évaluation',
