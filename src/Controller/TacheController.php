@@ -44,10 +44,17 @@ class TacheController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            $maintenance = $tache->getIdMaintenance();
+            if ($maintenance && $maintenance->getStatut() !== 'Planifiée' && $maintenance->getStatut() !== 'Résolue') {
+                $maintenance->setStatut('Planifiée');
+            }
+
             $em->persist($tache);
             $em->flush();
 
-            return $this->redirectToRoute('app_maintenance');
+            return $this->redirectToRoute('app_maintenance_taches', [
+                'id_maintenance' => $maintenance ? $maintenance->getId_maintenance() : null,
+            ]);
         }
 
         return $this->render('front/maintenance/new_tache.html.twig', [
@@ -89,6 +96,25 @@ class TacheController extends AbstractController
 
         return $this->redirectToRoute('app_maintenance_taches', [
             'id_maintenance' => $maintenanceId,
+        ]);
+    }
+
+    #[Route('/maintenance/{id_maintenance}/cloturer', name: 'app_maintenance_cloturer', methods: ['POST'])]
+    public function cloturerMaintenance(Request $request, Maintenance $maintenance, EntityManagerInterface $em): Response
+    {
+        if (!$this->isCsrfTokenValid('cloturer'.$maintenance->getId_maintenance(), $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Action invalide.');
+            return $this->redirectToRoute('app_maintenance_taches', [
+                'id_maintenance' => $maintenance->getId_maintenance(),
+            ]);
+        }
+
+        $maintenance->setStatut('Résolue');
+        $em->flush();
+        $this->addFlash('success', 'Maintenance résolue avec succès.');
+
+        return $this->redirectToRoute('app_maintenance_taches', [
+            'id_maintenance' => $maintenance->getId_maintenance(),
         ]);
     }
 }

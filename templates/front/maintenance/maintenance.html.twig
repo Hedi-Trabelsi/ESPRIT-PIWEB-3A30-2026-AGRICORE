@@ -3,68 +3,305 @@
 {% block title %}Gestion des Maintenances{% endblock %}
 
 {% block body %}
+<style>
+    /* Section Titre & Bouton */
+    .header-section {
+        margin-bottom: 2rem;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 20px;
+    }
+
+    .btn-add-custom {
+        display: inline-flex;
+        align-items: center;
+        background-color: #0F4229;
+        color: #fff;
+        padding: 8px 20px;
+        border-radius: 30px;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: 0.3s;
+    }
+
+    /* Barre de recherche */
+    .search-container {
+        max-width: 600px;
+        margin: 0 auto 20px auto;
+        position: relative;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 12px 20px 12px 45px;
+        border-radius: 50px;
+        border: 1px solid #e0e0e0;
+        outline: none;
+        transition: 0.3s;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+    }
+
+    /* Filtres */
+    .filter-container {
+        display: flex;
+        justify-content: center;
+        background: #f8f9fa;
+        padding: 5px;
+        border-radius: 50px;
+        margin: 0 auto 40px auto;
+        max-width: 700px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .filter-btn {
+        flex: 1;
+        border: none;
+        background: transparent;
+        padding: 8px 10px;
+        border-radius: 40px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #666;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    .filter-btn.active {
+        background: #0F4229;
+        color: #fff;
+    }
+
+    /* Carte de la liste */
+    .custom-card {
+        background-color: #ffffff;
+        border: 1px solid #f0f0f0;
+        border-radius: 0 70px 0 70px;
+        transition: all 0.4s ease;
+        min-height: 250px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 25px;
+        text-align: center;
+    }
+
+    .custom-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+    }
+
+    .card-title-custom {
+        font-weight: 800;
+        font-size: 1.3rem;
+        text-transform: uppercase;
+        color: #0F4229;
+    }
+
+    .btn-plus {
+        background: transparent;
+        border: none;
+        border-bottom: 1.5px solid #000;
+        font-weight: 700;
+        font-size: 0.7rem;
+        letter-spacing: 1px;
+        margin-top: 15px;
+        cursor: pointer;
+    }
+
+    /* Style Spécifique pour la Modale */
+    .modal-content-custom {
+        background-color: #ffffff;
+        border-radius: 0 70px 0 70px !important;
+        border: none;
+        padding: 40px;
+        position: relative;
+    }
+
+    .detail-value {
+        color: #0F4229;
+        font-weight: normal;
+    }
+
+    .btn-outline-theme {
+        border: 1px solid #0F4229;
+        color: #0F4229;
+        border-radius: 20px;
+        font-weight: 600;
+        transition: 0.3s;
+    }
+    .btn-outline-theme:hover {
+        background-color: #0F4229;
+        color: #fff;
+    }
+
+    .btn-outline-gray {
+        border: 1px solid #6c757d;
+        color: #6c757d;
+        border-radius: 20px;
+        font-weight: 600;
+        transition: 0.3s;
+    }
+    .btn-outline-gray:hover {
+        background-color: #6c757d;
+        color: #fff;
+    }
+</style>
+
 <div class="container mt-5">
-    {% for message in app.flashes('success') %}
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    {% endfor %}
-
-    <h2 class="mb-4">Liste des Interventions de Maintenance</h2>
-
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover">
-            <thead class="table-dark">
-                <tr>
-                    <th>Nom</th>
-                    <th>Type</th>
-                    <th>Date</th>
-                    <th>Priorité</th>
-                    <th>Statut</th>
-                    <th>Équipement</th>
-                    <th>Lieu</th>
-                    <th>Description</th>
-                    <th>Actions</th> {# 1. AJOUT DE L'ENTÊTE ICI #}
-                </tr>
-            </thead>
-            <tbody>
-                {% for m in listeMaintenances %}
-                    <tr>
-                        {# Attention : utilise bien les majuscules pour coller à ton entité #}
-                        <td>{{ m.nomMaintenance }}</td>
-                        <td>{{ m.Type }}</td>
-                       <td>{{ m.dateDeclaration|date('d/m/Y') }}</td>
-                        <td>
-                            <span class="badge {% if m.Priorite == 'Urgente' %}bg-danger{% else %}bg-secondary{% endif %}">
-                                {{ m.Priorite }}
-                            </span>
-                        </td>
-                        <td>{{ m.Statut }}</td>
-                        <td>{{ m.Equipement }}</td>
-                        <td>{{ m.Lieu }}</td>
-                        <td>{{ m.Description|nl2br }}</td>
-                        
-                        {# 2. AJOUT DU BOUTON MODIFIER ICI #}
-                        <td>
-                            <a href="{{ path('app_maintenance_edit', {'id_maintenance': m.Id_maintenance}) }}" class="btn btn-sm btn-warning me-1">
-                                <i class="fas fa-edit"></i> Modifier
-                            </a>
-                            <form method="post" action="{{ path('app_maintenance_delete', {'id_maintenance': m.Id_maintenance}) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette maintenance ?');">
-                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ m.Id_maintenance) }}">
-                                <button type="submit" class="btn btn-sm btn-danger">
-                                    <i class="fas fa-trash"></i> Supprimer
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="9" class="text-center">Aucune maintenance enregistrée pour le moment.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="header-section d-flex justify-content-between align-items-center">
+        <h1 class="fw-bold m-0">Demandes de maintenances</h1>
+        <a href="{{ path('app_maintenance_add') }}" class="btn-add-custom">
+            <i class="fas fa-plus me-2"></i> Ajouter une demande
+        </a>
     </div>
+
+    {# --- SEULE ET UNIQUE PARTIE RECHERCHE ET FILTRE --- #}
+    <form action="{{ path('app_maintenance') }}" method="get" id="searchForm">
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" name="q" value="{{ currentSearch }}" class="search-input" 
+                   placeholder="Rechercher par nom, équipement ou lieu..." onchange="this.form.submit()">
+        </div>
+
+        <input type="hidden" name="s" id="statusInput" value="{{ currentStatus }}">
+
+        <div class="filter-container">
+            {% set statuses = {'all': 'Toutes', 'En attente': 'En attente', 'Planifiée': 'Planifiées', 'Résolue': 'Résolues', 'Refusé': 'Refusées'} %}
+            
+            {% for key, label in statuses %}
+                <button type="button" 
+                        class="filter-btn {{ currentStatus == key ? 'active' : '' }}" 
+                        onclick="submitWithStatus('{{ key }}')">
+                    {{ label }}
+                </button>
+            {% endfor %}
+        </div>
+    </form>
+    {# --- FIN PARTIE RECHERCHE --- #}
+
+    {% if listeMaintenances is empty %}
+      <div class="text-center py-5">
+        <p class="text-muted fs-5">Aucun résultat trouvé.</p>
+    </div>
+    {% else %}
+        <div class="row g-4 justify-content-center" id="maintenance-container">
+            {% for m in listeMaintenances %}
+                <div class="col-lg-3 col-md-6 maintenance-item">
+                    <div class="custom-card shadow-sm">
+                        <h5 class="card-title-custom">{{ m.nomMaintenance }}</h5>
+                        <div class="card-info-val text-muted small">{{ m.Equipement }}</div>
+                        <div class="card-lieu-val small text-muted">
+                            <i class="fas fa-map-marker-alt me-1"></i>{{ m.Lieu }}
+                        </div>
+
+                        <button type="button" 
+                                class="btn-plus" 
+                                {% if m.Statut in ['Résolue', 'Planifiée', 'Résolu'] %}
+                                    onclick="window.location.href='{{ path('app_maintenance_detail', {'id_maintenance': m.Id_maintenance}) }}'"
+                                {% else %}
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#detailModal{{ m.Id_maintenance }}"
+                                {% endif %}>
+                            PLUS
+                        </button>
+                    </div>
+                </div>
+
+                {# Modale de détail #}
+                <div class="modal fade" id="detailModal{{ m.Id_maintenance }}" tabindex="-1">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content" style="background: transparent; border: none;">
+                            <div class="modal-content-custom shadow-lg text-start">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5 class="card-title-custom m-0">{{ m.nomMaintenance }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <h6 class="text-uppercase fw-bold small text-muted mb-4">Informations Générales</h6>
+                                <div class="row g-4">
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Type d'intervention</small>
+                                        <span class="detail-value">{{ m.Type }}</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Équipement concerné</small>
+                                        <span class="detail-value">{{ m.Equipement }}</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Localisation</small>
+                                        <span class="detail-value"><i class="fas fa-map-marker-alt me-1 opacity-75"></i> {{ m.Lieu }}</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Date de déclaration</small>
+                                        <span class="detail-value">{{ m.dateDeclaration|date('d/m/Y') }}</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Niveau de priorité</small>
+                                        <span class="detail-value">{{ m.Priorite }}</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">État actuel</small>
+                                        <span class="badge bg-light border detail-value">{{ m.Statut }}</span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 pt-3 border-top">
+                                    <h6 class="fw-bold small text-muted text-uppercase mb-2">Description :</h6>
+                                    <p class="text-secondary mb-0">{{ m.Description|nl2br }}</p>
+                                </div>
+                                <div class="mt-4 d-flex justify-content-between align-items-center">
+                                    <div class="d-flex gap-3">
+                                        {% if m.Statut == 'Refusé' %}
+                                            <button type="button" class="btn btn-sm px-3 btn-outline-gray" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal{{ m.Id_maintenance }}">
+                                                <i class="fas fa-trash me-1"></i> Supprimer
+                                            </button>
+                                        {% elseif m.Statut not in ['Résolue', 'Résolu'] %}
+                                            <a href="{{ path('app_maintenance_edit', {'id_maintenance': m.Id_maintenance}) }}" class="btn btn-sm px-3 btn-outline-theme">
+                                                <i class="fas fa-edit me-1"></i> Modifier
+                                            </a>
+                                            <button type="button" class="btn btn-sm px-3 btn-outline-gray" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal{{ m.Id_maintenance }}">
+                                                <i class="fas fa-trash me-1"></i> Supprimer
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Modale de confirmation suppression #}
+                <div class="modal fade" id="confirmDeleteModal{{ m.Id_maintenance }}" tabindex="-1">
+                    <div class="modal-dialog modal-sm modal-dialog-centered">
+                        <div class="modal-content shadow border-0" style="border-radius: 15px;">
+                            <div class="modal-body text-center py-4">
+                                <i class="fas fa-exclamation-circle text-danger mb-3" style="font-size: 2.5rem;"></i>
+                                <p class="mb-0 fw-bold">Supprimer cette maintenance ?</p>
+                                <div class="d-flex justify-content-center gap-2 mt-3">
+                                    <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">Annuler</button>
+                                    <form method="post" action="{{ path('app_maintenance_delete', {'id_maintenance': m.Id_maintenance}) }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ m.Id_maintenance) }}">
+                                        <button type="submit" class="btn btn-danger btn-sm px-3">Supprimer</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
 </div>
+
+<script>
+    function submitWithStatus(status) {
+        document.getElementById('statusInput').value = status;
+        document.getElementById('searchForm').submit();
+    }
+</script>
 {% endblock %}

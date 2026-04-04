@@ -35,54 +35,90 @@
 
 {% block body %}
 <div class="container mt-5">
-    <h2 class="mb-4">Interventions à traiter</h2>
+    <h2 class="mb-4 text-center">Interventions à traiter</h2>
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover">
-            <thead class="table-dark">
-                <tr>
-                    <th>Nom</th>
-                    <th>Type</th>
-                    <th>Date</th>
-                    <th>Priorité</th>
-                    <th>Statut</th>
-                    <th>Équipement</th>
-                    <th>Lieu</th>
-                    <th>Description</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for m in listeMaintenances %}
-                    <tr>
-                        <td>{{ m.nomMaintenance }}</td>
-                        <td>{{ m.Type }}</td>
-                        <td>{{ m.dateDeclaration|date('d/m/Y') }}</td>
-                        <td>
-                            <span class="badge {% if m.Priorite == 'Urgente' %}bg-danger{% else %}bg-secondary{% endif %}">
-                                {{ m.Priorite }}
-                            </span>
-                        </td>
-                        <td>{{ m.Statut }}</td>
-                        <td>{{ m.Equipement }}</td>
-                        <td>{{ m.Lieu }}</td>
-                        <td>{{ m.Description|nl2br }}</td>
-                        <td>
-                            <a href="{{ path('app_tache_new', {'id_maintenance': m.Id_maintenance}) }}" class="btn btn-sm btn-success me-1">
-                                <i class="fas fa-calendar-check"></i> Planifier
-                            </a>
-                            <a href="{{ path('app_maintenance_taches', {'id_maintenance': m.Id_maintenance}) }}" class="btn btn-sm btn-info">
-                                <i class="fas fa-eye"></i> Voir tâches
-                            </a>
-                        </td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="9" class="text-center">Aucune intervention à traiter pour le moment.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    {% if listeMaintenances is empty %}
+        <div class="alert alert-info text-center">
+            Aucune intervention à traiter pour le moment.
+        </div>
+    {% else %}
+        <div class="row g-4">
+            {% for m in listeMaintenances %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="card rounded-4 h-100 shadow-sm border-0">
+                        <div class="card-body d-flex flex-column">
+                            <div class="mb-3">
+                                <span class="badge {% if m.Priorite == 'Urgente' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                    {{ m.Priorite }}
+                                </span>
+                            </div>
+                            <h5 class="card-title fw-bold">{{ m.nomMaintenance }}</h5>
+                            <p class="card-text text-muted mb-1">
+                                <i class="fas fa-cogs text-primary me-2"></i>{{ m.Equipement }}
+                            </p>
+                            <p class="card-text text-muted mb-3">
+                                <i class="fas fa-map-marker-alt text-primary me-2"></i>{{ m.Lieu }}
+                            </p>
+                            <div class="mt-auto d-flex justify-content-between align-items-center">
+                                <button type="button" class="btn btn-outline-primary rounded-3" data-bs-toggle="modal" data-bs-target="#detailModal{{ m.Id_maintenance }}">
+                                    Plus
+                                </button>
+                                <a href="{{ path('app_tache_new', {'id_maintenance': m.Id_maintenance}) }}" class="btn btn-success btn-sm rounded-3">
+                                    Planifier
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="detailModal{{ m.Id_maintenance }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content rounded-4">
+                            <div class="modal-header bg-primary text-white rounded-top-4">
+                                <h5 class="modal-title">{{ m.nomMaintenance }}</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6 mb-2">
+                                        <strong>Équipement :</strong> {{ m.Equipement }}
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <strong>Lieu :</strong> {{ m.Lieu }}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6 mb-2">
+                                        <strong>Priorité :</strong>
+                                        <span class="badge {% if m.Priorite == 'Urgente' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ m.Priorite }}
+                                        </span>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <strong>Date :</strong> {{ m.dateDeclaration|date('d/m/Y') }}
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Description :</strong>
+                                    <p class="mt-2 ps-3" style="border-left: 3px solid #198754;">
+                                        {{ m.Description|nl2br }}
+                                    </p>
+                                </div>
+                                <div class="mb-3">
+                                    <span class="badge bg-info text-dark">Statut : {{ m.Statut }}</span>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <a href="{{ path('app_maintenance_taches', {'id_maintenance': m.Id_maintenance}) }}" class="btn btn-info rounded-3">
+                                    Voir tâches
+                                </a>
+                                <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">Fermer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

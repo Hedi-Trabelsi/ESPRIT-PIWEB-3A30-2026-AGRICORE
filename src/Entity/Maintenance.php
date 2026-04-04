@@ -88,44 +88,44 @@ private string $lieu;
         return $this->nom_maintenance;
     }
 
-    public function setNomMaintenance(string $value): self
-    {
-        $this->nom_maintenance = $value;
-        return $this;
-    }
+   public function setNomMaintenance(?string $value): self 
+{
+    $this->nom_maintenance = (string) $value; 
+    return $this;
+}
 
     public function getEquipement(): string
     {
         return $this->equipement;
     }
 
-    public function setEquipement(string $value): self
-    {
-        $this->equipement = $value;
-        return $this;
-    }
+    public function setEquipement(?string $value): self 
+{
+    $this->equipement = (string) $value;
+    return $this;
+}
 
     public function getLieu(): string
     {
         return $this->lieu;
     }
 
-    public function setLieu(string $value): self
-    {
-        $this->lieu = $value;
-        return $this;
-    }
+   public function setLieu(?string $value): self 
+{
+    $this->lieu = (string) $value;
+    return $this;
+}
 
     public function getDescription(): string
     {
         return $this->description;
     }
 
-    public function setDescription(string $value): self
-    {
-        $this->description = $value;
-        return $this;
-    }
+    public function setDescription(?string $value): self 
+{
+    $this->description = (string) $value;
+    return $this;
+}
 
     public function getDateDeclaration(): \DateTimeInterface
     {

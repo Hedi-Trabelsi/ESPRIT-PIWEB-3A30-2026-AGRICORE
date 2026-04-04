@@ -42,9 +42,16 @@ class HomeController extends AbstractController
             throw $this->createNotFoundException('Maintenance non trouvée');
         }
 
+        $totalCost = 0;
+        foreach ($maintenance->getTaches() as $tache) {
+            $cout = $tache->getCoutEstimee();
+            $totalCost += is_numeric($cout) ? (float) $cout : (float) str_replace([',', ' '], ['.', ''], $cout);
+        }
+
         return $this->render('front/maintenance/maintenance_taches.html.twig', [
             'maintenance' => $maintenance,
             'taches' => $maintenance->getTaches(),
+            'totalCost' => $totalCost,
         ]);
     }
 
