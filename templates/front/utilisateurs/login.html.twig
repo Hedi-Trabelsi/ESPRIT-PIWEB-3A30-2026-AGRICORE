@@ -9,6 +9,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
     <link href="{{ asset('css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset('css/utilisateur/utilisateur.css') }}" rel="stylesheet">
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
 </head>
 <body>
 
@@ -41,21 +42,17 @@
             <h2>Bon retour</h2>
             <p class="auth-desc">Connectez-vous a votre compte pour continuer</p>
 
-            {% if app.session.flashbag.has('error') %}
-                {% for msg in app.flashes('error') %}
-                    <div class="auth-alert auth-alert-error">
-                        <i class="fas fa-exclamation-circle"></i> {{ msg }}
-                    </div>
-                {% endfor %}
-            {% endif %}
+            {% for msg in app.flashes('error') %}
+                <div class="auth-alert auth-alert-error">
+                    <i class="fas fa-exclamation-circle"></i> {{ msg }}
+                </div>
+            {% endfor %}
 
-            {% if app.session.flashbag.has('success') %}
-                {% for msg in app.flashes('success') %}
-                    <div class="auth-alert auth-alert-success">
-                        <i class="fas fa-check-circle"></i> {{ msg }}
-                    </div>
-                {% endfor %}
-            {% endif %}
+            {% for msg in app.flashes('success') %}
+                <div class="auth-alert auth-alert-success">
+                    <i class="fas fa-check-circle"></i> {{ msg }}
+                </div>
+            {% endfor %}
 
             <form method="post" action="{{ path('front_login') }}">
 
@@ -78,11 +75,17 @@
                     </div>
                 </div>
 
+                {# --- hCaptcha --- #}
+                <div class="field">
+                    <label>Verification de securite</label>
+                    <div class="h-captcha" data-sitekey="{{ hcaptcha_site_key }}"></div>
+                </div>
+
                 <div class="auth-options-row">
                     <label class="auth-remember">
                         <input type="checkbox" name="remember_me"> Se souvenir de moi
                     </label>
-                    <a href="#" class="auth-forgot">Mot de passe oublie ?</a>
+                    <a href="{{ path('front_forgot_password') }}" class="auth-forgot">Mot de passe oublie ?</a>
                 </div>
 
                 <button type="submit" class="auth-submit">

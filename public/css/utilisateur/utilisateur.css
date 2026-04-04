@@ -1071,3 +1071,73 @@
     border-color: #348E38;
     box-shadow: 0 0 0 4px rgba(52,142,56,.1);
 }
+
+/* ====== HCAPTCHA ====== */
+
+.h-captcha {
+    margin-top: 4px;
+}
+
+/* ====== PASSWORD STRENGTH METER ====== */
+
+.pw-strength-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.pw-strength-bar {
+    flex: 1;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.pw-strength-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 3px;
+    transition: width .3s ease, background .3s ease;
+}
+
+.pw-str-weak { background: #ef4444; color: #ef4444; }
+.pw-str-medium { background: #f59e0b; color: #f59e0b; }
+.pw-str-good { background: #22c55e; color: #22c55e; }
+.pw-str-strong { background: #16a34a; color: #16a34a; }
+
+.pw-strength-text {
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 70px;
+    text-align: right;
+}
+
+.pw-criteria {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-top: 8px;
+}
+
+.pw-rule {
+    font-size: 11px;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color .2s;
+}
+
+.pw-rule i {
+    font-size: 8px;
+}
+
+.pw-rule-pass {
+    color: #16a34a;
+}
+
+.pw-rule-pass i {
+    font-size: 11px;
+}

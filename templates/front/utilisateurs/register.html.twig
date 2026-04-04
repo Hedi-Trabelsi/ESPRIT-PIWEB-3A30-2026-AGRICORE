@@ -111,11 +111,22 @@
                     <div class="field">
                         <label for="{{ form.password.first.vars.id }}">Mot de passe</label>
                         <div class="field-input-wrap">
-                            {{ form_widget(form.password.first, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_widget(form.password.first, {'attr': {'class': 'form-control', 'oninput': 'checkStrength(this.value)'}}) }}
                             <i class="fas fa-lock fi-icon"></i>
                             <button type="button" class="field-toggle" onclick="togglePw('{{ form.password.first.vars.id }}',this)">
                                 <i class="fas fa-eye"></i>
                             </button>
+                        </div>
+                        {# Password strength meter #}
+                        <div class="pw-strength-wrap">
+                            <div class="pw-strength-bar"><div class="pw-strength-fill" id="pwFill"></div></div>
+                            <span class="pw-strength-text" id="pwText"></span>
+                        </div>
+                        <div class="pw-criteria" id="pwCriteria">
+                            <div class="pw-rule" id="ruleLen"><i class="fas fa-circle"></i> Min. 6 caracteres</div>
+                            <div class="pw-rule" id="ruleLower"><i class="fas fa-circle"></i> Une minuscule</div>
+                            <div class="pw-rule" id="ruleUpper"><i class="fas fa-circle"></i> Une majuscule</div>
+                            <div class="pw-rule" id="ruleNum"><i class="fas fa-circle"></i> Un chiffre</div>
                         </div>
                     </div>
                     <div class="field">
@@ -181,6 +192,13 @@
                     <div class="field-error">{{ form_errors(form.imageFile) }}</div>
                 </div>
 
+                {# --- hCaptcha --- #}
+                <div class="field">
+                    <label>Verification de securite</label>
+                    {{ form_widget(form.captcha) }}
+                    <div class="field-error">{{ form_errors(form.captcha) }}</div>
+                </div>
+
                 <button type="submit" class="auth-submit">
                     Creer mon compte <i class="fas fa-arrow-right"></i>
                 </button>
@@ -206,6 +224,61 @@ function togglePw(id, btn) {
     } else {
         f.type = 'password';
         i.className = 'fas fa-eye';
+    }
+}
+
+function checkStrength(pw) {
+    var fill = document.getElementById('pwFill');
+    var text = document.getElementById('pwText');
+    var score = 0;
+
+    var hasLen = pw.length >= 6;
+    var hasLower = /[a-z]/.test(pw);
+    var hasUpper = /[A-Z]/.test(pw);
+    var hasNum = /[0-9]/.test(pw);
+    var hasSpecial = /[^a-zA-Z0-9]/.test(pw);
+
+    setRule('ruleLen', hasLen);
+    setRule('ruleLower', hasLower);
+    setRule('ruleUpper', hasUpper);
+    setRule('ruleNum', hasNum);
+
+    if (hasLen) score++;
+    if (hasLower) score++;
+    if (hasUpper) score++;
+    if (hasNum) score++;
+    if (hasSpecial) score++;
+
+    if (pw.length === 0) {
+        fill.style.width = '0%';
+        fill.className = 'pw-strength-fill';
+        text.textContent = '';
+        return;
+    }
+
+    var levels = [
+        { w: '20%', c: 'pw-str-weak',   t: 'Tres faible' },
+        { w: '40%', c: 'pw-str-weak',   t: 'Faible' },
+        { w: '60%', c: 'pw-str-medium', t: 'Moyen' },
+        { w: '80%', c: 'pw-str-good',   t: 'Fort' },
+        { w: '100%',c: 'pw-str-strong', t: 'Tres fort' }
+    ];
+
+    var lvl = levels[Math.min(score, 4)];
+    fill.style.width = lvl.w;
+    fill.className = 'pw-strength-fill ' + lvl.c;
+    text.textContent = lvl.t;
+    text.className = 'pw-strength-text ' + lvl.c;
+}
+
+function setRule(id, pass) {
+    var el = document.getElementById(id);
+    if (pass) {
+        el.classList.add('pw-rule-pass');
+        el.querySelector('i').className = 'fas fa-check-circle';
+    } else {
+        el.classList.remove('pw-rule-pass');
+        el.querySelector('i').className = 'fas fa-circle';
     }
 }
 </script>

@@ -170,6 +170,9 @@ class User
     #[ORM\Column(name: 'password', type: 'string', nullable: false)]
     #[Assert\NotBlank(message: "Le mot de passe est obligatoire.")]
     #[Assert\Length(min: 6, minMessage: "Le mot de passe doit contenir au moins {{ limit }} caracteres.")]
+    #[Assert\Regex(pattern: "/[a-z]/", message: "Le mot de passe doit contenir au moins une lettre minuscule.")]
+    #[Assert\Regex(pattern: "/[A-Z]/", message: "Le mot de passe doit contenir au moins une lettre majuscule.")]
+    #[Assert\Regex(pattern: "/[0-9]/", message: "Le mot de passe doit contenir au moins un chiffre.")]
     private ?string $password = null;
 
     public function getPassword(): ?string

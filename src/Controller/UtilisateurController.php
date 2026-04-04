@@ -17,8 +17,12 @@ class UtilisateurController extends AbstractController
     #[Route('/utilisateurs/login', name: 'front_login', methods: ['GET', 'POST'])]
     public function login(Request $request, UserRepository $userRepo): Response
     {
+        $hcaptchaKey = $this->getParameter('hcaptcha_site_key');
+
         if ($request->isMethod('GET')) {
-            return $this->render('front/utilisateurs/login.html.twig');
+            return $this->render('front/utilisateurs/login.html.twig', [
+                'hcaptcha_site_key' => $hcaptchaKey,
+            ]);
         }
 
         $email = $request->request->get('email');
@@ -31,7 +35,8 @@ class UtilisateurController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        if ($user->getPassword() !== $password) {
+        // Support both hashed (new accounts) and plain text (old accounts)
+        if (!password_verify($password, $user->getPassword()) && $user->getPassword() !== $password) {
             $this->addFlash('error', 'Mot de passe incorrect.');
             return $this->redirectToRoute('front_login');
         }
@@ -45,16 +50,14 @@ class UtilisateurController extends AbstractController
         $user->prepareForSession();
         $session->set('user', $user);
 
-        // Role 0 = Admin → backend dashboard
         if ($user->getRole() === 0) {
             return $this->redirectToRoute('back_dashboard');
         }
 
-        // Role 1 = Agriculteur, Role 2 = Technicien → frontend
         return $this->redirectToRoute('app_home');
     }
 
-    // ===================== REGISTER (with Symfony Form + Validation) =====================
+    // ===================== REGISTER =====================
     #[Route('/utilisateurs/register', name: 'front_register', methods: ['GET', 'POST'])]
     public function register(Request $request, EntityManagerInterface $em, UserRepository $userRepo): Response
     {
@@ -63,7 +66,6 @@ class UtilisateurController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Check if email already exists
             if ($userRepo->findOneBy(['email' => $user->getEmail()])) {
                 $this->addFlash('error', 'Cet email est deja utilise.');
                 return $this->render('front/utilisateurs/register.html.twig', [
@@ -73,11 +75,17 @@ class UtilisateurController extends AbstractController
 
             $user->setBanned(false);
 
+            // Hash the password
+            $user->setPassword(password_hash($user->getPassword(), PASSWORD_BCRYPT));
+
             // Handle image upload
             $imageFile = $form->get('imageFile')->getData();
             if ($imageFile) {
                 $imageData = file_get_contents($imageFile->getPathname());
                 $user->setImage(base64_encode($imageData));
+                $user->setProfileComplete(true);
+            } else {
+                $user->setProfileComplete(false);
             }
 
             $em->persist($user);
@@ -108,7 +116,6 @@ class UtilisateurController extends AbstractController
         if (!$sessionUser) {
             return $this->redirectToRoute('front_login');
         }
-        // Refresh user from DB to get latest data
         $user = $userRepo->find($sessionUser->getId());
         if ($user) {
             $user->prepareForSession();
@@ -146,19 +153,18 @@ class UtilisateurController extends AbstractController
 
             $newPassword = $request->request->get('password');
             if ($newPassword && strlen($newPassword) > 0) {
-                $user->setPassword($newPassword);
+                $user->setPassword(password_hash($newPassword, PASSWORD_BCRYPT));
             }
 
-            // Handle image upload
             $imageFile = $request->files->get('image');
             if ($imageFile) {
                 $imageData = file_get_contents($imageFile->getPathname());
                 $user->setImage(base64_encode($imageData));
+                $user->setProfileComplete(true);
             }
 
             $em->flush();
 
-            // Update session
             $user->prepareForSession();
             $request->getSession()->set('user', $user);
 
@@ -266,7 +272,7 @@ class UtilisateurController extends AbstractController
 
             $newPassword = $request->request->get('password');
             if ($newPassword && strlen($newPassword) > 0) {
-                $user->setPassword($newPassword);
+                $user->setPassword(password_hash($newPassword, PASSWORD_BCRYPT));
             }
 
             $em->flush();
@@ -277,5 +283,12 @@ class UtilisateurController extends AbstractController
         return $this->render('back/utilisateurs/modifier.html.twig', [
             'user' => $user,
         ]);
+    }
+
+    // ===================== FORGOT PASSWORD =====================
+    #[Route('/utilisateurs/mot-de-passe-oublie', name: 'front_forgot_password')]
+    public function forgotPassword(): Response
+    {
+        return $this->render('front/utilisateurs/forgot_password.html.twig');
     }
 }
