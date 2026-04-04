@@ -1,0 +1,88 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block navbar %}
+<!-- Navbar Start -->
+<nav class="navbar navbar-expand-lg bg-white navbar-light sticky-top p-0">
+    <a href="{{ path('app_home') }}" class="navbar-brand d-flex align-items-center px-4 px-lg-5">
+        <img src="{{ asset('img/logo.png') }}" alt="Logo" style="height: 40px; width: auto;" />
+    </a>
+    <button type="button" class="navbar-toggler me-4" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarCollapse">
+        <div class="navbar-nav ms-auto p-4 p-lg-0">
+            <a href="{{ path('app_home') }}" class="nav-item nav-link{% if app.request.attributes.get('_route') == 'app_home' %} active{% endif %}">Accueil</a>
+            <a href="{{ path('app_about') }}" class="nav-item nav-link{% if app.request.attributes.get('_route') == 'app_about' %} active{% endif %}">À propos</a>
+            <div class="nav-item dropdown">
+                <a href="#" class="nav-link dropdown-toggle{% if app.request.attributes.get('_route') in ['app_tech_home', 'app_maintenance_traiter', 'app_maintenance', 'app_tache_new'] %} active{% endif %}" data-bs-toggle="dropdown">Maintenances</a>
+                <div class="dropdown-menu bg-light m-0">
+                    <a href="{{ path('app_maintenance_traiter') }}" class="dropdown-item">Interventions à traiter</a>
+                    <a href="{{ path('app_maintenance') }}" class="dropdown-item">Historique des maintenances</a>
+                </div>
+            </div>
+            <a href="{{ path('app_contact') }}" class="nav-item nav-link{% if app.request.attributes.get('_route') == 'app_contact' %} active{% endif %}">Contact</a>
+        </div>
+        <a href="{{ path('app_profile') }}" class="d-none d-lg-block me-4">
+            <img src="{{ asset('img/profile.webp') }}" alt="Profile"
+                 style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #198754;">
+        </a>
+    </div>
+</nav>
+<!-- Navbar End -->
+{% endblock %}
+
+{% block title %}Interventions à traiter{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <h2 class="mb-4">Interventions à traiter</h2>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nom</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Priorité</th>
+                    <th>Statut</th>
+                    <th>Équipement</th>
+                    <th>Lieu</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in listeMaintenances %}
+                    <tr>
+                        <td>{{ m.nomMaintenance }}</td>
+                        <td>{{ m.Type }}</td>
+                        <td>{{ m.dateDeclaration|date('d/m/Y') }}</td>
+                        <td>
+                            <span class="badge {% if m.Priorite == 'Urgente' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                {{ m.Priorite }}
+                            </span>
+                        </td>
+                        <td>{{ m.Statut }}</td>
+                        <td>{{ m.Equipement }}</td>
+                        <td>{{ m.Lieu }}</td>
+                        <td>{{ m.Description|nl2br }}</td>
+                        <td>
+                            <a href="{{ path('app_tache_new', {'id_maintenance': m.Id_maintenance}) }}" class="btn btn-sm btn-success me-1">
+                                <i class="fas fa-calendar-check"></i> Planifier
+                            </a>
+                            <a href="{{ path('app_maintenance_taches', {'id_maintenance': m.Id_maintenance}) }}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i> Voir tâches
+                            </a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center">Aucune intervention à traiter pour le moment.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

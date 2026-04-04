@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use App\Repository\MaintenanceRepository;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -30,6 +31,31 @@ class HomeController extends AbstractController
     public function maintenance(): Response
     {
         return $this->render('front/maintenance/maintenance.html.twig');
+    }
+
+    #[Route('/maintenance/{id_maintenance}/taches', name: 'app_maintenance_taches')]
+    public function maintenanceTaches(MaintenanceRepository $maintenanceRepository, int $id_maintenance): Response
+    {
+        $maintenance = $maintenanceRepository->find($id_maintenance);
+        
+        if (!$maintenance) {
+            throw $this->createNotFoundException('Maintenance non trouvée');
+        }
+
+        return $this->render('front/maintenance/maintenance_taches.html.twig', [
+            'maintenance' => $maintenance,
+            'taches' => $maintenance->getTaches(),
+        ]);
+    }
+
+    #[Route('/maintenance/traiter', name: 'app_maintenance_traiter')]
+    public function maintenanceATraiter(MaintenanceRepository $maintenanceRepository): Response
+    {
+        $maintenances = $maintenanceRepository->findBy(['statut' => 'En attente']);
+        
+        return $this->render('front/maintenance/interventions_a_traiter.html.twig', [
+            'listeMaintenances' => $maintenances,
+        ]);
     }
 
     #[Route('/evenements', name: 'app_evenements')]

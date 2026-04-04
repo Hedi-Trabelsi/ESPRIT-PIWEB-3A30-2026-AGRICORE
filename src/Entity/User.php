@@ -30,7 +30,7 @@ class User
     #[ORM\Column(type: "integer")]
     private int $role;
 
-    #[ORM\Column(type: "integer")]
+    #[ORM\Column(type: "integer", name: "numeroT")]
     private int $numeroT;
 
     #[ORM\Column(type: "string", length: 100)]

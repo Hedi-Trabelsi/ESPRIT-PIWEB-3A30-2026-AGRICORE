@@ -70,4 +70,17 @@ public function edit(Maintenance $maintenance, Request $request, EntityManagerIn
         'maintenance' => $maintenance
     ]);
 }
+
+#[Route('/maintenance/supprimer/{id_maintenance}', name: 'app_maintenance_delete', methods: ['POST'])]
+public function delete(Request $request, Maintenance $maintenance, EntityManagerInterface $em): Response
+{
+    if ($this->isCsrfTokenValid('delete'.$maintenance->getId_maintenance(), $request->request->get('_token'))) {
+        $em->remove($maintenance);
+        $em->flush();
+
+        $this->addFlash('success', 'Maintenance supprimée avec succès.');
+    }
+
+    return $this->redirectToRoute('app_maintenance');
+}
 }
