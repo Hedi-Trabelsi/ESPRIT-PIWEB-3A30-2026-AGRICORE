@@ -1,0 +1,57 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block title %}Gestion des Maintenances{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <h2 class="mb-4">Liste des Interventions de Maintenance</h2>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nom</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Priorité</th>
+                    <th>Statut</th>
+                    <th>Équipement</th>
+                    <th>Lieu</th>
+                    <th>Description</th>
+                    <th>Actions</th> {# 1. AJOUT DE L'ENTÊTE ICI #}
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in listeMaintenances %}
+                    <tr>
+                        {# Attention : utilise bien les majuscules pour coller à ton entité #}
+                        <td>{{ m.nomMaintenance }}</td>
+                        <td>{{ m.Type }}</td>
+                       <td>{{ m.dateDeclaration|date('d/m/Y') }}</td>
+                        <td>
+                            <span class="badge {% if m.Priorite == 'Urgente' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                {{ m.Priorite }}
+                            </span>
+                        </td>
+                        <td>{{ m.Statut }}</td>
+                        <td>{{ m.Equipement }}</td>
+                        <td>{{ m.Lieu }}</td>
+                        <td>{{ m.Description|nl2br }}</td>
+                        
+                        {# 2. AJOUT DU BOUTON MODIFIER ICI #}
+                        <td>
+                            <a href="{{ path('app_maintenance_edit', {'id_maintenance': m.Id_maintenance}) }}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i> Modifier
+                            </a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center">Aucune maintenance enregistrée pour le moment.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
