@@ -27,21 +27,19 @@ class MaintenanceController extends AbstractController
             'listeMaintenances' => $maintenances,
         ]);
     }
-    // src/Controller/MaintenanceController.php
-#[Route('/maintenance/ajouter', name: 'app_maintenance_add')]
+ #[Route('/maintenance/ajouter', name: 'app_maintenance_add')]
 public function add(Request $request, EntityManagerInterface $em): Response
 {
-    // 1. Création de l'objet
     $maintenance = new Maintenance();
-    $maintenance->setStatut('En attente'); // Valeur par défaut
+    
+    // DATE AUTOMATIQUE : On fixe la date d'aujourd'hui ici
+    $maintenance->setDateDeclaration(new \DateTime());
+    $maintenance->setStatut('En attente'); 
 
-    // 2. Création du formulaire basé sur la classe dédiée
     $form = $this->createForm(MaintenanceType::class, $maintenance);
-
-    // 3. Traitement de la saisie
     $form->handleRequest($request);
 
-    // 4. Vérification de la soumission et validation
+    // VALIDATION CÔTÉ SERVEUR (Workshop Page 2)
     if ($form->isSubmitted() && $form->isValid()) {
         $em->persist($maintenance);
         $em->flush();
