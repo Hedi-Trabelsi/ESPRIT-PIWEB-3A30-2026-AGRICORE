@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Inscription - Agricore</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="{{ asset('img/logoo.png') }}" rel="icon">
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=Open+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ asset('css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/utilisateur/utilisateur.css') }}" rel="stylesheet">
+</head>
+<body>
+
+<div class="auth-wrapper">
+
+    {# ===== Left Brand Panel ===== #}
+    <div class="auth-brand-panel">
+        <img src="{{ asset('img/champ-image.jpg') }}" alt="" class="auth-brand-bg">
+        <div class="auth-brand-content">
+            <img src="{{ asset('img/logo.png') }}" alt="Agricore" class="auth-brand-logo">
+            <h1>Rejoignez la communaute Agricore</h1>
+            <p>Creez votre compte en quelques etapes et commencez a optimiser la gestion de votre exploitation agricole.</p>
+            <div class="auth-dots">
+                <span></span>
+                <span class="active"></span>
+                <span></span>
+            </div>
+        </div>
+        <div class="auth-brand-footer">
+            &copy; 2026 Agricore. Tous droits reserves.
+        </div>
+    </div>
+
+    {# ===== Right Form Panel ===== #}
+    <div class="auth-form-panel register-scroll">
+        <div class="auth-form-inner">
+
+            <img src="{{ asset('img/logo.png') }}" alt="Agricore" class="auth-mobile-logo">
+
+            <h2>Creer un compte</h2>
+            <p class="auth-desc">Remplissez vos informations pour commencer</p>
+
+            {% if app.session.flashbag.has('error') %}
+                {% for msg in app.flashes('error') %}
+                    <div class="auth-alert auth-alert-error">
+                        <i class="fas fa-exclamation-circle"></i> {{ msg }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" action="{{ path('front_register') }}" enctype="multipart/form-data">
+
+                {# --- Role selection --- #}
+                <label style="font-size:13px;font-weight:600;color:#374151;margin-bottom:7px;display:block;">Vous etes</label>
+                <div class="role-selector">
+                    <label class="role-card">
+                        <input type="radio" name="role" value="0" checked>
+                        <div class="role-card-body">
+                            <div class="role-icon"><i class="fas fa-seedling"></i></div>
+                            <div>
+                                <div class="role-name">Agriculteur</div>
+                                <div class="role-hint">Gerer ma ferme</div>
+                            </div>
+                        </div>
+                    </label>
+                    <label class="role-card">
+                        <input type="radio" name="role" value="1">
+                        <div class="role-card-body">
+                            <div class="role-icon"><i class="fas fa-tools"></i></div>
+                            <div>
+                                <div class="role-name">Technicien</div>
+                                <div class="role-hint">Support technique</div>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                {# --- Nom & Prenom --- #}
+                <div class="field-row">
+                    <div class="field">
+                        <label for="nom">Nom</label>
+                        <div class="field-input-wrap">
+                            <input type="text" id="nom" name="nom" placeholder="Votre nom" required>
+                            <i class="fas fa-user fi-icon"></i>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="prenom">Prenom</label>
+                        <div class="field-input-wrap">
+                            <input type="text" id="prenom" name="prenom" placeholder="Votre prenom" required>
+                            <i class="fas fa-user fi-icon"></i>
+                        </div>
+                    </div>
+                </div>
+
+                {# --- Email --- #}
+                <div class="field">
+                    <label for="email">Adresse email</label>
+                    <div class="field-input-wrap">
+                        <input type="email" id="email" name="email" placeholder="nom@exemple.com" required>
+                        <i class="fas fa-envelope fi-icon"></i>
+                    </div>
+                </div>
+
+                {# --- Password --- #}
+                <div class="field-row">
+                    <div class="field">
+                        <label for="password">Mot de passe</label>
+                        <div class="field-input-wrap">
+                            <input type="password" id="password" name="password" placeholder="Min. 6 caracteres" required>
+                            <i class="fas fa-lock fi-icon"></i>
+                            <button type="button" class="field-toggle" onclick="togglePw('password',this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="confirm_password">Confirmer</label>
+                        <div class="field-input-wrap">
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="Retapez" required>
+                            <i class="fas fa-lock fi-icon"></i>
+                            <button type="button" class="field-toggle" onclick="togglePw('confirm_password',this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {# --- Genre & Date de naissance --- #}
+                <div class="field-row">
+                    <div class="field">
+                        <label for="genre">Genre</label>
+                        <div class="field-input-wrap">
+                            <select id="genre" name="genre" required>
+                                <option value="" disabled selected>Choisir</option>
+                                <option value="Homme">Homme</option>
+                                <option value="Femme">Femme</option>
+                            </select>
+                            <i class="fas fa-venus-mars fi-icon"></i>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="date">Date de naissance <span class="field-optional">(optionnel)</span></label>
+                        <div class="field-input-wrap">
+                            <input type="date" id="date" name="date">
+                            <i class="fas fa-calendar-alt fi-icon"></i>
+                        </div>
+                    </div>
+                </div>
+
+                {# --- Telephone --- #}
+                <div class="field">
+                    <label for="numeroT">Numero de telephone</label>
+                    <div class="field-input-wrap">
+                        <input type="tel" id="numeroT" name="numeroT" placeholder="+216 XX XXX XXX" required>
+                        <i class="fas fa-phone-alt fi-icon"></i>
+                    </div>
+                </div>
+
+                {# --- Adresse --- #}
+                <div class="field">
+                    <label for="adresse">Adresse</label>
+                    <div class="field-input-wrap">
+                        <input type="text" id="adresse" name="adresse" placeholder="Votre adresse" required>
+                        <i class="fas fa-map-marker-alt fi-icon"></i>
+                    </div>
+                </div>
+
+                {# --- Image --- #}
+                <div class="field">
+                    <label for="image">Photo de profil <span class="field-optional">(optionnel)</span></label>
+                    <div class="field-input-wrap">
+                        <input type="file" id="image" name="image" accept="image/*">
+                        <i class="fas fa-camera fi-icon"></i>
+                    </div>
+                </div>
+
+                <button type="submit" class="auth-submit">
+                    Creer mon compte <i class="fas fa-arrow-right"></i>
+                </button>
+
+            </form>
+
+            <div class="auth-footer-link">
+                Deja inscrit ? <a href="{{ path('front_login') }}">Se connecter</a>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+function togglePw(id, btn) {
+    var f = document.getElementById(id),
+        i = btn.querySelector('i');
+    if (f.type === 'password') {
+        f.type = 'text';
+        i.className = 'fas fa-eye-slash';
+    } else {
+        f.type = 'password';
+        i.className = 'fas fa-eye';
+    }
+}
+</script>
+</body>
+</html>
