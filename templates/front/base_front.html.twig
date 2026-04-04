@@ -97,8 +97,13 @@
         </div>
          {# ✅ PHOTO PROFILE #}
         <a href="{{ path('app_profile') }}" class="d-none d-lg-block me-4">
-            <img src="{{ asset('img/profile.webp') }}" alt="Profile"
-                 style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #198754;">
+            {% if app.session.get('user') and app.session.get('user').image %}
+                <img src="data:image/jpeg;base64,{{ app.session.get('user').image }}" alt="Profile"
+                     style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #198754;">
+            {% else %}
+                <img src="{{ asset('img/profile.webp') }}" alt="Profile"
+                     style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #198754;">
+            {% endif %}
         </a>
     </div>
 </nav>

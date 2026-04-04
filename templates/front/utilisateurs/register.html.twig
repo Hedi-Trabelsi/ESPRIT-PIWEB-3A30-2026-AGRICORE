@@ -41,146 +41,151 @@
             <h2>Creer un compte</h2>
             <p class="auth-desc">Remplissez vos informations pour commencer</p>
 
-            {% if app.session.flashbag.has('error') %}
-                {% for msg in app.flashes('error') %}
-                    <div class="auth-alert auth-alert-error">
-                        <i class="fas fa-exclamation-circle"></i> {{ msg }}
-                    </div>
-                {% endfor %}
-            {% endif %}
+            {% for msg in app.flashes('error') %}
+                <div class="auth-alert auth-alert-error">
+                    <i class="fas fa-exclamation-circle"></i> {{ msg }}
+                </div>
+            {% endfor %}
 
-            <form method="post" action="{{ path('front_register') }}" enctype="multipart/form-data">
+            {# novalidate to show server-side errors as per the PDF workshop #}
+            {{ form_start(form, {'attr': {'novalidate': 'novalidate', 'enctype': 'multipart/form-data'}}) }}
 
-                {# --- Role selection --- #}
+                {# --- Role selection (expanded radio) --- #}
                 <label style="font-size:13px;font-weight:600;color:#374151;margin-bottom:7px;display:block;">Vous etes</label>
                 <div class="role-selector">
-                    <label class="role-card">
-                        <input type="radio" name="role" value="0" checked>
-                        <div class="role-card-body">
-                            <div class="role-icon"><i class="fas fa-seedling"></i></div>
-                            <div>
-                                <div class="role-name">Agriculteur</div>
-                                <div class="role-hint">Gerer ma ferme</div>
+                    {% for child in form.role %}
+                        <label class="role-card">
+                            {{ form_widget(child) }}
+                            <div class="role-card-body">
+                                {% if child.vars.value == '1' %}
+                                    <div class="role-icon"><i class="fas fa-seedling"></i></div>
+                                    <div>
+                                        <div class="role-name">Agriculteur</div>
+                                        <div class="role-hint">Gerer ma ferme</div>
+                                    </div>
+                                {% else %}
+                                    <div class="role-icon"><i class="fas fa-tools"></i></div>
+                                    <div>
+                                        <div class="role-name">Technicien</div>
+                                        <div class="role-hint">Support technique</div>
+                                    </div>
+                                {% endif %}
                             </div>
-                        </div>
-                    </label>
-                    <label class="role-card">
-                        <input type="radio" name="role" value="1">
-                        <div class="role-card-body">
-                            <div class="role-icon"><i class="fas fa-tools"></i></div>
-                            <div>
-                                <div class="role-name">Technicien</div>
-                                <div class="role-hint">Support technique</div>
-                            </div>
-                        </div>
-                    </label>
+                        </label>
+                    {% endfor %}
                 </div>
+                <div class="field-error">{{ form_errors(form.role) }}</div>
 
                 {# --- Nom & Prenom --- #}
                 <div class="field-row">
                     <div class="field">
-                        <label for="nom">Nom</label>
+                        <label for="{{ form.nom.vars.id }}">Nom</label>
                         <div class="field-input-wrap">
-                            <input type="text" id="nom" name="nom" placeholder="Votre nom" required>
+                            {{ form_widget(form.nom, {'attr': {'class': 'form-control'}}) }}
                             <i class="fas fa-user fi-icon"></i>
                         </div>
+                        <div class="field-error">{{ form_errors(form.nom) }}</div>
                     </div>
                     <div class="field">
-                        <label for="prenom">Prenom</label>
+                        <label for="{{ form.prenom.vars.id }}">Prenom</label>
                         <div class="field-input-wrap">
-                            <input type="text" id="prenom" name="prenom" placeholder="Votre prenom" required>
+                            {{ form_widget(form.prenom, {'attr': {'class': 'form-control'}}) }}
                             <i class="fas fa-user fi-icon"></i>
                         </div>
+                        <div class="field-error">{{ form_errors(form.prenom) }}</div>
                     </div>
                 </div>
 
                 {# --- Email --- #}
                 <div class="field">
-                    <label for="email">Adresse email</label>
+                    <label for="{{ form.email.vars.id }}">Adresse email</label>
                     <div class="field-input-wrap">
-                        <input type="email" id="email" name="email" placeholder="nom@exemple.com" required>
+                        {{ form_widget(form.email, {'attr': {'class': 'form-control'}}) }}
                         <i class="fas fa-envelope fi-icon"></i>
                     </div>
+                    <div class="field-error">{{ form_errors(form.email) }}</div>
                 </div>
 
-                {# --- Password --- #}
+                {# --- Password (RepeatedType: first + second) --- #}
                 <div class="field-row">
                     <div class="field">
-                        <label for="password">Mot de passe</label>
+                        <label for="{{ form.password.first.vars.id }}">Mot de passe</label>
                         <div class="field-input-wrap">
-                            <input type="password" id="password" name="password" placeholder="Min. 6 caracteres" required>
+                            {{ form_widget(form.password.first, {'attr': {'class': 'form-control'}}) }}
                             <i class="fas fa-lock fi-icon"></i>
-                            <button type="button" class="field-toggle" onclick="togglePw('password',this)">
+                            <button type="button" class="field-toggle" onclick="togglePw('{{ form.password.first.vars.id }}',this)">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
                     </div>
                     <div class="field">
-                        <label for="confirm_password">Confirmer</label>
+                        <label for="{{ form.password.second.vars.id }}">Confirmer</label>
                         <div class="field-input-wrap">
-                            <input type="password" id="confirm_password" name="confirm_password" placeholder="Retapez" required>
+                            {{ form_widget(form.password.second, {'attr': {'class': 'form-control'}}) }}
                             <i class="fas fa-lock fi-icon"></i>
-                            <button type="button" class="field-toggle" onclick="togglePw('confirm_password',this)">
+                            <button type="button" class="field-toggle" onclick="togglePw('{{ form.password.second.vars.id }}',this)">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
                     </div>
                 </div>
+                <div class="field-error">{{ form_errors(form.password.first) }}{{ form_errors(form.password) }}</div>
 
                 {# --- Genre & Date de naissance --- #}
                 <div class="field-row">
                     <div class="field">
-                        <label for="genre">Genre</label>
+                        <label for="{{ form.genre.vars.id }}">Genre</label>
                         <div class="field-input-wrap">
-                            <select id="genre" name="genre" required>
-                                <option value="" disabled selected>Choisir</option>
-                                <option value="Homme">Homme</option>
-                                <option value="Femme">Femme</option>
-                            </select>
+                            {{ form_widget(form.genre, {'attr': {'class': 'form-control'}}) }}
                             <i class="fas fa-venus-mars fi-icon"></i>
                         </div>
+                        <div class="field-error">{{ form_errors(form.genre) }}</div>
                     </div>
                     <div class="field">
-                        <label for="date">Date de naissance <span class="field-optional">(optionnel)</span></label>
+                        <label for="{{ form.date.vars.id }}">Date de naissance <span class="field-optional">(optionnel)</span></label>
                         <div class="field-input-wrap">
-                            <input type="date" id="date" name="date">
+                            {{ form_widget(form.date, {'attr': {'class': 'form-control'}}) }}
                             <i class="fas fa-calendar-alt fi-icon"></i>
                         </div>
+                        <div class="field-error">{{ form_errors(form.date) }}</div>
                     </div>
                 </div>
 
                 {# --- Telephone --- #}
                 <div class="field">
-                    <label for="numeroT">Numero de telephone</label>
+                    <label for="{{ form.numeroT.vars.id }}">Numero de telephone</label>
                     <div class="field-input-wrap">
-                        <input type="tel" id="numeroT" name="numeroT" placeholder="+216 XX XXX XXX" required>
+                        {{ form_widget(form.numeroT, {'attr': {'class': 'form-control'}}) }}
                         <i class="fas fa-phone-alt fi-icon"></i>
                     </div>
+                    <div class="field-error">{{ form_errors(form.numeroT) }}</div>
                 </div>
 
                 {# --- Adresse --- #}
                 <div class="field">
-                    <label for="adresse">Adresse</label>
+                    <label for="{{ form.adresse.vars.id }}">Adresse</label>
                     <div class="field-input-wrap">
-                        <input type="text" id="adresse" name="adresse" placeholder="Votre adresse" required>
+                        {{ form_widget(form.adresse, {'attr': {'class': 'form-control'}}) }}
                         <i class="fas fa-map-marker-alt fi-icon"></i>
                     </div>
+                    <div class="field-error">{{ form_errors(form.adresse) }}</div>
                 </div>
 
                 {# --- Image --- #}
                 <div class="field">
-                    <label for="image">Photo de profil <span class="field-optional">(optionnel)</span></label>
+                    <label for="{{ form.imageFile.vars.id }}">Photo de profil <span class="field-optional">(optionnel)</span></label>
                     <div class="field-input-wrap">
-                        <input type="file" id="image" name="image" accept="image/*">
+                        {{ form_widget(form.imageFile, {'attr': {'class': 'form-control'}}) }}
                         <i class="fas fa-camera fi-icon"></i>
                     </div>
+                    <div class="field-error">{{ form_errors(form.imageFile) }}</div>
                 </div>
 
                 <button type="submit" class="auth-submit">
                     Creer mon compte <i class="fas fa-arrow-right"></i>
                 </button>
 
-            </form>
+            {{ form_end(form) }}
 
             <div class="auth-footer-link">
                 Deja inscrit ? <a href="{{ path('front_login') }}">Se connecter</a>

@@ -99,7 +99,11 @@
         </div>
         <div>
           <a class="d-flex align-items-center gap-2 text-decoration-none" href="{{ path('back_profile') }}" >
-            <img src="{{ asset('img/profile.webp') }}" alt="" width="40" height="40" class="rounded-circle" />
+            {% if app.session.get('user') and app.session.get('user').image %}
+              <img src="data:image/jpeg;base64,{{ app.session.get('user').image }}" alt="" width="40" height="40" class="rounded-circle" style="object-fit:cover;" />
+            {% else %}
+              <img src="{{ asset('img/profile.webp') }}" alt="" width="40" height="40" class="rounded-circle" />
+            {% endif %}
           </a>
         </div>
       </div>
@@ -175,7 +179,7 @@
                 <span class="hide-menu">Utilisateurs</span>
               </a>
   <li class="sidebar-item" style="margin-top: auto; padding-bottom: 30px;">
-  <a class="sidebar-link d-flex align-items-center" href="{{ path('front_login') }}" aria-expanded="false" style="padding-left: 1px;">
+  <a class="sidebar-link d-flex align-items-center" href="{{ path('utilisateur_logout') }}" aria-expanded="false" style="padding-left: 1px;">
     <i class="ti ti-logout me-0"></i>
     <span class="hide-menu">Déconnexion</span>
   </a>

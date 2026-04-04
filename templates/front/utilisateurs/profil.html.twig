@@ -10,7 +10,7 @@
 <div class="profile-hero">
     <div class="container">
         {% if app.session.get('user') and app.session.get('user').image %}
-            <img src="data:image/jpeg;base64,{{ app.session.get('user').image|default('') }}" alt="Photo" class="profile-hero-avatar">
+            <img src="data:image/jpeg;base64,{{ app.session.get('user').image }}" alt="Photo" class="profile-hero-avatar">
         {% else %}
             <img src="{{ asset('img/profile.webp') }}" alt="Photo" class="profile-hero-avatar">
         {% endif %}
@@ -19,6 +19,8 @@
             <h2>{{ app.session.get('user').prenom }} {{ app.session.get('user').nom }}</h2>
             <p class="profile-hero-email"><i class="fas fa-envelope me-1"></i> {{ app.session.get('user').email }}</p>
             {% if app.session.get('user').role == 0 %}
+                <span class="profile-hero-role role-admin"><i class="fas fa-user-shield me-1"></i> Administrateur</span>
+            {% elseif app.session.get('user').role == 1 %}
                 <span class="profile-hero-role role-agriculteur"><i class="fas fa-seedling me-1"></i> Agriculteur</span>
             {% else %}
                 <span class="profile-hero-role role-technicien"><i class="fas fa-tools me-1"></i> Technicien</span>
@@ -32,6 +34,13 @@
 
 {# ===== Profile Content ===== #}
 <div class="container profile-content">
+
+    {% for msg in app.flashes('success') %}
+        <div class="auth-alert auth-alert-success mb-3">
+            <i class="fas fa-check-circle"></i> {{ msg }}
+        </div>
+    {% endfor %}
+
     {% if app.session.get('user') %}
     <div class="row g-4">
 
@@ -102,7 +111,10 @@
             </div>
 
             <div class="profile-actions">
-                <a href="{{ path('front_login') }}" class="pbtn pbtn-outline">
+                <a href="{{ path('app_profile_edit') }}" class="pbtn pbtn-green">
+                    <i class="fas fa-edit"></i> Modifier mon profil
+                </a>
+                <a href="{{ path('utilisateur_logout') }}" class="pbtn pbtn-outline">
                     <i class="fas fa-sign-out-alt"></i> Deconnexion
                 </a>
             </div>
@@ -114,12 +126,8 @@
             <div class="sidebar-mini-card">
                 <h5><i class="fas fa-info-circle me-2"></i> Apercu du compte</h5>
                 <div class="sidebar-item">
-                    <i class="fas fa-hashtag"></i>
-                    <span>ID : <strong>#{{ app.session.get('user').id }}</strong></span>
-                </div>
-                <div class="sidebar-item">
                     <i class="fas fa-user-tag"></i>
-                    <span>Role : <strong>{% if app.session.get('user').role == 0 %}Agriculteur{% else %}Technicien{% endif %}</strong></span>
+                    <span>Role : <strong>{% if app.session.get('user').role == 0 %}Administrateur{% elseif app.session.get('user').role == 1 %}Agriculteur{% else %}Technicien{% endif %}</strong></span>
                 </div>
                 <div class="sidebar-item">
                     <i class="fas fa-check-double"></i>

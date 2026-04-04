@@ -56,12 +56,6 @@ class HomeController extends AbstractController
         return $this->render('front/ventes_depenses/ventes_depenses.html.twig');
     }
 
-    // ← AJOUTE CE QUI SUIT
-    #[Route('/profil', name: 'app_profile')]
-    public function profile(): Response
-    {
-        return $this->render('front/utilisateurs/profil.html.twig');
-    }
     #[Route('/services', name: 'app_services')]
 public function services(): Response
 {
@@ -73,15 +67,4 @@ public function techHome(): Response
     return $this->render('front/home/tech_home.html.twig');
 }
 
-    #[Route('/utilisateurs/login', name: 'front_login')]
-    public function login(): Response
-    {
-        return $this->render('front/utilisateurs/login.html.twig');
-    }
-
-    #[Route('/utilisateurs/register', name: 'front_register')]
-    public function register(): Response
-    {
-        return $this->render('front/utilisateurs/register.html.twig');
-    }
 }

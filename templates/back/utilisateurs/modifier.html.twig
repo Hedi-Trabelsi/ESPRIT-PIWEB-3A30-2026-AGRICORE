@@ -1,0 +1,117 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block content %}
+<link href="{{ asset('css/utilisateur/utilisateur.css') }}" rel="stylesheet">
+
+<div class="row mb-4">
+    <div class="col-12 d-flex align-items-center gap-3">
+        <a href="{{ path('back_utilisateurs') }}" class="u-back-btn"><i class="ti ti-arrow-left"></i></a>
+        <div>
+            <h4 class="fw-bold mb-1">Modifier l'utilisateur</h4>
+            <p class="text-muted mb-0">{{ user.prenom }} {{ user.nom }} — #{{ user.id }}</p>
+        </div>
+    </div>
+</div>
+
+{% for msg in app.flashes('error') %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="ti ti-alert-circle me-1"></i> {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endfor %}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="post" action="{{ path('back_utilisateur_modifier', {id: user.id}) }}">
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Nom</label>
+                            <input type="text" name="nom" class="form-control" value="{{ user.nom }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Prenom</label>
+                            <input type="text" name="prenom" class="form-control" value="{{ user.prenom }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Telephone</label>
+                            <input type="number" name="numeroT" class="form-control" value="{{ user.numeroT }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Adresse</label>
+                            <input type="text" name="adresse" class="form-control" value="{{ user.adresse }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Date de naissance</label>
+                            <input type="date" name="date" class="form-control" value="{{ user.date ? user.date|date('Y-m-d') : '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Genre</label>
+                            <select name="genre" class="form-select" required>
+                                <option value="Homme" {% if user.genre == 'Homme' %}selected{% endif %}>Homme</option>
+                                <option value="Femme" {% if user.genre == 'Femme' %}selected{% endif %}>Femme</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Role</label>
+                            <select name="role" class="form-select" required>
+                                <option value="0" {% if user.role == 0 %}selected{% endif %}>Administrateur</option>
+                                <option value="1" {% if user.role == 1 %}selected{% endif %}>Agriculteur</option>
+                                <option value="2" {% if user.role == 2 %}selected{% endif %}>Technicien</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Nouveau mot de passe <span class="text-muted fw-normal" style="font-size:12px;">(laisser vide pour ne pas changer)</span></label>
+                            <input type="password" name="password" class="form-control" placeholder="Nouveau mot de passe">
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3 mt-4 pt-2">
+                        <button type="submit" class="btn btn-success px-4">
+                            <i class="ti ti-check me-1"></i> Enregistrer
+                        </button>
+                        <a href="{{ path('back_utilisateurs') }}" class="btn btn-outline-secondary px-4">
+                            Annuler
+                        </a>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {# Sidebar info #}
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-4">
+                <div class="u-avatar-lg mx-auto mb-3">
+                    {% if user.image %}
+                        <img src="data:image/jpeg;base64,{{ user.image }}" alt="">
+                    {% else %}
+                        <img src="{{ asset('img/profile.webp') }}" alt="">
+                    {% endif %}
+                </div>
+                <h5 class="fw-bold mb-1">{{ user.prenom }} {{ user.nom }}</h5>
+                <p class="text-muted mb-2" style="font-size:14px;">{{ user.email }}</p>
+                {% if user.role == 0 %}
+                    <span class="u-badge u-badge-admin"><i class="ti ti-shield-check me-1"></i>Admin</span>
+                {% elseif user.role == 1 %}
+                    <span class="u-badge u-badge-agriculteur"><i class="ti ti-plant me-1"></i>Agriculteur</span>
+                {% else %}
+                    <span class="u-badge u-badge-technicien"><i class="ti ti-tools me-1"></i>Technicien</span>
+                {% endif %}
+                {% if user.banned %}
+                    <span class="u-badge u-badge-banned ms-1"><i class="ti ti-ban me-1"></i>Banni</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

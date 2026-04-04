@@ -6,6 +6,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Symfony\Component\Validator\Constraints as Assert;
 
 use App\Repository\UserRepository;
 
@@ -15,7 +16,7 @@ class User
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(name: 'id', type: 'integer')]
     private ?int $id = null;
 
     public function getId(): ?int
@@ -29,7 +30,9 @@ class User
         return $this;
     }
 
-    #[ORM\Column(type: 'string', nullable: false)]
+    #[ORM\Column(name: 'nom', type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: "Le nom est obligatoire.")]
+    #[Assert\Length(min: 2, max: 50, minMessage: "Le nom doit contenir au moins {{ limit }} caracteres.", maxMessage: "Le nom ne doit pas depasser {{ limit }} caracteres.")]
     private ?string $nom = null;
 
     public function getNom(): ?string
@@ -43,7 +46,9 @@ class User
         return $this;
     }
 
-    #[ORM\Column(type: 'string', nullable: false)]
+    #[ORM\Column(name: 'prenom', type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: "Le prenom est obligatoire.")]
+    #[Assert\Length(min: 2, max: 50, minMessage: "Le prenom doit contenir au moins {{ limit }} caracteres.", maxMessage: "Le prenom ne doit pas depasser {{ limit }} caracteres.")]
     private ?string $prenom = null;
 
     public function getPrenom(): ?string
@@ -57,7 +62,7 @@ class User
         return $this;
     }
 
-    #[ORM\Column(type: 'date', nullable: true)]
+    #[ORM\Column(name: 'date', type: 'date', nullable: true)]
     private ?\DateTimeInterface $date = null;
 
     public function getDate(): ?\DateTimeInterface
@@ -71,7 +76,9 @@ class User
         return $this;
     }
 
-    #[ORM\Column(type: 'string', nullable: false)]
+    #[ORM\Column(name: 'adresse', type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: "L'adresse est obligatoire.")]
+    #[Assert\Length(min: 3, max: 255, minMessage: "L'adresse doit contenir au moins {{ limit }} caracteres.")]
     private ?string $adresse = null;
 
     public function getAdresse(): ?string
@@ -85,7 +92,8 @@ class User
         return $this;
     }
 
-    #[ORM\Column(type: 'integer', nullable: false)]
+    #[ORM\Column(name: 'role', type: 'integer', nullable: false)]
+    #[Assert\NotBlank(message: "Le role est obligatoire.")]
     private ?int $role = null;
 
     public function getRole(): ?int
@@ -99,7 +107,9 @@ class User
         return $this;
     }
 
-    #[ORM\Column(type: 'integer', nullable: false)]
+    #[ORM\Column(name: 'numeroT', type: 'integer', nullable: false)]
+    #[Assert\NotBlank(message: "Le numero de telephone est obligatoire.")]
+    #[Assert\Positive(message: "Le numero de telephone doit etre un nombre positif.")]
     private ?int $numeroT = null;
 
     public function getNumeroT(): ?int
@@ -113,7 +123,9 @@ class User
         return $this;
     }
 
-    #[ORM\Column(type: 'string', nullable: false)]
+    #[ORM\Column(name: 'email', type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: "L'email est obligatoire.")]
+    #[Assert\Email(message: "L'email '{{ value }}' n'est pas un email valide.")]
     private ?string $email = null;
 
     public function getEmail(): ?string
@@ -127,21 +139,26 @@ class User
         return $this;
     }
 
-    #[ORM\Column(type: 'blob', nullable: true)]
-    private ?string $image = null;
+    #[ORM\Column(name: 'image', type: 'blob', nullable: true)]
+    private mixed $image = null;
 
     public function getImage(): ?string
     {
+        if (is_resource($this->image)) {
+            return stream_get_contents($this->image);
+        }
         return $this->image;
     }
 
-    public function setImage(?string $image): self
+    public function setImage(mixed $image): self
     {
         $this->image = $image;
         return $this;
     }
 
-    #[ORM\Column(type: 'string', nullable: false)]
+    #[ORM\Column(name: 'password', type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: "Le mot de passe est obligatoire.")]
+    #[Assert\Length(min: 6, minMessage: "Le mot de passe doit contenir au moins {{ limit }} caracteres.")]
     private ?string $password = null;
 
     public function getPassword(): ?string
@@ -155,7 +172,8 @@ class User
         return $this;
     }
 
-    #[ORM\Column(type: 'string', nullable: false)]
+    #[ORM\Column(name: 'genre', type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: "Le genre est obligatoire.")]
     private ?string $genre = null;
 
     public function getGenre(): ?string
@@ -169,8 +187,11 @@ class User
         return $this;
     }
 
-    #[ORM\Column(type: 'boolean', nullable: true)]
+    #[ORM\Column(name: 'profile_complete', type: 'boolean', nullable: true)]
     private ?bool $profile_complete = null;
+
+    #[ORM\Column(name: 'banned', type: 'boolean', nullable: true)]
+    private ?bool $banned = false;
 
     public function isProfile_complete(): ?bool
     {
@@ -180,6 +201,17 @@ class User
     public function setProfile_complete(?bool $profile_complete): self
     {
         $this->profile_complete = $profile_complete;
+        return $this;
+    }
+
+    public function isBanned(): ?bool
+    {
+        return $this->banned;
+    }
+
+    public function setBanned(?bool $banned): self
+    {
+        $this->banned = $banned;
         return $this;
     }
 

@@ -1,14 +1,158 @@
 {% extends 'back/base_back.html.twig' %}
 
 {% block content %}
-<div class="row">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-body">
-        <h4 class="card-title">Utilisateurs</h4>
-        <p>Contenu de la page Utilisateurs.</p>
-      </div>
+<link href="{{ asset('css/utilisateur/utilisateur.css') }}" rel="stylesheet">
+
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="fw-bold mb-1">Gestion des utilisateurs</h4>
+        <p class="text-muted mb-0">Consulter, modifier, bannir ou supprimer les utilisateurs de la plateforme.</p>
     </div>
-  </div>
 </div>
+
+{% for msg in app.flashes('success') %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="ti ti-check me-1"></i> {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endfor %}
+
+{% for msg in app.flashes('error') %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="ti ti-alert-circle me-1"></i> {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endfor %}
+
+{# Stats cards #}
+<div class="row mb-4 g-3">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="u-stat-icon" style="background:#f0fdf4;color:#16a34a;"><i class="ti ti-users fs-5"></i></div>
+                <div>
+                    <div class="u-stat-number">{{ users|length }}</div>
+                    <div class="u-stat-label">Total</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="u-stat-icon" style="background:#fef3c7;color:#d97706;"><i class="ti ti-plant fs-5"></i></div>
+                <div>
+                    <div class="u-stat-number">{{ users|filter(u => u.role == 1)|length }}</div>
+                    <div class="u-stat-label">Agriculteurs</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="u-stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="ti ti-tools fs-5"></i></div>
+                <div>
+                    <div class="u-stat-number">{{ users|filter(u => u.role == 2)|length }}</div>
+                    <div class="u-stat-label">Techniciens</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="u-stat-icon" style="background:#fef2f2;color:#dc2626;"><i class="ti ti-ban fs-5"></i></div>
+                <div>
+                    <div class="u-stat-number">{{ users|filter(u => u.banned)|length }}</div>
+                    <div class="u-stat-label">Bannis</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Users Table #}
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 u-table">
+                <thead>
+                    <tr>
+                        <th class="ps-4">#</th>
+                        <th>Utilisateur</th>
+                        <th>Email</th>
+                        <th>Telephone</th>
+                        <th>Role</th>
+                        <th>Statut</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr class="{% if user.banned %}u-row-banned{% endif %}">
+                        <td class="ps-4 fw-semibold text-muted">{{ user.id }}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="u-avatar">
+                                    {% if user.image %}
+                                        <img src="data:image/jpeg;base64,{{ user.image }}" alt="">
+                                    {% else %}
+                                        <img src="{{ asset('img/profile.webp') }}" alt="">
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">{{ user.prenom }} {{ user.nom }}</div>
+                                    <div class="text-muted" style="font-size:12px;">{{ user.adresse }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.numeroT }}</td>
+                        <td>
+                            {% if user.role == 0 %}
+                                <span class="u-badge u-badge-admin"><i class="ti ti-shield-check me-1"></i>Admin</span>
+                            {% elseif user.role == 1 %}
+                                <span class="u-badge u-badge-agriculteur"><i class="ti ti-plant me-1"></i>Agriculteur</span>
+                            {% else %}
+                                <span class="u-badge u-badge-technicien"><i class="ti ti-tools me-1"></i>Technicien</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.banned %}
+                                <span class="u-badge u-badge-banned"><i class="ti ti-ban me-1"></i>Banni</span>
+                            {% else %}
+                                <span class="u-badge u-badge-active"><i class="ti ti-check me-1"></i>Actif</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-2">
+                                <a href="{{ path('back_utilisateur_modifier', {id: user.id}) }}" class="u-action-btn u-action-edit" title="Modifier">
+                                    <i class="ti ti-edit"></i>
+                                </a>
+                                {% if user.role != 0 %}
+                                    <a href="{{ path('back_utilisateur_ban', {id: user.id}) }}" class="u-action-btn {% if user.banned %}u-action-unban{% else %}u-action-ban{% endif %}" title="{% if user.banned %}Debannir{% else %}Bannir{% endif %}">
+                                        <i class="ti ti-{% if user.banned %}lock-open{% else %}ban{% endif %}"></i>
+                                    </a>
+                                    <a href="{{ path('back_utilisateur_supprimer', {id: user.id}) }}" class="u-action-btn u-action-delete" title="Supprimer" onclick="return confirm('Etes-vous sur de vouloir supprimer cet utilisateur ?')">
+                                        <i class="ti ti-trash"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="ti ti-users-minus fs-1 d-block mb-2"></i>
+                            Aucun utilisateur trouve.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
