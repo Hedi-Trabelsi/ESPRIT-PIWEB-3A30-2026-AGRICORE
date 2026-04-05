@@ -21,30 +21,23 @@ class UserType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $isEdit = $options['is_edit'];
+
         $builder
             ->add('nom', TextType::class, [
                 'label' => 'Nom',
                 'attr' => ['placeholder' => 'Votre nom'],
+                'empty_data' => '',
             ])
             ->add('prenom', TextType::class, [
                 'label' => 'Prenom',
                 'attr' => ['placeholder' => 'Votre prenom'],
+                'empty_data' => '',
             ])
             ->add('email', EmailType::class, [
                 'label' => 'Adresse email',
                 'attr' => ['placeholder' => 'nom@exemple.com'],
-            ])
-            ->add('password', RepeatedType::class, [
-                'type' => PasswordType::class,
-                'first_options' => [
-                    'label' => 'Mot de passe',
-                    'attr' => ['placeholder' => 'Min. 6 caracteres'],
-                ],
-                'second_options' => [
-                    'label' => 'Confirmer',
-                    'attr' => ['placeholder' => 'Retapez le mot de passe'],
-                ],
-                'invalid_message' => 'Les mots de passe ne correspondent pas.',
+                'empty_data' => '',
             ])
             ->add('genre', ChoiceType::class, [
                 'label' => 'Genre',
@@ -62,19 +55,12 @@ class UserType extends AbstractType
             ->add('numeroT', IntegerType::class, [
                 'label' => 'Numero de telephone',
                 'attr' => ['placeholder' => '+216 XX XXX XXX'],
+                'empty_data' => '0',
             ])
             ->add('adresse', TextType::class, [
                 'label' => 'Adresse',
                 'attr' => ['placeholder' => 'Votre adresse'],
-            ])
-            ->add('role', ChoiceType::class, [
-                'label' => 'Vous etes',
-                'choices' => [
-                    'Agriculteur' => 1,
-                    'Technicien' => 2,
-                ],
-                'expanded' => true,
-                'data' => 1,
+                'empty_data' => '',
             ])
             ->add('imageFile', FileType::class, [
                 'label' => 'Photo de profil',
@@ -87,17 +73,49 @@ class UserType extends AbstractType
                         'mimeTypesMessage' => 'Veuillez uploader une image valide (JPG, PNG, WEBP).',
                     ])
                 ],
-            ])
-            ->add('captcha', HCaptchaType::class, [
-                'label' => 'Verification de securite',
-            ])
-        ;
+            ]);
+
+        if ($isEdit) {
+            $builder->add('password', PasswordType::class, [
+                'label' => 'Nouveau mot de passe (laisser vide pour ne pas changer)',
+                'mapped' => false,
+                'required' => false,
+                'attr' => ['placeholder' => 'Min. 6 caracteres'],
+            ]);
+        } else {
+            $builder
+                ->add('password', RepeatedType::class, [
+                    'type' => PasswordType::class,
+                    'first_options' => [
+                        'label' => 'Mot de passe',
+                        'attr' => ['placeholder' => 'Min. 6 caracteres'],
+                    ],
+                    'second_options' => [
+                        'label' => 'Confirmer',
+                        'attr' => ['placeholder' => 'Retapez le mot de passe'],
+                    ],
+                    'invalid_message' => 'Les mots de passe ne correspondent pas.',
+                ])
+                ->add('role', ChoiceType::class, [
+                    'label' => 'Vous etes',
+                    'choices' => [
+                        'Agriculteur' => 1,
+                        'Technicien' => 2,
+                    ],
+                    'expanded' => true,
+                    'data' => 1,
+                ])
+                ->add('captcha', HCaptchaType::class, [
+                    'label' => 'Verification de securite',
+                ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => User::class,
+            'is_edit' => false,
         ]);
     }
 }

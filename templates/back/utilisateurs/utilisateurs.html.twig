@@ -279,14 +279,19 @@
                 </thead>
                 <tbody id="uBody">
                     {% for user in users %}
-                    <tr class="u-row {% if user.banned %}u-row-banned{% endif %}"
+                    <tr class="u-row {% if user.banned %}u-row-banned{% endif %} {% if new_users is defined and user.id in new_users|map(u => u.id) %}table-success{% endif %}"
                         data-name="{{ user.prenom|lower }} {{ user.nom|lower }}"
                         data-email="{{ user.email|lower }}"
                         data-adresse="{{ user.adresse|lower }}"
                         data-role="{{ user.role }}"
                         data-status="{{ user.banned ? 'banned' : 'active' }}"
                         data-id="{{ user.id }}">
-                        <td class="ps-4 fw-semibold text-muted">{{ user.id }}</td>
+                        <td class="ps-4 fw-semibold text-muted">
+                            {{ user.id }}
+                            {% if new_users is defined and user.id in new_users|map(u => u.id) %}
+                                <span style="display:inline-block;width:8px;height:8px;background:#16a34a;border-radius:50%;margin-left:4px;" title="Nouveau"></span>
+                            {% endif %}
+                        </td>
                         <td>
                             <div class="d-flex align-items-center gap-3">
                                 <div class="u-avatar">
@@ -305,9 +310,9 @@
                         <td><span style="font-size:13px;">{{ user.email }}</span></td>
                         <td>{{ user.numeroT }}</td>
                         <td>
-                            {% if user.role == 0 or user.role == 'admin' %}
+                            {% if user.role == 0 %}
                                 <span class="u-badge u-badge-admin"><i class="ti ti-shield-check me-1"></i>Admin</span>
-                            {% elseif user.role == 1 or user.role == 'agriculteur' %}
+                            {% elseif user.role == 1 %}
                                 <span class="u-badge u-badge-agriculteur"><i class="ti ti-plant me-1"></i>Agriculteur</span>
                             {% else %}
                                 <span class="u-badge u-badge-technicien"><i class="ti ti-tools me-1"></i>Technicien</span>
@@ -325,12 +330,14 @@
                                 <a href="{{ path('back_utilisateur_modifier', {id: user.id}) }}" class="u-action-btn u-action-edit" title="Modifier">
                                     <i class="ti ti-edit"></i>
                                 </a>
-                                <a href="{{ path('back_utilisateur_ban', {id: user.id}) }}" class="u-action-btn {% if user.banned %}u-action-unban{% else %}u-action-ban{% endif %}" title="{% if user.banned %}Débannir{% else %}Bannir{% endif %}">
-                                    <i class="ti ti-{% if user.banned %}lock-open{% else %}ban{% endif %}"></i>
-                                </a>
-                                <a href="{{ path('back_utilisateur_supprimer', {id: user.id}) }}" class="u-action-btn u-action-delete" title="Supprimer" onclick="return confirm('Supprimer cet utilisateur ?')">
-                                    <i class="ti ti-trash"></i>
-                                </a>
+                                {% if user.role != 0 %}
+                                    <a href="{{ path('back_utilisateur_ban', {id: user.id}) }}" class="u-action-btn {% if user.banned %}u-action-unban{% else %}u-action-ban{% endif %}" title="{% if user.banned %}Debannir{% else %}Bannir{% endif %}">
+                                        <i class="ti ti-{% if user.banned %}lock-open{% else %}ban{% endif %}"></i>
+                                    </a>
+                                    <a href="{{ path('back_utilisateur_supprimer', {id: user.id}) }}" class="u-action-btn u-action-delete" title="Supprimer">
+                                        <i class="ti ti-trash"></i>
+                                    </a>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
