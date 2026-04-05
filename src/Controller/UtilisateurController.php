@@ -75,6 +75,10 @@ class UtilisateurController extends AbstractController
             return $this->redirectToRoute('back_dashboard');
         }
 
+        if ($user->getRole() === 2) {
+            return $this->redirectToRoute('app_tech_home');
+        }
+
         return $this->redirectToRoute('app_home');
     }
 
