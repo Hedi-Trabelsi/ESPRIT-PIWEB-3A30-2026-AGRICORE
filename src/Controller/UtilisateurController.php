@@ -163,25 +163,16 @@ class UtilisateurController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        if ($request->isMethod('POST')) {
-            $user->setNom($request->request->get('nom'));
-            $user->setPrenom($request->request->get('prenom'));
-            $user->setEmail($request->request->get('email'));
-            $user->setAdresse($request->request->get('adresse'));
-            $user->setNumeroT((int) $request->request->get('numeroT'));
-            $user->setGenre($request->request->get('genre'));
+        $form = $this->createForm(UserType::class, $user, ['is_edit' => true]);
+        $form->handleRequest($request);
 
-            $dateStr = $request->request->get('date');
-            if ($dateStr) {
-                $user->setDate(new \DateTime($dateStr));
-            }
-
-            $newPassword = $request->request->get('password');
+        if ($form->isSubmitted() && $form->isValid()) {
+            $newPassword = $form->get('password')->getData();
             if ($newPassword && strlen($newPassword) > 0) {
                 $user->setPassword(password_hash($newPassword, PASSWORD_BCRYPT));
             }
 
-            $imageFile = $request->files->get('image');
+            $imageFile = $form->get('imageFile')->getData();
             if ($imageFile) {
                 $imageData = file_get_contents($imageFile->getPathname());
                 $user->setImage(base64_encode($imageData));
@@ -199,6 +190,7 @@ class UtilisateurController extends AbstractController
 
         return $this->render('front/utilisateurs/edit_profil.html.twig', [
             'user' => $user,
+            'form' => $form->createView(),
         ]);
     }
 

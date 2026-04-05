@@ -34,62 +34,74 @@
                     </div>
                 {% endfor %}
 
-                <form method="post" action="{{ path('app_profile_edit') }}" enctype="multipart/form-data">
+                {% for msg in app.flashes('success') %}
+                    <div class="auth-alert auth-alert-success mb-3">
+                        <i class="fas fa-check-circle"></i> {{ msg }}
+                    </div>
+                {% endfor %}
+
+                {{ form_start(form, {'attr': {'novalidate': 'novalidate', 'enctype': 'multipart/form-data'}}) }}
                     <div class="row g-3">
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <input type="text" class="form-control" id="nom" name="nom" placeholder="Nom" value="{{ user.nom }}" required>
-                                <label for="nom">Nom</label>
+                                {{ form_widget(form.nom, {'attr': {'class': 'form-control', 'placeholder': 'Nom'}}) }}
+                                <label for="{{ form.nom.vars.id }}">Nom</label>
                             </div>
+                            <div class="field-error">{{ form_errors(form.nom) }}</div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <input type="text" class="form-control" id="prenom" name="prenom" placeholder="Prenom" value="{{ user.prenom }}" required>
-                                <label for="prenom">Prenom</label>
+                                {{ form_widget(form.prenom, {'attr': {'class': 'form-control', 'placeholder': 'Prenom'}}) }}
+                                <label for="{{ form.prenom.vars.id }}">Prenom</label>
                             </div>
+                            <div class="field-error">{{ form_errors(form.prenom) }}</div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <input type="email" class="form-control" id="email" name="email" placeholder="Email" value="{{ user.email }}" required>
-                                <label for="email">Email</label>
+                                {{ form_widget(form.email, {'attr': {'class': 'form-control', 'placeholder': 'Email'}}) }}
+                                <label for="{{ form.email.vars.id }}">Email</label>
                             </div>
+                            <div class="field-error">{{ form_errors(form.email) }}</div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <input type="number" class="form-control" id="numeroT" name="numeroT" placeholder="Telephone" value="{{ user.numeroT }}" required>
-                                <label for="numeroT">Telephone</label>
+                                {{ form_widget(form.numeroT, {'attr': {'class': 'form-control', 'placeholder': 'Telephone'}}) }}
+                                <label for="{{ form.numeroT.vars.id }}">Telephone</label>
                             </div>
+                            <div class="field-error">{{ form_errors(form.numeroT) }}</div>
                         </div>
                         <div class="col-12">
                             <div class="form-floating">
-                                <input type="text" class="form-control" id="adresse" name="adresse" placeholder="Adresse" value="{{ user.adresse }}" required>
-                                <label for="adresse">Adresse</label>
+                                {{ form_widget(form.adresse, {'attr': {'class': 'form-control', 'placeholder': 'Adresse'}}) }}
+                                <label for="{{ form.adresse.vars.id }}">Adresse</label>
                             </div>
+                            <div class="field-error">{{ form_errors(form.adresse) }}</div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <input type="date" class="form-control" id="date" name="date" placeholder="Date" value="{{ user.date ? user.date|date('Y-m-d') : '' }}">
-                                <label for="date">Date de naissance</label>
+                                {{ form_widget(form.date, {'attr': {'class': 'form-control', 'placeholder': 'Date'}}) }}
+                                <label for="{{ form.date.vars.id }}">Date de naissance</label>
                             </div>
+                            <div class="field-error">{{ form_errors(form.date) }}</div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <select class="form-select" id="genre" name="genre" required>
-                                    <option value="Homme" {% if user.genre == 'Homme' %}selected{% endif %}>Homme</option>
-                                    <option value="Femme" {% if user.genre == 'Femme' %}selected{% endif %}>Femme</option>
-                                </select>
-                                <label for="genre">Genre</label>
+                                {{ form_widget(form.genre, {'attr': {'class': 'form-select'}}) }}
+                                <label for="{{ form.genre.vars.id }}">Genre</label>
                             </div>
+                            <div class="field-error">{{ form_errors(form.genre) }}</div>
                         </div>
                         <div class="col-12">
                             <div class="form-floating">
-                                <input type="password" class="form-control" id="password" name="password" placeholder="Nouveau mot de passe">
-                                <label for="password">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+                                {{ form_widget(form.password, {'attr': {'class': 'form-control', 'placeholder': 'Nouveau mot de passe'}}) }}
+                                <label for="{{ form.password.vars.id }}">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
                             </div>
+                            <div class="field-error">{{ form_errors(form.password) }}</div>
                         </div>
                         <div class="col-12">
-                            <label for="image" class="form-label" style="font-weight:600;color:#0F4229;">Changer la photo de profil</label>
-                            <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                            <label for="{{ form.imageFile.vars.id }}" class="form-label" style="font-weight:600;color:#0F4229;">Changer la photo de profil</label>
+                            {{ form_widget(form.imageFile, {'attr': {'class': 'form-control', 'accept': 'image/*'}}) }}
+                            <div class="field-error">{{ form_errors(form.imageFile) }}</div>
                         </div>
                         <div class="col-12 d-flex gap-3 mt-4">
                             <button class="btn btn-primary py-3 px-4" type="submit">
@@ -100,7 +112,7 @@
                             </a>
                         </div>
                     </div>
-                </form>
+                {{ form_end(form) }}
             </div>
 
             {# --- Current photo sidebar --- #}
