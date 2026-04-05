@@ -173,7 +173,7 @@
         <input type="hidden" name="s" id="statusInput" value="{{ currentStatus }}">
 
         <div class="filter-container">
-    {% set statuses = {'all': 'Toutes', 'En attente': 'En attente', 'Planifiée': 'Planifiées', 'Résolue': 'Résolues', 'Refusé': 'Refusées'} %}
+    {% set statuses = {'all': 'Toutes', 'En attente': 'En attente', 'Planifiée': 'Planifiées', 'Résolue': 'Résolues', 'Refusée': 'Refusées'} %}
     
     {% for key, label in statuses %}
         <button type="button" 
@@ -252,7 +252,7 @@
                                 </div>
                                 <div class="mt-4 d-flex justify-content-between align-items-center">
                                     <div class="d-flex gap-3">
-                                        {% if m.Statut == 'Refusé' %}
+                                        {% if m.Statut == 'Refusée' %}
                                             <button type="button" class="btn btn-sm px-3 btn-outline-gray" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal{{ m.Id_maintenance }}">
                                                 <i class="fas fa-trash me-1"></i> Supprimer
                                             </button>

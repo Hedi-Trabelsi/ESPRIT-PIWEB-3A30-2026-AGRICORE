@@ -1,33 +1,32 @@
 {% extends 'back/base_back.html.twig' %}
-{% block notifications %}
-    {# On compte combien de maintenances sont "En attente" #}
-    {% set alert_count = 0 %}
-    {% for m in maintenances %}
-        {% if m.Statut|lower in ['en attente', 'attente'] %}
-            {% set alert_count = alert_count + 1 %}
-        {% endif %}
-    {% endfor %}
 
-    <div class="p-3 border-bottom">
+
+{% block notifications %}
+    {# Contenu du dropdown #}
+    <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
         <h6 class="mb-0 fw-semibold">Notifications</h6>
+        <span class="badge bg-warning text-dark d-none" id="dropdownBadge"></span>
     </div>
-    
+
     <div class="message-body" style="max-height: 300px; overflow-y: auto;">
-        {% if alert_count > 0 %}
-            {% for m in maintenances %}
-                {% if m.Statut|lower in ['en attente', 'attente'] %}
-                    <a href="{{ path('app_maintenance_detail_back', {'id_maintenance': m.id_maintenance}) }}" class="py-3 px-7 d-flex align-items-center dropdown-item gap-3 border-bottom">
-                        <span class="d-flex align-items-center justify-content-center bg-light-warning text-warning rounded-circle p-2">
-                            <i class="ti ti-alert-triangle fs-6"></i>
-                        </span>
-                        <div class="w-75 d-inline-block v-middle">
-                            <h6 class="mb-1 fw-semibold">Action requise</h6>
-                            <span class="d-block text-muted small">{{ m.nomMaintenance }}</span>
-                        </div>
-                    </a>
-                {% endif %}
-            {% endfor %}
-        {% else %}
+        {% set hasAlerts = false %}
+        {% for m in maintenances %}
+            {% if m.Statut|lower in ['en attente', 'attente'] %}
+                {% set hasAlerts = true %}
+                <a href="{{ path('app_maintenance_detail_back', {'id_maintenance': m.id_maintenance}) }}" 
+                   class="py-3 px-7 d-flex align-items-center dropdown-item gap-3 border-bottom">
+                    <span class="d-flex align-items-center justify-content-center bg-light-warning text-warning rounded-circle p-2">
+                        <i class="ti ti-alert-triangle fs-6"></i>
+                    </span>
+                    <div class="w-75 d-inline-block v-middle">
+                        <h6 class="mb-1 fw-semibold">Action requise</h6>
+                        <span class="d-block text-muted small">{{ m.nomMaintenance }}</span>
+                    </div>
+                </a>
+            {% endif %}
+        {% endfor %}
+
+        {% if not hasAlerts %}
             <div class="p-4 text-center">
                 <p class="mb-0 text-muted">Aucune nouvelle demande</p>
             </div>
@@ -241,67 +240,50 @@
     }
 </script>
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // --- 1. RÉCUPÉRATION DU NOMBRE DEPUIS TWIG ---
-        // On utilise la variable alert_count que tu as déjà calculée en haut du fichier
-        const count = {{ alert_count|default(0) }};
-        
-        // --- 2. CIBLAGE DU BADGE DANS LA TOPBAR ---
-        // On cherche le span qui a la classe .notification (ou l'id que tu as dans base_back)
-        let badge = document.querySelector('.notification');
-        
-        // Si le badge n'existe pas, on essaie de le trouver via l'icône de la cloche
-        if (!badge) {
-            const bell = document.getElementById('drop1');
-            if (bell) {
-                // On crée le badge dynamiquement s'il n'existe pas dans le HTML de base
-                badge = document.createElement('span');
-                badge.className = 'notification';
-                bell.style.position = 'relative';
-                bell.appendChild(badge);
-            }
-        }
+document.addEventListener("DOMContentLoaded", function() {
+    // On récupère le nombre de notifications depuis Twig
+    const alertCount = {{ maintenances|filter(m => m.Statut|lower in ['en attente', 'attente'])|length }};
 
-        if (badge) {
-            if (count > 0) {
-                badge.innerText = count;
-                badge.style.display = 'flex'; // On l'affiche
-                
-                // --- 3. STYLE DU BADGE (Pour être sûr qu'il soit beau) ---
-                Object.assign(badge.style, {
-                    position: 'absolute',
-                    top: '-5px',
-                    right: '-5px',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '18px',
-                    height: '18px',
-                    backgroundColor: '#fa896b', // Ton orange AgriCore
-                    color: 'white',
-                    fontSize: '10px',
-                    fontWeight: 'bold',
-                    borderRadius: '50%',
-                    border: '2px solid #fff',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    zIndex: '99'
-                });
-            } else {
-                badge.style.display = 'none'; // On cache si c'est 0
-            }
-        }
+    // Sélectionne l'icône de la cloche
+    const bell = document.getElementById('drop1');
+    if (!bell) return;
 
-        // --- 4. GESTION DU CLIC SUR LA CLOCHE ---
-        const bellIcon = document.getElementById('drop1');
-        if (bellIcon) {
-            // On désactive le dropdown pour que le clic redirige directement
-            bellIcon.removeAttribute('data-bs-toggle');
-            bellIcon.style.cursor = 'pointer';
-            
-            bellIcon.addEventListener('click', function(e) {
-                // Si on clique sur la cloche, on va vers la page de détails/notifications
-                window.location.href = "{{ path('app_maintenance_notifications_back') }}";
-            });
-        }
+    // Crée le badge si besoin
+    let badge = bell.querySelector('.notification');
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'notification';
+        bell.appendChild(badge);
+    }
+
+    if (alertCount > 0) {
+        badge.innerText = alertCount;
+        Object.assign(badge.style, {
+            position: 'absolute',
+            top: '-5px',
+            right: '-5px',
+            width: '18px',
+            height: '18px',
+            backgroundColor: '#fa896b',
+            color: 'white',
+            fontSize: '10px',
+            fontWeight: 'bold',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+        });
+    } else {
+        badge.style.display = 'none';
+    }
+
+    // Clique sur la cloche redirige vers la page notifications
+    bell.style.cursor = 'pointer';
+    bell.addEventListener('click', () => {
+        window.location.href = "{{ path('app_maintenance_notifications_back') }}";
     });
+});
 </script>
+
+
 {% endblock %}

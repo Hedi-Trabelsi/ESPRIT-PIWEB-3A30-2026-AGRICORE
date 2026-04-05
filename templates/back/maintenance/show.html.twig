@@ -111,13 +111,48 @@
     {% endfor %}
 
     <div class="header-section d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-        <div>
-            <h1 class="fw-bold m-0" style="color: #0F4229;">{{ maintenance.nomMaintenance }}</h1>
-            <div class="mt-2">
-                Statut : <span class="{% if maintenance.Statut in ['Résolu', 'Résolue'] %}text-success fw-bold{% else %}text-warning fw-bold{% endif %}">
-                    {{ maintenance.Statut }}
-                </span>
-            </div>
+       <div class="mt-2">
+    Statut : 
+    <span class="{% if maintenance.Statut in ['Résolu', 'Résolue'] %}text-success fw-bold{% else %}text-warning fw-bold{% endif %}">
+        {{ maintenance.Statut }}
+    </span>
+
+    {# Moyenne des évaluations #}
+    {% set total = 0 %}
+    {% set count = 0 %}
+
+    {% for t in maintenance.getTaches() %}
+        {% if t.evaluation is not null %}
+            {% set total = total + t.evaluation %}
+            {% set count = count + 1 %}
+        {% endif %}
+    {% endfor %}
+
+  {% if count == 0 %}
+    <div class="mt-1">
+        <span class="badge bg-secondary">Non évaluée</span>
+    </div>
+
+{% else %}
+    {% set moyenne = total / count %}
+
+    <div class="mt-1">
+        Avis global :
+
+        {% if moyenne > 0 %}
+            <span class="badge bg-success">Satisfaisant </span>
+
+        {% elseif moyenne < 0 %}
+            <span class="badge bg-danger">Non satisfaisant </span>
+
+        {% else %}
+            <span class="badge bg-warning text-dark">Mitigé</span>
+        {% endif %}
+
+        <small class="text-muted">({{ count }} évaluation(s))</small>
+    </div>
+{% endif %}
+</div>
         </div>
         
        
@@ -198,6 +233,27 @@
                                 <small class="text-muted d-block mb-1">Notes techniques :</small>
                                 <p class="small text-secondary mb-0">{{ tache.description|nl2br }}</p>
                             </div>
+                            {% if maintenance.Statut in ['Résolu', 'Résolue'] %}
+    <div class="mt-3 pt-2 border-top">
+        <small class="text-muted d-block mb-2">Avis client :</small>
+
+        {% if tache.evaluation == 1 %}
+            <span class="badge bg-success">
+                 Satisfait
+            </span>
+
+        {% elseif tache.evaluation == -1 %}
+            <span class="badge bg-danger">
+                 Non satisfait
+            </span>
+
+        {% else %}
+            <span class="badge bg-secondary">
+                 Pas encore évalué
+            </span>
+        {% endif %}
+    </div>
+{% endif %}
                         </div>
                     </div>
                 </div>

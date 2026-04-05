@@ -10,7 +10,49 @@
         border-bottom: 1px solid #eee;
         padding-bottom: 20px;
     }
+/* Styles pour le Vote */
+.vote-section {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 10px 15px;
+    margin-top: 15px;
+    border: 1px solid #edf2f7;
+}
 
+.btn-vote {
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid #e2e8f0;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    text-decoration: none;
+    color: #64748b;
+}
+
+.btn-vote:hover { transform: scale(1.1); }
+
+.btn-like.active { 
+    background-color: #dcfce7; 
+    color: #166534; 
+    border-color: #22c55e; 
+}
+
+.btn-dislike.active { 
+    background-color: #fef2f2; 
+    color: #991b1b; 
+    border-color: #ef4444; 
+}
+
+.btn-vote.inactive { 
+    opacity: 0.5; 
+    filter: grayscale(1); 
+}
     /* Carte Principale */
     .custom-card {
         background-color: #ffffff;
@@ -165,37 +207,61 @@
         </div>
     {% else %}
         <div class="row g-4">
-            {% for tache in maintenance.getTaches() %}
-                <div class="col-lg-4 col-md-6">
-                    <div class="task-card p-4 shadow-sm" onclick="toggleTask(this)">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="fw-bold mb-0" style="font-size: 1rem; color: #0F4229;">{{ tache.nomTache }}</h5>
-                            <span class="text-success fw-bold">{{ tache.getCoutEstimee() }} DT</span>
-                        </div>
-                        
-                        <div class="task-card-details text-start">
-                            <div class="card-info-val">
-                                <small class="text-muted">Intervention prévue le :</small>
-                                <div class="fw-bold">{{ tache.getDatePrevue()|date('d/m/Y') }}</div>
-                            </div>
-                            <div class="card-info-val">
-                                <small class="text-muted">Technicien assigné :</small>
-                                <div>
-                                    {% if tache.getIdTechnicien() %}
-                                        <i class="fas fa-user-check me-1 small"></i> {{ tache.getIdTechnicien().nom }} {{ tache.getIdTechnicien().prenom }}
-                                    {% else %}
-                                        <span class="text-muted italic">En attente d'assignation</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <small class="text-muted d-block mb-1">Notes techniques :</small>
-                                <p class="small text-secondary mb-0">{{ tache.description|nl2br }}</p>
-                            </div>
-                        </div>
+          {% for tache in maintenance.getTaches() %}
+    <div class="col-lg-4 col-md-6">
+        <div class="task-card p-4 shadow-sm" onclick="toggleTask(this)">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0" style="font-size: 1rem; color: #0F4229;">{{ tache.nomTache }}</h5>
+                <span class="text-success fw-bold">{{ tache.getCoutEstimee() }} DT</span>
+            </div>
+            
+            <div class="task-card-details text-start">
+                <div class="card-info-val">
+                    <small class="text-muted">Intervention prévue le :</small>
+                    <div class="fw-bold">{{ tache.getDatePrevue()|date('d/m/Y') }}</div>
+                </div>
+                
+                <div class="card-info-val">
+                    <small class="text-muted">Technicien assigné :</small>
+                    <div>
+                        {% if tache.getIdTechnicien() %}
+                            <i class="fas fa-user-check me-1 small"></i> {{ tache.getIdTechnicien().nom }} {{ tache.getIdTechnicien().prenom }}
+                        {% else %}
+                            <span class="text-muted italic">En attente d'assignation</span>
+                        {% endif %}
                     </div>
                 </div>
-            {% endfor %}
+
+                {# --- ZONE D'ÉVALUATION CLIENT --- #}
+                {% if maintenance.Statut in ['Résolu', 'Résolue'] %}
+                    <div class="vote-section d-flex align-items-center justify-content-between">
+                        <span class="small fw-bold text-dark">Votre avis :</span>
+                        <div class="d-flex gap-2">
+                            {# Bouton Like #}
+                            <a href="{{ path('app_tache_vote', {'id_tache': tache.id_tache, 'score': 1}) }}" 
+                               class="btn-vote btn-like {{ tache.evaluation == 1 ? 'active' : 'inactive' }}"
+                               onclick="event.stopPropagation();" title="Satisfait">
+                               <i class="fas fa-thumbs-up"></i>
+                            </a>
+                            
+                            {# Bouton Dislike #}
+                            <a href="{{ path('app_tache_vote', {'id_tache': tache.id_tache, 'score': -1}) }}" 
+                               class="btn-vote btn-dislike {{ tache.evaluation == -1 ? 'active' : 'inactive' }}"
+                               onclick="event.stopPropagation();" title="Non satisfait">
+                               <i class="fas fa-thumbs-down"></i>
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="mt-3 pt-2 border-top">
+                    <small class="text-muted d-block mb-1">Notes techniques :</small>
+                    <p class="small text-secondary mb-0">{{ tache.description|nl2br }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endfor %}
         </div>
     {% endif %}
 </div>

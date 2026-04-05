@@ -139,7 +139,7 @@ class TacheController extends AbstractController
         $em->flush();
 
         // On redirige vers la page des tâches de la maintenance concernée
-        return $this->redirectToRoute('app_maintenance_taches', [
+        return $this->redirectToRoute('app_maintenance_detail', [
             'id_maintenance' => $tache->getIdMaintenance()->getId_maintenance()
         ]);
     }

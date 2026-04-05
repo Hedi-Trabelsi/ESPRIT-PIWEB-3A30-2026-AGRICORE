@@ -108,9 +108,9 @@ public function backList(Request $request, MaintenanceRepository $repo): Respons
 {
     $search = $request->query->get('q');
     $status = $request->query->get('s');
-    $priority = $request->query->get('p'); // On récupère la priorité
+    $priority = $request->query->get('p'); 
 
-    // Appelle une méthode personnalisée dans ton Repository
+   
     $maintenances = $repo->findByFilters($search, $status, $priority);
 
     return $this->render('back/maintenance/maintenance.html.twig', [
@@ -131,7 +131,6 @@ public function statsBack(MaintenanceRepository $repo): Response
 {
     $maintenances = $repo->findAll();
     
-    // INITIALISATION CRUCIALE : On s'assure que les clés existent dès le début
     $statsStatut = ['Resolu' => 0, 'Attente' => 0, 'Planifie' => 0, 'Refuse' => 0];
     $statsPriorite = ['Urgente' => 0, 'Normale' => 0, 'Faible' => 0];
     $statsParJour = [];
@@ -144,8 +143,7 @@ public function statsBack(MaintenanceRepository $repo): Response
         elseif (in_array($s, ['Planifié', 'Planifiée'])) $statsStatut['Planifie']++;
         elseif (in_array($s, ['Refusé', 'Refusée'])) $statsStatut['Refuse']++;
 
-        // --- Stats Priorité CORRIGÉES ---
-        // On utilise trim() pour enlever les espaces invisibles
+       
         $p = trim($m->getPriorite()); 
         
         if (in_array($p, ['Urgente', 'Urgent', 'urgente'])) {
@@ -194,11 +192,11 @@ public function refuseBack(Maintenance $maintenance, EntityManagerInterface $em)
     return $this->redirectToRoute('app_maintenance_back_list');
 }
 
-// src/Controller/MaintenanceController.php
+
 
 public function countPendingNotifications(MaintenanceRepository $repo): Response
 {
-    // On compte uniquement les maintenances "En attente"
+    
     $count = $repo->count(['statut' => 'En attente']);
 
     return new Response($count);
