@@ -1,7 +1,145 @@
 {% extends 'back/base_back.html.twig' %}
 
+{% block notification_badge %}
+    {% if new_users is defined and new_users|length > 0 %}
+        <span style="position:absolute;top:2px;right:2px;width:18px;height:18px;background:#dc2626;color:#fff;border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;">{{ new_users|length }}</span>
+    {% endif %}
+{% endblock %}
+
 {% block content %}
 <link href="{{ asset('css/utilisateur/utilisateur.css') }}" rel="stylesheet">
+
+<style>
+    .u-toolbar {
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px 24px;
+        box-shadow: 0 1px 8px rgba(0,0,0,.04);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+    .u-search-wrap {
+        flex: 1;
+        min-width: 220px;
+        position: relative;
+    }
+    .u-search-wrap i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 14px;
+    }
+    .u-search-wrap input {
+        width: 100%;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 10px 14px 10px 38px;
+        font-size: 14px;
+        transition: .2s;
+        background: #f8fafc;
+    }
+    .u-search-wrap input:focus {
+        outline: none;
+        border-color: #16a34a;
+        box-shadow: 0 0 0 3px rgba(22,163,74,.1);
+        background: #fff;
+    }
+    .u-filter-select {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 10px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #475569;
+        background: #f8fafc;
+        min-width: 150px;
+        cursor: pointer;
+        transition: .2s;
+    }
+    .u-filter-select:focus {
+        outline: none;
+        border-color: #16a34a;
+        box-shadow: 0 0 0 3px rgba(22,163,74,.1);
+    }
+    .u-result-count {
+        font-size: 13px;
+        color: #94a3b8;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+    .u-result-count b { color: #1e293b; }
+
+    .u-table tbody tr { transition: background .15s; }
+    .u-table tbody tr:hover { background: #f8fafc; }
+    .u-row-banned { opacity: .6; }
+    .u-row-banned:hover { opacity: .8; }
+
+    .u-empty-filter {
+        text-align: center;
+        padding: 60px 20px;
+        color: #94a3b8;
+        display: none;
+    }
+    .u-empty-filter i { font-size: 2.5rem; margin-bottom: 8px; }
+
+    .u-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+    .u-sortable:hover { color: #16a34a; }
+    .u-sortable i { font-size: 10px; margin-left: 4px; opacity: .4; }
+
+    /* New user notification banner */
+    .u-notif-banner {
+        background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+        border: 1px solid #bbf7d0;
+        border-radius: 16px;
+        padding: 18px 24px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+    }
+    .u-notif-icon {
+        width: 42px; height: 42px;
+        background: #16a34a;
+        color: #fff;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+    .u-notif-body { flex: 1; }
+    .u-notif-title { font-weight: 700; color: #15803d; font-size: 14px; margin-bottom: 4px; }
+    .u-notif-list { font-size: 13px; color: #475569; margin: 0; padding: 0; list-style: none; }
+    .u-notif-list li {
+        padding: 6px 0;
+        border-bottom: 1px solid #dcfce7;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .u-notif-list li:last-child { border-bottom: none; }
+    .u-notif-avatar {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #bbf7d0;
+    }
+    .u-notif-dismiss {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 4px;
+        transition: .2s;
+        align-self: flex-start;
+    }
+    .u-notif-dismiss:hover { color: #475569; }
+</style>
 
 <div class="row mb-4">
     <div class="col-12">
@@ -23,6 +161,37 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 {% endfor %}
+
+{# New user notification #}
+{% if new_users is defined and new_users|length > 0 %}
+<div class="u-notif-banner" id="notifBanner">
+    <div class="u-notif-icon"><i class="ti ti-user-plus"></i></div>
+    <div class="u-notif-body">
+        <div class="u-notif-title">{{ new_users|length }} nouveau{{ new_users|length > 1 ? 'x' : '' }} utilisateur{{ new_users|length > 1 ? 's' : '' }} depuis votre derniere visite</div>
+        <ul class="u-notif-list">
+            {% for nu in new_users %}
+            <li>
+                {% if nu.image %}
+                    <img src="data:image/jpeg;base64,{{ nu.image }}" class="u-notif-avatar" alt="">
+                {% else %}
+                    <img src="{{ asset('img/profile.webp') }}" class="u-notif-avatar" alt="">
+                {% endif %}
+                <span><strong>{{ nu.prenom }} {{ nu.nom }}</strong> — {{ nu.email }}
+                {% if nu.role == 1 %}
+                    <span class="u-badge u-badge-agriculteur" style="font-size:10px;padding:2px 8px;"><i class="ti ti-plant me-1"></i>Agriculteur</span>
+                {% elseif nu.role == 2 %}
+                    <span class="u-badge u-badge-technicien" style="font-size:10px;padding:2px 8px;"><i class="ti ti-tools me-1"></i>Technicien</span>
+                {% endif %}
+                </span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <button class="u-notif-dismiss" onclick="document.getElementById('notifBanner').style.display='none'" title="Fermer">
+        <i class="ti ti-x"></i>
+    </button>
+</div>
+{% endif %}
 
 {# Stats cards #}
 <div class="row mb-4 g-3">
@@ -72,15 +241,35 @@
     </div>
 </div>
 
+{# Toolbar: Search + Filters #}
+<div class="u-toolbar">
+    <div class="u-search-wrap">
+        <i class="ti ti-search"></i>
+        <input type="text" id="uSearch" placeholder="Rechercher par nom, email, adresse...">
+    </div>
+    <select id="uFilterRole" class="u-filter-select">
+        <option value="all">Tous les roles</option>
+        <option value="0">Administrateurs</option>
+        <option value="1">Agriculteurs</option>
+        <option value="2">Techniciens</option>
+    </select>
+    <select id="uFilterStatus" class="u-filter-select" style="min-width:120px;">
+        <option value="all">Tout statut</option>
+        <option value="active">Actifs</option>
+        <option value="banned">Bannis</option>
+    </select>
+    <div class="u-result-count"><b id="uCount">{{ users|length }}</b> resultats</div>
+</div>
+
 {# Users Table #}
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 u-table">
+            <table class="table table-hover align-middle mb-0 u-table" id="uTable">
                 <thead>
                     <tr>
-                        <th class="ps-4">#</th>
-                        <th>Utilisateur</th>
+                        <th class="ps-4 u-sortable" data-sort="id"># <i class="ti ti-arrows-sort"></i></th>
+                        <th class="u-sortable" data-sort="name">Utilisateur <i class="ti ti-arrows-sort"></i></th>
                         <th>Email</th>
                         <th>Telephone</th>
                         <th>Role</th>
@@ -88,10 +277,21 @@
                         <th class="text-center">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="uBody">
                     {% for user in users %}
-                    <tr class="{% if user.banned %}u-row-banned{% endif %}">
-                        <td class="ps-4 fw-semibold text-muted">{{ user.id }}</td>
+                    <tr class="u-row {% if user.banned %}u-row-banned{% endif %} {% if new_users is defined and user.id in new_users|map(u => u.id) %}table-success{% endif %}"
+                        data-name="{{ user.prenom|lower }} {{ user.nom|lower }}"
+                        data-email="{{ user.email|lower }}"
+                        data-adresse="{{ user.adresse|lower }}"
+                        data-role="{{ user.role }}"
+                        data-status="{{ user.banned ? 'banned' : 'active' }}"
+                        data-id="{{ user.id }}">
+                        <td class="ps-4 fw-semibold text-muted">
+                            {{ user.id }}
+                            {% if new_users is defined and user.id in new_users|map(u => u.id) %}
+                                <span style="display:inline-block;width:8px;height:8px;background:#16a34a;border-radius:50%;margin-left:4px;" title="Nouveau"></span>
+                            {% endif %}
+                        </td>
                         <td>
                             <div class="d-flex align-items-center gap-3">
                                 <div class="u-avatar">
@@ -107,7 +307,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td>{{ user.email }}</td>
+                        <td><span style="font-size:13px;">{{ user.email }}</span></td>
                         <td>{{ user.numeroT }}</td>
                         <td>
                             {% if user.role == 0 %}
@@ -152,7 +352,77 @@
                 </tbody>
             </table>
         </div>
+        <div class="u-empty-filter" id="uEmpty">
+            <i class="ti ti-filter-off d-block mb-2"></i>
+            Aucun utilisateur ne correspond a vos filtres.
+        </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var searchInput  = document.getElementById('uSearch');
+    var roleFilter   = document.getElementById('uFilterRole');
+    var statusFilter = document.getElementById('uFilterStatus');
+    var countEl      = document.getElementById('uCount');
+    var emptyEl      = document.getElementById('uEmpty');
+    var rows         = document.querySelectorAll('#uBody .u-row');
+
+    function applyFilters() {
+        var q      = searchInput.value.toLowerCase().trim();
+        var role   = roleFilter.value;
+        var status = statusFilter.value;
+        var visible = 0;
+
+        rows.forEach(function(row) {
+            var matchSearch = !q
+                || row.dataset.name.indexOf(q) !== -1
+                || row.dataset.email.indexOf(q) !== -1
+                || row.dataset.adresse.indexOf(q) !== -1;
+            var matchRole   = (role === 'all')   || row.dataset.role === role;
+            var matchStatus = (status === 'all') || row.dataset.status === status;
+
+            if (matchSearch && matchRole && matchStatus) {
+                row.style.display = '';
+                visible++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        countEl.textContent = visible;
+        emptyEl.style.display = (visible === 0 && rows.length > 0) ? 'block' : 'none';
+    }
+
+    searchInput.addEventListener('input', applyFilters);
+    roleFilter.addEventListener('change', applyFilters);
+    statusFilter.addEventListener('change', applyFilters);
+
+    // Column sorting
+    var sortDir = {};
+    document.querySelectorAll('.u-sortable').forEach(function(th) {
+        th.addEventListener('click', function() {
+            var key = th.dataset.sort;
+            sortDir[key] = !sortDir[key];
+            var arr = Array.from(rows);
+            arr.sort(function(a, b) {
+                var va, vb;
+                if (key === 'id') {
+                    va = parseInt(a.dataset.id);
+                    vb = parseInt(b.dataset.id);
+                } else {
+                    va = a.dataset.name;
+                    vb = b.dataset.name;
+                }
+                if (va < vb) return sortDir[key] ? -1 : 1;
+                if (va > vb) return sortDir[key] ? 1 : -1;
+                return 0;
+            });
+            var tbody = document.getElementById('uBody');
+            arr.forEach(function(row) { tbody.appendChild(row); });
+        });
+    });
+});
+</script>
 
 {% endblock %}

@@ -10,12 +10,13 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class UtilisateurController extends AbstractController
 {
     // ===================== LOGIN =====================
     #[Route('/utilisateurs/login', name: 'front_login', methods: ['GET', 'POST'])]
-    public function login(Request $request, UserRepository $userRepo): Response
+    public function login(Request $request, UserRepository $userRepo, HttpClientInterface $httpClient): Response
     {
         $hcaptchaKey = $this->getParameter('hcaptcha_site_key');
 
@@ -23,6 +24,26 @@ class UtilisateurController extends AbstractController
             return $this->render('front/utilisateurs/login.html.twig', [
                 'hcaptcha_site_key' => $hcaptchaKey,
             ]);
+        }
+
+        // Verify hCaptcha
+        $captchaResponse = $request->request->get('h-captcha-response');
+        if (!$captchaResponse) {
+            $this->addFlash('error', 'Veuillez completer le captcha.');
+            return $this->redirectToRoute('front_login');
+        }
+
+        $hcaptchaSecret = $this->getParameter('hcaptcha_secret');
+        $verifyResponse = $httpClient->request('POST', 'https://api.hcaptcha.com/siteverify', [
+            'body' => [
+                'response' => $captchaResponse,
+                'secret' => $hcaptchaSecret,
+            ],
+        ]);
+        $verifyResult = $verifyResponse->toArray(false);
+        if (!($verifyResult['success'] ?? false)) {
+            $this->addFlash('error', 'Verification captcha echouee. Veuillez reessayer.');
+            return $this->redirectToRoute('front_login');
         }
 
         $email = $request->request->get('email');
@@ -52,6 +73,10 @@ class UtilisateurController extends AbstractController
 
         if ($user->getRole() === 0) {
             return $this->redirectToRoute('back_dashboard');
+        }
+
+        if ($user->getRole() === 2) {
+            return $this->redirectToRoute('app_tech_home');
         }
 
         return $this->redirectToRoute('app_home');
@@ -188,8 +213,30 @@ class UtilisateurController extends AbstractController
         }
 
         $users = $userRepo->findAll();
+        $currentIds = array_map(fn($u) => $u->getId(), $users);
+
+        // Use a file to persist seen IDs across sessions (survives logout)
+        $seenFile = $this->getParameter('kernel.project_dir') . '/var/admin_seen_users.json';
+        $seenIds = [];
+        $newUsers = [];
+
+        if (file_exists($seenFile)) {
+            $seenIds = json_decode(file_get_contents($seenFile), true) ?: [];
+
+            foreach ($users as $u) {
+                if (!in_array($u->getId(), $seenIds)) {
+                    $u->prepareForSession();
+                    $newUsers[] = $u;
+                }
+            }
+        }
+
+        // Save current IDs to file
+        file_put_contents($seenFile, json_encode($currentIds));
+
         return $this->render('back/utilisateurs/utilisateurs.html.twig', [
             'users' => $users,
+            'new_users' => $newUsers,
         ]);
     }
 

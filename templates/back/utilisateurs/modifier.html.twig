@@ -111,6 +111,30 @@
                 {% endif %}
             </div>
         </div>
+
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3"><i class="ti ti-info-circle me-1 text-muted"></i> Informations</h6>
+                <div class="d-flex flex-column gap-2" style="font-size:13px;">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">ID</span>
+                        <span class="fw-semibold">#{{ user.id }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Genre</span>
+                        <span class="fw-semibold">{{ user.genre }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Date de naissance</span>
+                        <span class="fw-semibold">{{ user.date ? user.date|date('d/m/Y') : 'N/A' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Profil complet</span>
+                        <span class="fw-semibold">{% if user.profileComplete %}<span class="text-success">Oui</span>{% else %}<span class="text-warning">Non</span>{% endif %}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
