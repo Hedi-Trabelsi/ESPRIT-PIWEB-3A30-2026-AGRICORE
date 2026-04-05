@@ -1,0 +1,108 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block content %}
+<style>
+    .form-card {
+        background: #fff;
+        border-radius: 15px;
+        border: 1px solid #e8e8e8;
+        padding: 30px;
+        max-width: 600px;
+        margin: 0 auto;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    .form-header {
+        margin-bottom: 25px;
+        text-align: center;
+    }
+    .form-header h2 {
+        color: #198754;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+    .form-header p {
+        color: #718096;
+        font-size: 0.9rem;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-label {
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 8px;
+        display: block;
+    }
+    .btn-submit {
+        background: #198754;
+        color: #fff;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 10px;
+        font-weight: 600;
+        width: 100%;
+        transition: background 0.2s;
+        margin-top: 10px;
+    }
+    .btn-submit:hover {
+        background: #2b6cb0;
+        color: #fff;
+    }
+    .btn-back {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        color: #4a5568;
+        padding: 10px 20px;
+        border-radius: 10px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+        margin-bottom: 20px;
+    }
+    .btn-back:hover {
+        background: #f7fafc;
+        color: #2d3748;
+    }
+</style>
+
+<div class="p-0 m-0">
+    <div class="mb-4">
+        <a href="{{ path('back_user_outils', {'id': user.id}) }}" class="btn-back mb-0">
+            <i class="ti ti-arrow-left"></i> Retour
+        </a>
+    </div>
+
+    <div class="form-card">
+        <div class="form-header">
+            <h2>Modifier la Vente</h2>
+            <p>Mise à jour des informations pour {{ user.nom }} {{ user.prenom }}</p>
+        </div>
+
+        {{ form_start(form) }}
+            <div class="form-group">
+                {{ form_label(form.produit, null, {'label_attr': {'class': 'form-label'}}) }}
+                {{ form_widget(form.produit) }}
+            </div>
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    {{ form_label(form.prixUnitaire, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.prixUnitaire) }}
+                </div>
+                <div class="col-md-6 form-group">
+                    {{ form_label(form.quantite, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.quantite) }}
+                </div>
+            </div>
+            <div class="form-group">
+                {{ form_label(form.date, null, {'label_attr': {'class': 'form-label'}}) }}
+                {{ form_widget(form.date) }}
+            </div>
+            <button type="submit" class="btn-submit">
+                <i class="ti ti-edit"></i> Mettre à jour
+            </button>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
