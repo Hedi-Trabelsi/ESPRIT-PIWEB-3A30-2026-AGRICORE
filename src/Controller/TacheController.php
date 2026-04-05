@@ -12,7 +12,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-
+use App\Repository\TacheRepository;
 class TacheController extends AbstractController
 {
     #[Route('/tache/nouvelle/{id_maintenance}', name: 'app_tache_new', defaults: ['id_maintenance' => null])]
@@ -20,13 +20,13 @@ class TacheController extends AbstractController
     {
         $tache = new Tache();
 
-        // 1. Récupérer le technicien ID 4
+        
         $technicien = $em->getRepository(User::class)->find(4);
         if ($technicien) {
             $tache->setIdTechnicien($technicien);
         }
 
-        // 2. Pré-remplir la maintenance
+      
         if ($id_maintenance) {
             $maintenance = $maintenanceRepository->find($id_maintenance);
             if ($maintenance) {
@@ -34,8 +34,7 @@ class TacheController extends AbstractController
             }
         }
 
-        // --- CORRECTION DE L'ERREUR DE DATE ICI ---
-        // On donne la date du jour par défaut pour éviter le "null"
+      
         $tache->setDatePrevue(new \DateTime()); 
         
         $tache->setEvaluation(0);
@@ -111,10 +110,38 @@ class TacheController extends AbstractController
 
         $maintenance->setStatut('Résolue');
         $em->flush();
-        $this->addFlash('success', 'Maintenance résolue avec succès.');
+       
 
         return $this->redirectToRoute('app_maintenance_taches', [
             'id_maintenance' => $maintenance->getId_maintenance(),
         ]);
     }
+#[Route('/tache/vote/{id_tache}/{score}', name: 'app_tache_vote')]
+    public function vote(
+        int $id_tache, 
+        int $score, 
+        TacheRepository $repo, 
+        EntityManagerInterface $em
+    ): Response {
+        $tache = $repo->find($id_tache);
+
+        if (!$tache) {
+            throw $this->createNotFoundException('Tâche non trouvée');
+        }
+
+        // On change l'évaluation
+        if ($tache->getEvaluation() === $score) {
+            $tache->setEvaluation(0);
+        } else {
+            $tache->setEvaluation($score);
+        }
+
+        $em->flush();
+
+        // On redirige vers la page des tâches de la maintenance concernée
+        return $this->redirectToRoute('app_maintenance_taches', [
+            'id_maintenance' => $tache->getIdMaintenance()->getId_maintenance()
+        ]);
+    }
+
 }

@@ -12,4 +12,5 @@ class TacheRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Tache::class);
     }
+    
 }

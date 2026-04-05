@@ -173,16 +173,17 @@
         <input type="hidden" name="s" id="statusInput" value="{{ currentStatus }}">
 
         <div class="filter-container">
-            {% set statuses = {'all': 'Toutes', 'En attente': 'En attente', 'Planifiée': 'Planifiées', 'Résolue': 'Résolues', 'Refusé': 'Refusées'} %}
-            
-            {% for key, label in statuses %}
-                <button type="button" 
-                        class="filter-btn {{ currentStatus == key ? 'active' : '' }}" 
-                        onclick="submitWithStatus('{{ key }}')">
-                    {{ label }}
-                </button>
-            {% endfor %}
-        </div>
+    {% set statuses = {'all': 'Toutes', 'En attente': 'En attente', 'Planifiée': 'Planifiées', 'Résolue': 'Résolues', 'Refusé': 'Refusées'} %}
+    
+    {% for key, label in statuses %}
+        <button type="button" 
+                {# CORRECTION CI-DESSOUS : On vérifie si c'est 'all' ET que currentStatus est vide, ou s'ils sont égaux #}
+                class="filter-btn {{ (key == 'all' and currentStatus is empty) or (currentStatus == key) ? 'active' : '' }}" 
+                onclick="submitWithStatus('{{ key }}')">
+            {{ label }}
+        </button>
+    {% endfor %}
+</div>
     </form>
     {# --- FIN PARTIE RECHERCHE --- #}
 
@@ -203,7 +204,7 @@
 
                         <button type="button" 
                                 class="btn-plus" 
-                                onclick="window.location.href='{{ path('app_maintenance_taches', {'id_maintenance': m.Id_maintenance}) }}'">
+                                onclick="window.location.href='{{ path('app_maintenance_detail', {'id_maintenance': m.Id_maintenance}) }}'">
                             PLUS
                         </button>
                     </div>

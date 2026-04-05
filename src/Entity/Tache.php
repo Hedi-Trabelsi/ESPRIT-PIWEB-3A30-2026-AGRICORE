@@ -55,11 +55,12 @@ class Tache
     )]
     private ?string $nomTache = null;
 
-    #[ORM\Column(type: "integer")]
-    #[Assert\NotBlank(message: "L'évaluation est obligatoire.")]
-    #[Assert\Range(min: 0, max: 10, notInRangeMessage: "L'évaluation doit être entre 0 et 10.")]
-    private int $evaluation;
 
+#[ORM\Column(type: "integer")]
+#[Assert\NotBlank(message: "L'évaluation est obligatoire.")]
+
+#[Assert\Range(min: -1, max: 1, notInRangeMessage: "L'évaluation doit être -1 (Dislike), 0 (Neutre) ou 1 (Like).")]
+private int $evaluation = 0; 
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: "taches")]
     #[ORM\JoinColumn(name: 'id_technicien', referencedColumnName: 'id', onDelete: 'CASCADE')]
     private User $id_technicien;
