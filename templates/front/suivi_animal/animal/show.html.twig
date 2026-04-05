@@ -1,0 +1,179 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Fiche Animal{% endblock %}
+
+{% block body %}
+<style>
+  .ag-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #C0DD97; }
+  .ag-title-wrap { display: flex; align-items: center; gap: 10px; }
+  .ag-icon-box { width: 38px; height: 38px; background: #3B6D11; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+  .ag-h1 { font-size: 21px; font-weight: 500; color: #27500A; margin: 0; }
+  .ag-subtitle { font-size: 13px; color: #6c757d; margin: 0; }
+  .ag-btn-back { background: transparent; color: #3B6D11; border: 0.5px solid #3B6D11; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; text-decoration: none; }
+  .ag-btn-green { background: #3B6D11; color: white; border: none; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; text-decoration: none; }
+
+  /* Fiche identité */
+  .ag-profile-card { background: #fff; border: 0.5px solid #C0DD97; border-radius: 14px; overflow: hidden; margin-bottom: 2rem; }
+  .ag-profile-header { background: #EAF3DE; padding: 16px 20px; border-bottom: 0.5px solid #C0DD97; display: flex; align-items: center; justify-content: space-between; }
+  .ag-avatar { width: 52px; height: 52px; border-radius: 50%; background: #3B6D11; display: flex; align-items: center; justify-content: center; }
+  .ag-profile-name { font-size: 17px; font-weight: 500; color: #27500A; margin: 0; }
+  .ag-profile-sub { font-size: 12px; color: #639922; margin: 0; }
+  .ag-code-badge { background: #3B6D11; color: white; font-size: 11px; padding: 4px 12px; border-radius: 20px; font-weight: 500; }
+
+  .ag-profile-body { padding: 18px 20px; }
+  .ag-info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+  .ag-info-cell { background: #EAF3DE; border-radius: 9px; padding: 12px 14px; }
+  .ag-info-cell-label { font-size: 10px; color: #639922; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 500; }
+  .ag-info-cell-value { font-size: 15px; font-weight: 500; color: #27500A; }
+
+  /* Section suivis */
+  .ag-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .ag-section-title { font-size: 16px; font-weight: 500; color: #27500A; display: flex; align-items: center; gap: 8px; }
+  .ag-section-dot { width: 10px; height: 10px; border-radius: 50%; background: #3B6D11; display: inline-block; }
+
+  /* Grid suivis */
+  .ag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+  .ag-suivi-card { background: #fff; border: 0.5px solid #C0DD97; border-radius: 12px; overflow: hidden; transition: transform 0.15s; }
+  .ag-suivi-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(59,109,17,0.09); }
+  .ag-suivi-top { background: #EAF3DE; padding: 10px 14px; border-bottom: 0.5px solid #C0DD97; display: flex; justify-content: space-between; align-items: center; }
+  .ag-suivi-date { font-size: 12px; color: #27500A; font-weight: 500; }
+  .ag-state-bon { background: #3B6D11; color: white; font-size: 11px; padding: 2px 9px; border-radius: 20px; }
+  .ag-state-bad { background: #FAEEDA; color: #633806; font-size: 11px; padding: 2px 9px; border-radius: 20px; }
+  .ag-suivi-body { padding: 12px 14px; }
+  .ag-vitals { display: grid; grid-template-columns: repeat(3, 1fr); border: 0.5px solid #C0DD97; border-radius: 8px; overflow: hidden; }
+  .ag-vital { padding: 9px 5px; text-align: center; }
+  .ag-vital:not(:last-child) { border-right: 0.5px solid #C0DD97; }
+  .ag-vital-label { font-size: 9px; font-weight: 500; color: #639922; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+  .ag-vital-value { font-size: 15px; font-weight: 500; color: #27500A; }
+  .ag-vital-unit { font-size: 10px; color: #6c757d; }
+  .ag-suivi-footer { padding: 8px 14px; background: #EAF3DE; border-top: 0.5px solid #C0DD97; display: flex; gap: 6px; justify-content: flex-end; }
+  .ag-btn-show { background: #3B6D11; color: white; border: none; padding: 4px 11px; border-radius: 7px; font-size: 11px; font-weight: 500; text-decoration: none; }
+  .ag-btn-sm-edit { background: transparent; color: #3B6D11; border: 0.5px solid #3B6D11; padding: 4px 11px; border-radius: 7px; font-size: 11px; font-weight: 500; text-decoration: none; }
+
+  .ag-actions { display: flex; align-items: center; gap: 10px; margin-top: 2rem; padding-top: 1rem; border-top: 0.5px solid #C0DD97; flex-wrap: wrap; }
+  .ag-btn-danger { background: transparent; color: #A32D2D; border: 0.5px solid #A32D2D; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .ag-empty { grid-column: 1/-1; text-align: center; padding: 2.5rem; color: #639922; background: #EAF3DE; border-radius: 10px; font-size: 13px; }
+</style>
+
+<div class="ag-header">
+  <div class="ag-title-wrap">
+    <div class="ag-icon-box">
+      <i class="fas fa-leaf" style="color:white;font-size:16px;"></i>
+    </div>
+    <div>
+      <p class="ag-h1">Fiche animal</p>
+      <p class="ag-subtitle">Détails et historique sanitaire</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{{ path('app_animal_index') }}" class="ag-btn-back">← Retour</a>
+    <a href="{{ path('app_animal_edit', {'idAnimal': animal.idAnimal}) }}" class="ag-btn-green">✎ Modifier</a>
+  </div>
+</div>
+
+{# ── Fiche identité ── #}
+<div class="ag-profile-card">
+  <div class="ag-profile-header">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="ag-avatar">
+        <i class="fas fa-paw" style="color:white;font-size:20px;"></i>
+      </div>
+      <div>
+        <p class="ag-profile-name">{{ animal.race }}</p>
+        <p class="ag-profile-sub">{{ animal.espece }}</p>
+      </div>
+    </div>
+    <span class="ag-code-badge">#{{ animal.codeAnimal }}</span>
+  </div>
+  <div class="ag-profile-body">
+    <div class="ag-info-grid">
+      <div class="ag-info-cell">
+        <div class="ag-info-cell-label">ID Animal</div>
+        <div class="ag-info-cell-value">{{ animal.idAnimal }}</div>
+      </div>
+      <div class="ag-info-cell">
+        <div class="ag-info-cell-label">Code</div>
+        <div class="ag-info-cell-value">{{ animal.codeAnimal }}</div>
+      </div>
+      <div class="ag-info-cell">
+        <div class="ag-info-cell-label">Espèce</div>
+        <div class="ag-info-cell-value">{{ animal.espece }}</div>
+      </div>
+      <div class="ag-info-cell">
+        <div class="ag-info-cell-label">Race</div>
+        <div class="ag-info-cell-value">{{ animal.race }}</div>
+      </div>
+      <div class="ag-info-cell">
+        <div class="ag-info-cell-label">Sexe</div>
+        <div class="ag-info-cell-value" style="color: {{ animal.sexe|upper == 'M' ? '#185FA5' : '#993556' }};">
+          <i class="fas fa-{{ animal.sexe|upper == 'M' ? 'mars' : 'venus' }} me-1"></i>
+          {{ animal.sexe|upper == 'M' ? 'Mâle' : 'Femelle' }}
+        </div>
+      </div>
+      <div class="ag-info-cell">
+        <div class="ag-info-cell-label">Date naissance</div>
+        <div class="ag-info-cell-value">{{ animal.dateNaissance ? animal.dateNaissance|date('d/m/Y') : '-' }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Section suivis ── #}
+<div class="ag-section-header">
+  <span class="ag-section-title">
+    <span class="ag-section-dot"></span>
+    Suivis sanitaires
+  </span>
+  <a href="{{ path('app_suivi_animal_new', {'animalId': animal.idAnimal}) }}" class="ag-btn-green" style="font-size:12px;padding:6px 13px;">
+    + Ajouter un suivi
+  </a>
+</div>
+
+<div class="ag-grid">
+  {% for suivi in animal.suivis %}
+  <div class="ag-suivi-card">
+    <div class="ag-suivi-top">
+      <span class="ag-suivi-date">
+        <i class="far fa-calendar-alt me-1"></i>
+        {{ suivi.dateSuivi|date('d/m/Y H:i') }}
+      </span>
+      <span class="{{ suivi.etatSante == 'Bon' ? 'ag-state-bon' : 'ag-state-bad' }}">
+        {{ suivi.etatSante }}
+      </span>
+    </div>
+    <div class="ag-suivi-body">
+      <div class="ag-vitals">
+        <div class="ag-vital">
+          <div class="ag-vital-label">Temp.</div>
+          <div class="ag-vital-value">{{ suivi.temperature }}<span class="ag-vital-unit">°C</span></div>
+        </div>
+        <div class="ag-vital">
+          <div class="ag-vital-label">Poids</div>
+          <div class="ag-vital-value">{{ suivi.poids }}<span class="ag-vital-unit">kg</span></div>
+        </div>
+        <div class="ag-vital">
+          <div class="ag-vital-label">BPM</div>
+          <div class="ag-vital-value">{{ suivi.rythmeCardiaque }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="ag-suivi-footer">
+      <a href="{{ path('app_suivi_animal_edit', {'idSuivi': suivi.idSuivi}) }}" class="ag-btn-sm-edit">Modifier</a>
+      <a href="{{ path('app_suivi_animal_show', {'idSuivi': suivi.idSuivi}) }}" class="ag-btn-show">Détails</a>
+    </div>
+  </div>
+  {% else %}
+  <div class="ag-empty">
+    <i class="fas fa-leaf fa-2x mb-2" style="opacity:0.4;display:block;"></i>
+    Aucun suivi enregistré pour cet animal.
+  </div>
+  {% endfor %}
+</div>
+
+{# ── Actions bas de page ── #}
+<div class="ag-actions">
+  <a href="{{ path('app_animal_index') }}" class="ag-btn-back">← Retour à la liste</a>
+  <a href="{{ path('app_animal_edit', {'idAnimal': animal.idAnimal}) }}" class="ag-btn-green">✎ Modifier l'animal</a>
+  <div>{{ include('front/suivi_animal/animal/_delete_form.html.twig') }}</div>
+</div>
+
+{% endblock %}

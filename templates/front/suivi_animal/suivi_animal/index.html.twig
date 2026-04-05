@@ -1,0 +1,130 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Suivi de Santé{% endblock %}
+{% block body %}
+<style>
+  .ag-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:2px solid #C0DD97;}
+  .ag-title-wrap{display:flex;align-items:center;gap:10px;}
+  .ag-icon-box{width:36px;height:36px;background:#3B6D11;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+  .ag-h1{font-size:20px;font-weight:500;color:#27500A;margin:0;}
+  .ag-subtitle{font-size:13px;color:#6c757d;margin:0;}
+  .ag-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:1.2rem;}
+  .ag-search-wrap{position:relative;flex:1;min-width:200px;}
+  .ag-search-wrap input{width:100%;padding:8px 12px 8px 36px;border:1px solid #C0DD97;border-radius:9px;background:#EAF3DE;font-size:13px;color:#27500A;outline:none;}
+  .ag-search-wrap input:focus{border-color:#3B6D11;background:#fff;}
+  .ag-search-wrap .ag-search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#639922;font-size:13px;}
+  .ag-sort-select{padding:8px 12px;border:1px solid #C0DD97;border-radius:9px;background:#EAF3DE;font-size:13px;color:#27500A;outline:none;cursor:pointer;}
+  .ag-btn-order{padding:8px 13px;border:1px solid #C0DD97;border-radius:9px;background:#EAF3DE;font-size:13px;color:#27500A;cursor:pointer;transition:.15s;}
+  .ag-btn-order:hover{background:#3B6D11;color:white;border-color:#3B6D11;}
+  .ag-btn-pdf{padding:8px 14px;border:none;border-radius:9px;background:#27500A;color:white;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .ag-btn-search-adv{padding:8px 14px;border:1px solid #3B6D11;border-radius:9px;background:transparent;color:#3B6D11;font-size:13px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;}
+  .ag-count{font-size:12px;color:#639922;margin-bottom:.8rem;}
+  .ag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;}
+  .ag-card{background:#fff;border:.5px solid #C0DD97;border-radius:12px;overflow:hidden;}
+  .ag-card-header{background:#EAF3DE;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:.5px solid #C0DD97;}
+  .ag-badge{background:#3B6D11;color:white;font-size:11px;padding:3px 10px;border-radius:20px;}
+  .ag-date{font-size:12px;color:#27500A;}
+  .ag-vitals{display:grid;grid-template-columns:repeat(3,1fr);border:.5px solid #C0DD97;border-radius:8px;overflow:hidden;margin-bottom:12px;}
+  .ag-vital{padding:10px 6px;text-align:center;}
+  .ag-vital:not(:last-child){border-right:.5px solid #C0DD97;}
+  .ag-vital-label{font-size:10px;font-weight:500;color:#639922;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+  .ag-vital-value{font-size:17px;font-weight:500;color:#27500A;}
+  .ag-vital-unit{font-size:11px;color:#6c757d;}
+  .ag-info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:.5px solid #EAF3DE;font-size:13px;}
+  .ag-dot{width:7px;height:7px;border-radius:50%;background:#639922;display:inline-block;margin-right:6px;}
+  .ag-state-bon{background:#EAF3DE;color:#27500A;font-size:12px;padding:2px 10px;border-radius:20px;font-weight:500;}
+  .ag-state-bad{background:#FAEEDA;color:#633806;font-size:12px;padding:2px 10px;border-radius:20px;font-weight:500;}
+  .ag-remarque{margin-top:10px;padding:8px 10px;background:#EAF3DE;border-left:3px solid #639922;border-radius:0 8px 8px 0;font-size:12px;color:#27500A;font-style:italic;}
+  .ag-card-footer{padding:10px 16px;background:#EAF3DE;border-top:.5px solid #C0DD97;display:flex;gap:8px;justify-content:flex-end;}
+  .ag-btn-show{background:#3B6D11;color:white;border:none;padding:5px 12px;font-size:12px;border-radius:8px;text-decoration:none;}
+  .ag-btn-edit{background:transparent;color:#3B6D11;border:.5px solid #3B6D11;padding:5px 12px;font-size:12px;border-radius:8px;text-decoration:none;}
+  #sa-spinner{display:none;text-align:center;padding:2rem;color:#639922;}
+</style>
+
+<div class="ag-header">
+  <div class="ag-title-wrap">
+    <div class="ag-icon-box"><i class="fas fa-leaf" style="color:white;font-size:16px;"></i></div>
+    <div>
+      <p class="ag-h1">Suivi sanitaire</p>
+      <p class="ag-subtitle">Surveillance de la santé du troupeau</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{{ path('app_animal_index') }}" class="btn btn-sm btn-outline-secondary">← Retour</a>
+    <a href="{{ path('app_suivi_animal_new') }}" class="btn btn-sm" style="background:#3B6D11;color:white;">+ Nouveau suivi</a>
+  </div>
+</div>
+
+<div class="ag-toolbar">
+  <div class="ag-search-wrap">
+    <i class="fas fa-search ag-search-icon"></i>
+    <input type="text" id="sa-search" placeholder="Recherche rapide…" value="{{ q }}" autocomplete="off">
+  </div>
+  <select class="ag-sort-select" id="sa-sortBy">
+    <option value="dateSuivi"       {{ sortBy == 'dateSuivi'       ? 'selected' : '' }}>Trier par Date</option>
+    <option value="temperature"     {{ sortBy == 'temperature'     ? 'selected' : '' }}>Trier par Température</option>
+    <option value="poids"           {{ sortBy == 'poids'           ? 'selected' : '' }}>Trier par Poids</option>
+    <option value="rythmeCardiaque" {{ sortBy == 'rythmeCardiaque' ? 'selected' : '' }}>Trier par BPM</option>
+    <option value="etatSante"       {{ sortBy == 'etatSante'       ? 'selected' : '' }}>Trier par État</option>
+  </select>
+  <button class="ag-btn-order" id="sa-order" data-order="{{ order }}">
+    <i class="fas fa-sort-amount-{{ order == 'ASC' ? 'up' : 'down' }}"></i>
+    {{ order }}
+  </button>
+  <a href="{{ path('app_suivi_animal_search') }}" class="ag-btn-search-adv">
+    <i class="fas fa-sliders-h"></i> Recherche avancée
+  </a>
+  <button class="ag-btn-pdf" id="sa-pdf-btn">
+    <i class="fas fa-file-pdf"></i> Export PDF
+  </button>
+</div>
+
+<div class="ag-count" id="sa-count">{{ suivi_animals|length }} suivi(s) trouvé(s)</div>
+<div id="sa-spinner"><i class="fas fa-circle-notch fa-spin fa-2x"></i></div>
+<div class="ag-grid" id="sa-grid">
+  {% include 'front/suivi_animal/suivi_animal/_cards.html.twig' %}
+</div>
+
+<script>
+(function(){
+  const grid    = document.getElementById('sa-grid');
+  const spinner = document.getElementById('sa-spinner');
+  const count   = document.getElementById('sa-count');
+  const searchI = document.getElementById('sa-search');
+  const sortSel = document.getElementById('sa-sortBy');
+  const orderBtn= document.getElementById('sa-order');
+  let order     = orderBtn.dataset.order;
+  let timer;
+
+  function buildUrl(){
+    return '{{ path('app_suivi_animal_index') }}?q='+encodeURIComponent(searchI.value)
+      +'&sortBy='+sortSel.value+'&order='+order;
+  }
+
+  function load(){
+    spinner.style.display='block';
+    grid.style.opacity='.4';
+    fetch(buildUrl(),{headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(r=>r.text()).then(html=>{
+        grid.innerHTML=html;
+        const n=grid.querySelectorAll('.ag-card').length;
+        count.textContent=n+' suivi(s) trouvé(s)';
+        spinner.style.display='none';
+        grid.style.opacity='1';
+      });
+  }
+
+  searchI.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(load,300);});
+  sortSel.addEventListener('change',load);
+  orderBtn.addEventListener('click',()=>{
+    order=order==='ASC'?'DESC':'ASC';
+    orderBtn.dataset.order=order;
+    orderBtn.innerHTML='<i class="fas fa-sort-amount-'+(order==='ASC'?'up':'down')+'"></i> '+order;
+    load();
+  });
+  document.getElementById('sa-pdf-btn').addEventListener('click',()=>{
+    window.open('{{ path('app_suivi_animal_pdf') }}?q='+encodeURIComponent(searchI.value)
+      +'&sortBy='+sortSel.value+'&order='+order,'_blank');
+  });
+})();
+</script>
+{% endblock %}

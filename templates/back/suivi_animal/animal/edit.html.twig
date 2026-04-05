@@ -1,0 +1,59 @@
+{% extends 'back/base_back.html.twig' %}
+{% block title %}Modifier – {{ animal.codeAnimal }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+    :root { --agri-green:#2d6a4f; }
+    .form-card { background:#fff; border-radius:16px; border:1px solid #e8f0eb; padding:32px; max-width:600px; }
+    .form-label { font-weight:600; font-size:.85rem; color:#374151; }
+    .form-control, .form-select { border-radius:8px; border:1px solid #d1d5db; font-size:.9rem; padding:10px 14px; }
+    .form-control:focus, .form-select:focus { border-color:var(--agri-green); box-shadow:0 0 0 3px rgba(45,106,79,.1); }
+    .btn-agri { background:var(--agri-green); color:#fff; border:none; border-radius:8px; padding:10px 24px; font-weight:600; }
+    .btn-agri:hover { background:#1e4d38; color:#fff; }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{{ path('back_animaux') }}" class="btn btn-outline-secondary rounded-3" style="font-size:.85rem"><i class="fas fa-arrow-left me-1"></i>Retour</a>
+        <h4 class="fw-bold mb-0"><i class="fas fa-pen me-2" style="color:var(--agri-green)"></i>Modifier {{ animal.codeAnimal }}</h4>
+    </div>
+
+    <div class="form-card">
+        <form method="post" action="{{ path('back_animal_edit', {id: animal.idAnimal}) }}">
+            <div class="mb-3">
+                <label class="form-label">Code animal *</label>
+                <input type="text" name="codeAnimal" class="form-control" required value="{{ animal.codeAnimal }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Espèce *</label>
+                <input type="text" name="espece" class="form-control" required value="{{ animal.espece }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Race *</label>
+                <input type="text" name="race" class="form-control" required value="{{ animal.race }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Sexe *</label>
+                <select name="sexe" class="form-select" required>
+                    <option value="Mâle"    {% if animal.sexe == 'Mâle'    %}selected{% endif %}>Mâle</option>
+                    <option value="Femelle" {% if animal.sexe == 'Femelle' %}selected{% endif %}>Femelle</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Date de naissance *</label>
+                <input type="date" name="dateNaissance" class="form-control" required
+                       value="{{ animal.dateNaissance ? animal.dateNaissance|date('Y-m-d') : '' }}"
+                       max="{{ "now"|date('Y-m-d') }}">
+            </div>
+            <div class="mb-4">
+                <label class="form-label">ID Agriculteur *</label>
+                <input type="number" name="idAgriculteur" class="form-control" required min="1" value="{{ animal.idAgriculteur }}">
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-agri"><i class="fas fa-save me-2"></i>Enregistrer</button>
+                <a href="{{ path('back_animaux') }}" class="btn btn-outline-secondary rounded-3">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
