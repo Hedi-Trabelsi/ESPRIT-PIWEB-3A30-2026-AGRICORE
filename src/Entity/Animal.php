@@ -2,136 +2,134 @@
 
 namespace App\Entity;
 
+use Symfony\Component\Validator\Constraints as Assert;
+use App\Repository\AnimalRepository;
 use Doctrine\ORM\Mapping as ORM;
-
-use App\Entity\User;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use App\Entity\Suivi_animal;
+use App\Entity\SuiviAnimal;
 
-#[ORM\Entity]
+
+#[ORM\Entity(repositoryClass: AnimalRepository::class)]
 class Animal
 {
-
     #[ORM\Id]
-    #[ORM\Column(type: "integer")]
-    private int $idAnimal;
+    #[ORM\GeneratedValue]
+    #[ORM\Column(name: "idAnimal")]
+    private ?int $idAnimal = null;
 
-        #[ORM\ManyToOne(targetEntity: User::class, inversedBy: "animals")]
-    #[ORM\JoinColumn(name: 'idAgriculteur', referencedColumnName: 'id', onDelete: 'CASCADE')]
-    private User $idAgriculteur;
+    #[ORM\Column(name: "idAgriculteur", nullable: true)]
+    private ?int $idAgriculteur = null;
 
-    #[ORM\Column(type: "string", length: 50)]
-    private string $codeAnimal;
+    #[ORM\Column(name: "codeAnimal", length: 50)]
+    #[Assert\NotBlank(message: "Le code animal est obligatoire")]
+    #[Assert\Length(max: 50, maxMessage: "Le code animal ne peut pas dépasser {{ limit }} caractères")]
+    private ?string $codeAnimal = null;
 
-    #[ORM\Column(type: "string", length: 50)]
-    private string $espece;
+    #[ORM\Column(name: "espece", length: 50)]
+    #[Assert\NotBlank(message: "L'espèce est obligatoire")]
+    #[Assert\Length(max: 50, maxMessage: "L'espèce ne peut pas dépasser {{ limit }} caractères")]
+    private ?string $espece = null;
 
-    #[ORM\Column(type: "string", length: 50)]
-    private string $race;
+    #[ORM\Column(name: "race", length: 50)]
+    #[Assert\NotBlank(message: "La race est obligatoire")]
+    #[Assert\Length(max: 50, maxMessage: "La race ne peut pas dépasser {{ limit }} caractères")]
+    private ?string $race = null;
 
-    #[ORM\Column(type: "string", length: 50)]
-    private string $sexe;
+    #[ORM\Column(name: "sexe", length: 50)]
+    #[Assert\NotBlank(message: "Le sexe est obligatoire")]
+    #[Assert\Choice(choices: ["Mâle", "Femelle"], message: "Le sexe doit être 'Mâle' ou 'Femelle'")]
+    private ?string $sexe = null;
 
-    #[ORM\Column(type: "date")]
-    private \DateTimeInterface $dateNaissance;
-
-    public function getIdAnimal()
+    #[ORM\Column(name: "dateNaissance", type: "date")]
+    #[Assert\NotNull(message: "La date de naissance est obligatoire")]
+    #[Assert\LessThanOrEqual("today", message: "La date de naissance ne peut pas être dans le futur")]
+    private ?\DateTimeInterface $dateNaissance = null;
+    #[ORM\OneToMany(mappedBy: "animal", targetEntity: SuiviAnimal::class)]
+    private Collection $suivis;
+    // ===== ID =====
+    public function getIdAnimal(): ?int
     {
         return $this->idAnimal;
     }
 
-    public function setIdAnimal($value)
-    {
-        $this->idAnimal = $value;
-    }
-
-    public function getIdAgriculteur()
+    // ===== AGRICULTEUR =====
+    public function getIdAgriculteur(): ?int
     {
         return $this->idAgriculteur;
     }
 
-    public function setIdAgriculteur($value)
+    public function setIdAgriculteur(int $idAgriculteur): self
     {
-        $this->idAgriculteur = $value;
+        $this->idAgriculteur = $idAgriculteur;
+        return $this;
     }
 
-    public function getCodeAnimal()
+    // ===== CODE =====
+    public function getCodeAnimal(): ?string
     {
         return $this->codeAnimal;
     }
 
-    public function setCodeAnimal($value)
+    public function setCodeAnimal(string $codeAnimal): self
     {
-        $this->codeAnimal = $value;
+        $this->codeAnimal = $codeAnimal;
+        return $this;
     }
 
-    public function getEspece()
+    // ===== ESPECE =====
+    public function getEspece(): ?string
     {
         return $this->espece;
     }
 
-    public function setEspece($value)
+    public function setEspece(string $espece): self
     {
-        $this->espece = $value;
+        $this->espece = $espece;
+        return $this;
     }
 
-    public function getRace()
+    // ===== RACE =====
+    public function getRace(): ?string
     {
         return $this->race;
     }
 
-    public function setRace($value)
+    public function setRace(string $race): self
     {
-        $this->race = $value;
+        $this->race = $race;
+        return $this;
     }
 
-    public function getSexe()
+    // ===== SEXE =====
+    public function getSexe(): ?string
     {
         return $this->sexe;
     }
 
-    public function setSexe($value)
+    public function setSexe(string $sexe): self
     {
-        $this->sexe = $value;
+        $this->sexe = $sexe;
+        return $this;
     }
 
-    public function getDateNaissance()
+    // ===== DATE =====
+    public function getDateNaissance(): ?\DateTimeInterface
     {
         return $this->dateNaissance;
     }
 
-    public function setDateNaissance($value)
+    public function setDateNaissance(\DateTimeInterface $dateNaissance): self
     {
-        $this->dateNaissance = $value;
+        $this->dateNaissance = $dateNaissance;
+        return $this;
     }
-
-    #[ORM\OneToMany(mappedBy: "idAnimal", targetEntity: Suivi_animal::class)]
-    private Collection $suivi_animals;
-
-        public function getSuivi_animals(): Collection
-        {
-            return $this->suivi_animals;
-        }
-    
-        public function addSuivi_animal(Suivi_animal $suivi_animal): self
-        {
-            if (!$this->suivi_animals->contains($suivi_animal)) {
-                $this->suivi_animals[] = $suivi_animal;
-                $suivi_animal->setIdAnimal($this);
-            }
-    
-            return $this;
-        }
-    
-        public function removeSuivi_animal(Suivi_animal $suivi_animal): self
-        {
-            if ($this->suivi_animals->removeElement($suivi_animal)) {
-                // set the owning side to null (unless already changed)
-                if ($suivi_animal->getIdAnimal() === $this) {
-                    $suivi_animal->setIdAnimal(null);
-                }
-            }
-    
-            return $this;
-        }
+    public function getSuivis(): Collection
+    {
+        return $this->suivis;
+    }
+    public function __construct()
+    {
+        $this->suivis = new ArrayCollection();
+    }
 }

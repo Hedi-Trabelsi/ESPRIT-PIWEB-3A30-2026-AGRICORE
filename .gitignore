@@ -1,4 +1,7 @@
 
+/.claude/
+CLAUDE.md
+
 ###> symfony/framework-bundle ###
 /.env.local
 /.env.local.php
@@ -18,3 +21,5 @@
 /public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###
+.env
+.env.test

@@ -1,0 +1,130 @@
+{% extends 'back/base_back.html.twig' %}
+{% block title %}Modifier suivi #{{ suivi.idSuivi }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+    :root { --agri-green:#2d6a4f; }
+    .form-card { background:#fff; border-radius:16px; border:1px solid #e8f0eb; padding:32px; max-width:620px; }
+    .form-label { font-weight:600; font-size:.85rem; color:#374151; }
+    .form-control, .form-select { border-radius:8px; border:1px solid #d1d5db; font-size:.9rem; padding:10px 14px; }
+    .form-control:focus, .form-select:focus { border-color:var(--agri-green); box-shadow:0 0 0 3px rgba(45,106,79,.1); }
+    .btn-agri { background:var(--agri-green); color:#fff; border:none; border-radius:8px; padding:10px 24px; font-weight:600; }
+    .btn-agri:hover { background:#1e4d38; color:#fff; }
+    .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .field-error { color:#ef4444; font-size:.78rem; font-weight:600; margin-top:4px; display:none; }
+    .input-invalid { border-color:#ef4444 !important; background:#fff5f5; }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{{ path('back_suivis') }}" class="btn btn-outline-secondary rounded-3" style="font-size:.85rem"><i class="fas fa-arrow-left me-1"></i>Retour</a>
+        <h4 class="fw-bold mb-0"><i class="fas fa-pen me-2" style="color:var(--agri-green)"></i>Modifier suivi #{{ suivi.idSuivi }}</h4>
+    </div>
+
+    <div class="form-card">
+        <form method="post" action="{{ path('back_suivi_edit', {id: suivi.idSuivi}) }}" id="editForm" novalidate>
+            <div class="mb-3">
+                <label class="form-label">Animal *</label>
+                <select name="idAnimal" id="f-animal" class="form-select">
+                    <option value="">-- Choisir un animal --</option>
+                    {% for animal in animals %}
+                        <option value="{{ animal.idAnimal }}" {% if suivi.animal and suivi.animal.idAnimal == animal.idAnimal %}selected{% endif %}>
+                            {{ animal.codeAnimal }} – {{ animal.espece }} ({{ animal.race }})
+                        </option>
+                    {% endfor %}
+                </select>
+                <div class="field-error" id="e-animal">Veuillez choisir un animal.</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Date du suivi *</label>
+                <input type="datetime-local" name="dateSuivi" id="f-date" class="form-control"
+                       value="{{ suivi.dateSuivi|date('Y-m-d\\TH:i') }}"
+                       max="{{ "now"|date('Y-m-d') }}T23:59">
+                <div class="field-error" id="e-date">La date du suivi est requise.</div>
+            </div>
+
+            <div class="row-2 mb-3">
+                <div>
+                    <label class="form-label">Température (°C) *</label>
+                    <input type="number" step="0.1" name="temperature" id="f-temp" class="form-control" min="30" max="45" value="{{ suivi.temperature }}">
+                    <div class="field-error" id="e-temp">Température entre 30 et 45 °C.</div>
+                </div>
+                <div>
+                    <label class="form-label">Poids (kg) *</label>
+                    <input type="number" step="0.1" name="poids" id="f-poids" class="form-control" min="0.1" value="{{ suivi.poids }}">
+                    <div class="field-error" id="e-poids">Poids invalide (min 0.1 kg).</div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Rythme cardiaque (bpm) *</label>
+                <input type="number" name="rythmeCardiaque" id="f-rc" class="form-control" min="20" max="300" value="{{ suivi.rythmeCardiaque }}">
+                <div class="field-error" id="e-rc">Rythme cardiaque entre 20 et 300 bpm.</div>
+            </div>
+
+            <div class="row-2 mb-3">
+                <div>
+                    <label class="form-label">Niveau d'activité *</label>
+                    <select name="niveauActivite" id="f-activite" class="form-select">
+                        {% for opt in ['Faible', 'Modéré', 'Élevé'] %}
+                            <option value="{{ opt }}" {% if suivi.niveauActivite == opt %}selected{% endif %}>{{ opt }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="field-error" id="e-activite">Niveau d'activité requis.</div>
+                </div>
+                <div>
+                    <label class="form-label">État de santé *</label>
+                    <select name="etatSante" id="f-sante" class="form-select">
+                        {% for opt in ['Bon', 'Moyen', 'Mauvais'] %}
+                            <option value="{{ opt }}" {% if suivi.etatSante == opt %}selected{% endif %}>{{ opt }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="field-error" id="e-sante">État de santé requis.</div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Remarque *</label>
+                <textarea name="remarque" id="f-remarque" class="form-control" rows="3" minlength="5">{{ suivi.remarque }}</textarea>
+                <div class="field-error" id="e-remarque">Remarque requise (min. 5 caractères).</div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-agri"><i class="fas fa-save me-2"></i>Enregistrer</button>
+                <a href="{{ path('back_suivis') }}" class="btn btn-outline-secondary rounded-3">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('editForm').addEventListener('submit', function(e) {
+    let valid = true;
+
+    function check(id, errId, condition) {
+        const el = document.getElementById(id);
+        const err = document.getElementById(errId);
+        if (!condition(el)) {
+            el.classList.add('input-invalid');
+            err.style.display = 'block';
+            valid = false;
+        } else {
+            el.classList.remove('input-invalid');
+            err.style.display = 'none';
+        }
+    }
+
+    check('f-animal',   'e-animal',   el => el.value !== '');
+    check('f-date',     'e-date',     el => el.value !== '');
+    check('f-temp',     'e-temp',     el => el.value !== '' && +el.value >= 30 && +el.value <= 45);
+    check('f-poids',    'e-poids',    el => el.value !== '' && +el.value >= 0.1);
+    check('f-rc',       'e-rc',       el => el.value !== '' && +el.value >= 20 && +el.value <= 300);
+    check('f-activite', 'e-activite', el => el.value !== '');
+    check('f-sante',    'e-sante',    el => el.value !== '');
+    check('f-remarque', 'e-remarque', el => el.value.trim().length >= 5);
+
+    if (!valid) e.preventDefault();
+});
+</script>
+{% endblock %}

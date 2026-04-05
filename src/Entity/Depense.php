@@ -2,78 +2,88 @@
 
 namespace App\Entity;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
-use App\Entity\User;
+use App\Repository\DepenseRepository;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: DepenseRepository::class)]
+#[ORM\Table(name: 'depense')]
 class Depense
 {
-
     #[ORM\Id]
-    #[ORM\Column(type: "integer")]
-    private int $idDepense;
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: 'integer')]
+    private ?int $idDepense = null;
 
-    #[ORM\Column(type: "string")]
-    private string $type;
-
-    #[ORM\Column(type: "float")]
-    private float $montant;
-
-    #[ORM\Column(type: "date")]
-    private \DateTimeInterface $date;
-
-        #[ORM\ManyToOne(targetEntity: User::class, inversedBy: "depenses")]
-    #[ORM\JoinColumn(name: 'userId', referencedColumnName: 'id', onDelete: 'CASCADE')]
-    private User $userId;
-
-    public function getIdDepense()
+    public function getIdDepense(): ?int
     {
         return $this->idDepense;
     }
 
-    public function setIdDepense($value)
+    public function setIdDepense(int $idDepense): self
     {
-        $this->idDepense = $value;
+        $this->idDepense = $idDepense;
+        return $this;
     }
 
-    public function getType()
+    #[ORM\Column(type: 'string', nullable: false)]
+    private ?string $type = null;
+
+    public function getType(): ?string
     {
         return $this->type;
     }
 
-    public function setType($value)
+    public function setType(string $type): self
     {
-        $this->type = $value;
+        $this->type = $type;
+        return $this;
     }
 
-    public function getMontant()
+    #[ORM\Column(type: 'float', nullable: false)]
+    private ?float $montant = null;
+
+    public function getMontant(): ?float
     {
         return $this->montant;
     }
 
-    public function setMontant($value)
+    public function setMontant(float $montant): self
     {
-        $this->montant = $value;
+        $this->montant = $montant;
+        return $this;
     }
 
-    public function getDate()
+    #[ORM\Column(type: 'date', nullable: false)]
+    private ?\DateTimeInterface $date = null;
+
+    public function getDate(): ?\DateTimeInterface
     {
         return $this->date;
     }
 
-    public function setDate($value)
+    public function setDate(\DateTimeInterface $date): self
     {
-        $this->date = $value;
+        $this->date = $date;
+        return $this;
     }
 
-    public function getUserId()
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'depenses')]
+    #[ORM\JoinColumn(name: 'userId', referencedColumnName: 'id')]
+    private ?User $user = null;
+
+    public function getUser(): ?User
     {
-        return $this->userId;
+        return $this->user;
     }
 
-    public function setUserId($value)
+    public function setUser(?User $user): self
     {
-        $this->userId = $value;
+        $this->user = $user;
+        return $this;
     }
+
 }

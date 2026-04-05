@@ -63,7 +63,7 @@ class Tache
 private int $evaluation = 0; 
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: "taches")]
     #[ORM\JoinColumn(name: 'id_technicien', referencedColumnName: 'id', onDelete: 'CASCADE')]
-    private User $id_technicien;
+    private ?User $id_technicien = null;
 
     // --- GETTERS & SETTERS ---
 

@@ -38,7 +38,7 @@
 </head>
 
 <body data-turbo="false">
-
+  
 
 
     <!-- Topbar Start -->
@@ -78,10 +78,10 @@
             <a href="{{ path('app_home') }}" class="nav-item nav-link{% if app.request.attributes.get('_route') == 'app_home' %} active{% endif %}">Accueil</a>
             <a href="{{ path('app_about') }}" class="nav-item nav-link{% if app.request.attributes.get('_route') == 'app_about' %} active{% endif %}">À propos</a>
             <div class="nav-item dropdown">
-                <a href="#" class="nav-link dropdown-toggle{% if app.request.attributes.get('_route') in ['app_maintenance', 'app_evenements', 'app_suivi_animal', 'app_achat_equipement', 'app_ventes_depenses'] %} active{% endif %}" data-bs-toggle="dropdown">Services</a>
+                <a href="#" class="nav-link dropdown-toggle{% if app.request.attributes.get('_route') in ['app_maintenance', 'app_evenement', 'app_suivi_animal', 'app_achat_equipement', 'app_ventes_depenses'] %} active{% endif %}" data-bs-toggle="dropdown">Services</a>
                 <div class="dropdown-menu bg-light m-0">
                     <a href="{{ path('app_maintenance') }}" class="dropdown-item{% if app.request.attributes.get('_route') == 'app_maintenance' %} active{% endif %}">Maintenance</a>
-                    <a href="{{ path('app_evenements') }}" class="dropdown-item{% if app.request.attributes.get('_route') == 'app_evenements' %} active{% endif %}">Événements</a>
+                    <a href="{{ path('app_evenement') }}" class="dropdown-item{% if app.request.attributes.get('_route') == 'app_evenement' %} active{% endif %}">Événements</a>
                     <a href="{{ path('app_suivi_animal') }}" class="dropdown-item{% if app.request.attributes.get('_route') == 'app_suivi_animal' %} active{% endif %}">Suivi animal</a>
                     <a href="{{ path('app_achat_equipement') }}" class="dropdown-item{% if app.request.attributes.get('_route') == 'app_achat_equipement' %} active{% endif %}">Achat d'équipement</a>
                     <a href="{{ path('app_ventes_depenses') }}" class="dropdown-item{% if app.request.attributes.get('_route') == 'app_ventes_depenses' %} active{% endif %}">Ventes & dépenses</a>
@@ -93,8 +93,13 @@
         </div>
          {# ✅ PHOTO PROFILE #}
         <a href="{{ path('app_profile') }}" class="d-none d-lg-block me-4">
-            <img src="{{ asset('img/profile.webp') }}" alt="Profile"
-                 style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #198754;">
+            {% if app.session.get('user') and app.session.get('user').image %}
+                <img src="data:image/jpeg;base64,{{ app.session.get('user').image }}" alt="Profile"
+                     style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #198754;">
+            {% else %}
+                <img src="{{ asset('img/profile.webp') }}" alt="Profile"
+                     style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #198754;">
+            {% endif %}
         </a>
     </div>
 </nav>
@@ -128,7 +133,7 @@
                 <h4 class="text-white mb-4">Services</h4>
                 <ul class="list-unstyled">
                     <li><a class="btn btn-link text-white ps-0" href="{{ path('app_maintenance') }}">Maintenance</a></li>
-                    <li><a class="btn btn-link text-white ps-0" href="{{ path('app_evenements') }}">Événements</a></li>
+                    <li><a class="btn btn-link text-white ps-0" href="{{ path('app_evenement') }}">Événements</a></li>
                     <li><a class="btn btn-link text-white ps-0" href="{{ path('app_suivi_animal') }}">Suivi animal</a></li>
                     <li><a class="btn btn-link text-white ps-0" href="{{ path('app_achat_equipement') }}">Achat d'équipement</a></li>
                     <li><a class="btn btn-link text-white ps-0" href="{{ path('app_ventes_depenses') }}">Suivi des ventes & dépenses</a></li>
@@ -166,7 +171,6 @@
     </div>
 </div>
 {# Copyright End #}
-
 {# Back to Top #}
 <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-circle back-to-top"><i class="bi bi-arrow-up"></i></a>
 {# Sécurisation des scripts qui causent l'erreur 500 #}
@@ -190,6 +194,5 @@
 
 {# Template Javascript #}
 <script src="{{ asset('js/main.js') }}"></script>
-
 </body>
 </html>

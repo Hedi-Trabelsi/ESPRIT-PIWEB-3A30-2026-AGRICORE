@@ -30,11 +30,10 @@ class GenerateEntitiesCommand extends Command
      * @param Connection $connection The database connection instance.
      * @param Filesystem $filesystem The filesystem instance.
      */
-    public function __construct(Connection $connection, Filesystem $filesystem)
+    public function __construct(Connection $connection)
     {
         parent::__construct();
         $this->connection = $connection;
-        // $this->filesystem = $filesystem;
     }
 
     /**

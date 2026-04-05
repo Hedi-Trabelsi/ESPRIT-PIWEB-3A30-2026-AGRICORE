@@ -3,77 +3,103 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
-use App\Entity\Equipements;
+use App\Repository\PanierRepository;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: PanierRepository::class)]
+#[ORM\Table(name: 'panier')]
 class Panier
 {
-
     #[ORM\Id]
-    #[ORM\Column(type: "integer")]
-    private int $id_panier;
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: 'integer')]
+    private ?int $id_panier = null;
 
-        #[ORM\ManyToOne(targetEntity: Equipements::class, inversedBy: "paniers")]
-    #[ORM\JoinColumn(name: 'id_equipement', referencedColumnName: 'id_equipement', onDelete: 'CASCADE')]
-    private Equipements $id_equipement;
-
-    #[ORM\Column(type: "integer")]
-    private int $quantite;
-
-    #[ORM\Column(type: "string", length: 25)]
-    private string $total;
-
-    #[ORM\Column(type: "integer")]
-    private int $id_agriculteur;
-
-    public function getId_panier()
+    public function getId_panier(): ?int
     {
         return $this->id_panier;
     }
 
-    public function setId_panier($value)
+    public function setId_panier(int $id_panier): self
     {
-        $this->id_panier = $value;
+        $this->id_panier = $id_panier;
+        return $this;
     }
 
-    public function getId_equipement()
+    #[ORM\ManyToOne(targetEntity: Equipement::class, inversedBy: 'paniers')]
+    #[ORM\JoinColumn(name: 'id_equipement', referencedColumnName: 'id_equipement')]
+    private ?Equipement $equipement = null;
+
+    public function getEquipement(): ?Equipement
     {
-        return $this->id_equipement;
+        return $this->equipement;
     }
 
-    public function setId_equipement($value)
+    public function setEquipement(?Equipement $equipement): self
     {
-        $this->id_equipement = $value;
+        $this->equipement = $equipement;
+        return $this;
     }
 
-    public function getQuantite()
+    #[ORM\Column(type: 'integer', nullable: false)]
+    private ?int $quantite = null;
+
+    public function getQuantite(): ?int
     {
         return $this->quantite;
     }
 
-    public function setQuantite($value)
+    public function setQuantite(int $quantite): self
     {
-        $this->quantite = $value;
+        $this->quantite = $quantite;
+        return $this;
     }
 
-    public function getTotal()
+    #[ORM\Column(type: 'string', nullable: false)]
+    private ?string $total = null;
+
+    public function getTotal(): ?string
     {
         return $this->total;
     }
 
-    public function setTotal($value)
+    public function setTotal(string $total): self
     {
-        $this->total = $value;
+        $this->total = $total;
+        return $this;
     }
 
-    public function getId_agriculteur()
+    #[ORM\Column(type: 'integer', nullable: false)]
+    private ?int $id_agriculteur = null;
+
+    public function getId_agriculteur(): ?int
     {
         return $this->id_agriculteur;
     }
 
-    public function setId_agriculteur($value)
+    public function setId_agriculteur(int $id_agriculteur): self
     {
-        $this->id_agriculteur = $value;
+        $this->id_agriculteur = $id_agriculteur;
+        return $this;
     }
+
+    public function getIdPanier(): ?int
+    {
+        return $this->id_panier;
+    }
+
+    public function getIdAgriculteur(): ?int
+    {
+        return $this->id_agriculteur;
+    }
+
+    public function setIdAgriculteur(int $id_agriculteur): static
+    {
+        $this->id_agriculteur = $id_agriculteur;
+
+        return $this;
+    }
+
 }

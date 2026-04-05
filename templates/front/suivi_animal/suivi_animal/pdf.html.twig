@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: DejaVu Sans, sans-serif; font-size: 10.5px; color: #1a1a1a; background: #fff; }
+
+  .cover {
+    background: linear-gradient(135deg, #27500A 0%, #3B6D11 55%, #639922 100%);
+    padding: 26px 36px 20px;
+    color: white;
+    margin-bottom: 20px;
+  }
+  .cover-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .cover-logo { font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+  .cover-logo span { opacity: .6; font-weight: 300; }
+  .cover-date { font-size: 9.5px; opacity: .75; text-align: right; }
+  .cover-title { margin-top: 12px; }
+  .cover-title h1 { font-size: 18px; font-weight: 700; }
+  .cover-title p { font-size: 10.5px; opacity: .8; margin-top: 3px; }
+  .cover-line { height: 3px; background: rgba(255,255,255,.3); border-radius: 2px; margin-top: 14px; }
+
+  .stats { display: flex; gap: 10px; margin: 0 36px 18px; }
+  .stat-box { flex: 1; background: #EAF3DE; border: 1px solid #C0DD97; border-radius: 10px; padding: 10px 12px; text-align: center; }
+  .stat-num { font-size: 20px; font-weight: 700; color: #27500A; }
+  .stat-label { font-size: 8.5px; color: #639922; text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+  .stat-bon { background: #EAF3DE; }
+  .stat-moyen { background: #FEF3C7; }
+  .stat-mauvais { background: #FEE2E2; }
+  .stat-moyen .stat-num { color: #92400E; }
+  .stat-mauvais .stat-num { color: #B91C1C; }
+
+  .wrap { padding: 0 36px 36px; }
+  .section-title { font-size: 11px; font-weight: 700; color: #27500A; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: #C0DD97; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: #27500A; color: white; }
+  thead th { padding: 8px 10px; font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; text-align: left; }
+  thead th:first-child { border-radius: 8px 0 0 0; }
+  thead th:last-child  { border-radius: 0 8px 0 0; }
+  tbody tr:nth-child(even) { background: #F7FBF2; }
+  tbody tr:nth-child(odd)  { background: #ffffff; }
+  tbody td { padding: 7px 10px; border-bottom: 1px solid #EAF3DE; font-size: 10px; vertical-align: middle; }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 9px; font-weight: 600; }
+  .pill-bon     { background: #EAF3DE; color: #27500A; }
+  .pill-moyen   { background: #FEF3C7; color: #92400E; }
+  .pill-mauvais { background: #FEE2E2; color: #B91C1C; }
+  .code { color: #3B6D11; font-weight: 700; }
+  .num  { font-weight: 600; color: #27500A; }
+  .unit { font-size: 8.5px; color: #aaa; }
+
+  .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #C0DD97; display: flex; justify-content: space-between; font-size: 8.5px; color: #888; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-top">
+    <div class="cover-logo">Agri<span>Core</span></div>
+    <div class="cover-date">Généré le {{ date|date('d/m/Y à H:i') }}<br>Rapport sanitaire</div>
+  </div>
+  <div class="cover-title">
+    <h1>Rapport de Suivi Sanitaire</h1>
+    <p>Historique complet des suivis de santé du troupeau</p>
+  </div>
+  <div class="cover-line"></div>
+</div>
+
+{% set bons     = suivi_animals|filter(s => s.etatSante == 'Bon')|length %}
+{% set moyens   = suivi_animals|filter(s => s.etatSante == 'Moyen')|length %}
+{% set mauvais  = suivi_animals|filter(s => s.etatSante == 'Mauvais')|length %}
+{% set tempMoy  = suivi_animals|length > 0 ? (suivi_animals|map(s => s.temperature)|reduce((carry, v) => carry + v, 0) / suivi_animals|length)|round(1) : 0 %}
+
+<div class="stats">
+  <div class="stat-box">
+    <div class="stat-num">{{ suivi_animals|length }}</div>
+    <div class="stat-label">Total suivis</div>
+  </div>
+  <div class="stat-box stat-bon">
+    <div class="stat-num">{{ bons }}</div>
+    <div class="stat-label">État bon</div>
+  </div>
+  <div class="stat-box stat-moyen">
+    <div class="stat-num">{{ moyens }}</div>
+    <div class="stat-label">État moyen</div>
+  </div>
+  <div class="stat-box stat-mauvais">
+    <div class="stat-num">{{ mauvais }}</div>
+    <div class="stat-label">État mauvais</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num">{{ tempMoy }}°</div>
+    <div class="stat-label">Temp. moy.</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="section-title">Détail des suivis</div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Animal</th>
+        <th>Date</th>
+        <th>Temp.</th>
+        <th>Poids</th>
+        <th>BPM</th>
+        <th>Activité</th>
+        <th>État</th>
+        <th>Remarque</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in suivi_animals %}
+      <tr>
+        <td style="color:#aaa;">{{ loop.index }}</td>
+        <td><span class="code">{{ s.animal ? s.animal.codeAnimal : '—' }}</span></td>
+        <td>{{ s.dateSuivi ? s.dateSuivi|date('d/m/Y H:i') : '-' }}</td>
+        <td><span class="num">{{ s.temperature }}</span><span class="unit">°C</span></td>
+        <td><span class="num">{{ s.poids }}</span><span class="unit">kg</span></td>
+        <td><span class="num">{{ s.rythmeCardiaque }}</span><span class="unit">bpm</span></td>
+        <td>{{ s.niveauActivite }}</td>
+        <td>
+          <span class="pill pill-{{ s.etatSante|lower }}">{{ s.etatSante }}</span>
+        </td>
+        <td style="font-style:italic;color:#555;max-width:120px;">{{ s.remarque|slice(0,60) }}{% if s.remarque|length > 60 %}…{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" style="text-align:center;padding:20px;color:#aaa;">Aucun suivi trouvé</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <span>AgriCore — Suivi sanitaire du troupeau</span>
+    <span>{{ suivi_animals|length }} suivi(s) — {{ date|date('d/m/Y') }}</span>
+  </div>
+</div>
+
+</body>
+</html>

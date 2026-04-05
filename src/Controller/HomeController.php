@@ -7,6 +7,8 @@ use App\Repository\MaintenanceRepository;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
+use App\Repository\AnimalRepository;
+
 class HomeController extends AbstractController
 {
     #[Route('/', name: 'app_home')]
@@ -91,10 +93,23 @@ class HomeController extends AbstractController
         return $this->render('front/evenements/evenements.html.twig');
     }
 
-    #[Route('/suivi-animal', name: 'app_suivi_animal')]
-    public function suiviAnimal(): Response
+  
+
+     #[Route('/suivi-animal', name: 'app_suivi_animal')]
+    public function suiviAnimal(Request $request, AnimalRepository $animalRepository): Response
     {
-        return $this->render('front/suivi_animal/suivi_animal.html.twig');
+        $q = $request->query->get('q', '');
+        $sortBy = $request->query->get('sortBy', 'codeAnimal');
+        $order = $request->query->get('order', 'ASC');
+
+        $animals = $animalRepository->findAll(); // simple pour maintenant
+
+        return $this->render('front/suivi_animal/animal/index.html.twig', [
+            'animals' => $animals,
+            'q' => $q,
+            'sortBy' => $sortBy,
+            'order' => $order,
+        ]);
     }
 
     #[Route('/achat-equipement', name: 'app_achat_equipement')]
@@ -120,6 +135,7 @@ public function services(): Response
 {
     return $this->render('front/home/services.html.twig');
 }
+
 #[Route('/tech', name: 'app_tech_home')]
 public function techHome(): Response
 {
@@ -137,4 +153,7 @@ public function techHome(): Response
     {
         return $this->render('front/utilisateurs/register.html.twig');
     }
+  
+    
 }
+    

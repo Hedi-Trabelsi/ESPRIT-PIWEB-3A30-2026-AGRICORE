@@ -1,0 +1,44 @@
+{% for suivi_animal in suivi_animals %}
+<div class="ag-card">
+  <div class="ag-card-header">
+    <span class="ag-badge">{{ suivi_animal.animal ? suivi_animal.animal.codeAnimal : '—' }}</span>
+    <span class="ag-date"><i class="far fa-calendar-alt me-1"></i>{{ suivi_animal.dateSuivi ? suivi_animal.dateSuivi|date('d/m/Y H:i') : '' }}</span>
+  </div>
+  <div style="padding:14px 16px;">
+    <div class="ag-vitals">
+      <div class="ag-vital">
+        <div class="ag-vital-label">Temp.</div>
+        <div class="ag-vital-value">{{ suivi_animal.temperature }}<span class="ag-vital-unit">°C</span></div>
+      </div>
+      <div class="ag-vital">
+        <div class="ag-vital-label">Poids</div>
+        <div class="ag-vital-value">{{ suivi_animal.poids }}<span class="ag-vital-unit">kg</span></div>
+      </div>
+      <div class="ag-vital">
+        <div class="ag-vital-label">BPM</div>
+        <div class="ag-vital-value">{{ suivi_animal.rythmeCardiaque }}</div>
+      </div>
+    </div>
+    <div class="ag-info-row">
+      <span><span class="ag-dot"></span>Activité</span>
+      <strong>{{ suivi_animal.niveauActivite }}</strong>
+    </div>
+    <div class="ag-info-row" style="border:none;">
+      <span><span class="ag-dot"></span>État de santé</span>
+      <span class="{{ suivi_animal.etatSante == 'Bon' ? 'ag-state-bon' : 'ag-state-bad' }}">{{ suivi_animal.etatSante }}</span>
+    </div>
+    {% if suivi_animal.remarque %}
+      <div class="ag-remarque">{{ suivi_animal.remarque }}</div>
+    {% endif %}
+  </div>
+  <div class="ag-card-footer">
+    <a href="{{ path('app_suivi_animal_edit', {'idSuivi': suivi_animal.idSuivi}) }}" class="ag-btn-edit">Modifier</a>
+    <a href="{{ path('app_suivi_animal_show', {'idSuivi': suivi_animal.idSuivi}) }}" class="ag-btn-show">Détails</a>
+  </div>
+</div>
+{% else %}
+<div style="grid-column:1/-1;text-align:center;padding:3rem;color:#639922;">
+  <i class="fas fa-search fa-3x mb-3" style="opacity:.4;display:block;"></i>
+  <p>Aucun résultat trouvé.</p>
+</div>
+{% endfor %}

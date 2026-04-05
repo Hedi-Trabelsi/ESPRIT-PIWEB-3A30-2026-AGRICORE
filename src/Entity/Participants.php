@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 
@@ -10,12 +11,16 @@ class Participants
 {
 
     #[ORM\Id]
+    #[ORM\GeneratedValue]
     #[ORM\Column(type: "integer")]
     private int $id_participant;
 
-    
     #[ORM\Column(type: "integer")]
-    private int $id_ev;
+    private int $id_utilisateur;
+
+    #[ORM\ManyToOne(targetEntity: Evennementagricole::class)]
+    #[ORM\JoinColumn(name: 'id_ev', referencedColumnName: 'id_ev')]
+    private ?Evennementagricole $evenement = null;
 
     #[ORM\Column(type: "date")]
     private \DateTimeInterface $date_inscription;
@@ -58,14 +63,15 @@ class Participants
         $this->id_utilisateur = $value;
     }
 
-    public function getId_ev()
+    public function getEvenement(): ?Evennementagricole
     {
-        return $this->id_ev;
+        return $this->evenement;
     }
 
-    public function setId_ev($value)
+    public function setEvenement(?Evennementagricole $evenement): static
     {
-        $this->id_ev = $value;
+        $this->evenement = $evenement;
+        return $this;
     }
 
     public function getDate_inscription()
@@ -136,5 +142,107 @@ class Participants
     public function setEntry_code($value)
     {
         $this->entry_code = $value;
+    }
+
+    public function getIdParticipant(): ?int
+    {
+        return $this->id_participant;
+    }
+
+    public function getIdUtilisateur(): ?int
+    {
+        return $this->id_utilisateur;
+    }
+
+    public function setIdUtilisateur(int $id_utilisateur): static
+    {
+        $this->id_utilisateur = $id_utilisateur;
+
+        return $this;
+    }
+
+    public function getIdEv(): ?int
+    {
+        return $this->evenement?->getId_ev();
+    }
+
+    public function setIdEv(int $id_ev): static
+    {
+        // This setter should now set the evenement instead
+        // Note: This assumes the evenement is already loaded
+        // In practice, you should use setEvenement() instead
+        return $this;
+    }
+
+    public function getDateInscription(): ?\DateTime
+    {
+        return $this->date_inscription;
+    }
+
+    public function setDateInscription(\DateTime $date_inscription): static
+    {
+        $this->date_inscription = $date_inscription;
+
+        return $this;
+    }
+
+    public function getStatutParticipation(): ?string
+    {
+        return $this->statut_participation;
+    }
+
+    public function setStatutParticipation(string $statut_participation): static
+    {
+        $this->statut_participation = $statut_participation;
+
+        return $this;
+    }
+
+    public function getMontantPayee(): ?string
+    {
+        return $this->montant_payee;
+    }
+
+    public function setMontantPayee(string $montant_payee): static
+    {
+        $this->montant_payee = $montant_payee;
+
+        return $this;
+    }
+
+    public function getNbrPlaces(): ?int
+    {
+        return $this->nbr_places;
+    }
+
+    public function setNbrPlaces(int $nbr_places): static
+    {
+        $this->nbr_places = $nbr_places;
+
+        return $this;
+    }
+
+    public function getNomParticipant(): ?string
+    {
+        return $this->nom_participant;
+    }
+
+    public function setNomParticipant(string $nom_participant): static
+    {
+        $this->nom_participant = $nom_participant;
+
+        return $this;
+    }
+
+    public function getEntryCode(): ?int
+    {
+        return $this->entry_code;
+    }
+
+    public function setEntryCode(int $entry_code): static
+    {
+        $this->entry_code = $entry_code;
+
+        return $this;
     }
 }

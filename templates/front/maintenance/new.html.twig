@@ -5,62 +5,119 @@
     <div class="card shadow p-4" style="border-radius: 15px;">
         <h2 class="mb-4 text-center">Ajouter une Maintenance</h2>
 
-        {# RQ Workshop : novalidate pour laisser Symfony valider #}
         {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    {{ form_label(form.Nom_maintenance, "Nom Maintenance") }}
-                    {{ form_widget(form.Nom_maintenance, {'attr': {'class': 'form-control'}}) }}
-                    <div class="text-danger small mt-1">{{ form_errors(form.Nom_maintenance) }}</div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label>Équipement</label>
-                    {{ form_widget(form.Equipement, {'attr': {'class': 'form-control'}}) }}
-                    <div class="text-danger small mt-1">{{ form_errors(form.Equipement) }}</div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label>Lieu</label>
-                    {{ form_widget(form.Lieu, {'attr': {'class': 'form-control'}}) }}
-                    <div class="text-danger small mt-1">{{ form_errors(form.Lieu) }}</div>
-                </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label>
+                    Nom Maintenance
+                    <span class="required-star">*</span>
+                </label>
+                {{ form_widget(form.Nom_maintenance, {'attr': {'class': 'form-control'}}) }}
+                <div class="text-danger small mt-1">{{ form_errors(form.Nom_maintenance) }}</div>
             </div>
 
-            <div class="row mt-3">
-                <div class="col-md-4 mb-3">
-                    <label>Date de déclaration</label>
-                    {# On affiche la date mais on empêche la modif car elle est auto #}
-                    {{ form_widget(form.Date_declaration, {'attr': {'class': 'form-control', 'readonly': 'readonly'}}) }}
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label>Type</label>
-                    {{ form_widget(form.Type, {'attr': {'class': 'form-control'}}) }}
-                    <div class="text-danger small mt-1">{{ form_errors(form.Type) }}</div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label>Priorité</label>
-                    {{ form_widget(form.Priorite, {'attr': {'class': 'form-control'}}) }}
-                    <div class="text-danger small mt-1">{{ form_errors(form.Priorite) }}</div>
-                </div>
+            <div class="col-md-4 mb-3">
+                <label>
+                    Équipement
+                    <span class="required-star">*</span>
+                </label>
+                {{ form_widget(form.Equipement, {'attr': {'class': 'form-control'}}) }}
+                <div class="text-danger small mt-1">{{ form_errors(form.Equipement) }}</div>
             </div>
 
-            <div class="mt-3 mb-3">
-                <label>Description</label>
-                {{ form_widget(form.Description, {'attr': {'class': 'form-control', 'rows': '4'}}) }}
-                <div class="text-danger small mt-1">{{ form_errors(form.Description) }}</div>
+            <div class="col-md-4 mb-3">
+                <label>
+                    Lieu
+                    <span class="required-star">*</span>
+                </label>
+                {{ form_widget(form.Lieu, {'attr': {'class': 'form-control'}}) }}
+                <div class="text-danger small mt-1">{{ form_errors(form.Lieu) }}</div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-4 mb-3">
+                <label>Date de déclaration</label>
+                {{ form_widget(form.Date_declaration, {'attr': {'class': 'form-control', 'readonly': 'readonly'}}) }}
             </div>
 
-            <div class="text-center mt-4">
-                {# Bouton Soumettre avec ton vert sapin #}
-                <button type="submit" class="btn px-5" style="background-color: #0F4229; color: white; border-radius: 25px;">
-                    Soumettre
-                </button>
-                
-                {# Bouton Annuler ajouté ici #}
-                <a href="{{ path('app_maintenance') }}" class="btn btn-light px-5" style="border-radius: 25px; border: 1px solid #ddd; margin-left: 10px;">
-                    Annuler
-                </a>
+            <div class="col-md-4 mb-3">
+                <label>
+                    Type
+                    <span class="required-star">*</span>
+                </label>
+                {{ form_widget(form.Type, {'attr': {'class': 'form-control'}}) }}
+                <div class="text-danger small mt-1">{{ form_errors(form.Type) }}</div>
             </div>
+
+            <div class="col-md-4 mb-3">
+                <label>
+                    Priorité
+                    <span class="required-star">*</span>
+                </label>
+                {{ form_widget(form.Priorite, {'attr': {'class': 'form-control'}}) }}
+                <div class="text-danger small mt-1">{{ form_errors(form.Priorite) }}</div>
+            </div>
+        </div>
+
+        <div class="mt-3 mb-3">
+            <label>
+                Description
+                <span class="required-star">*</span>
+            </label>
+            {{ form_widget(form.Description, {'attr': {'class': 'form-control', 'rows': '4'}}) }}
+            <div class="text-danger small mt-1">{{ form_errors(form.Description) }}</div>
+        </div>
+
+        <div class="text-center mt-4">
+            <button type="submit" class="btn px-5" style="background-color: #0F4229; color: white; border-radius: 25px;">
+                Soumettre
+            </button>
+            <a href="{{ path('app_maintenance') }}" class="btn btn-light px-5" style="border-radius: 25px; border: 1px solid #ddd; margin-left: 10px;">
+                Annuler
+            </a>
+        </div>
+
         {{ form_end(form) }}
     </div>
 </div>
+
+{# --- CSS pour les étoiles --- #}
+<style>
+.required-star {
+    color: red;       /* rouge par défaut */
+    margin-left: 3px;
+    transition: color 0.3s;
+}
+input.filled + .required-star,
+textarea.filled + .required-star,
+select.filled + .required-star {
+    color: green;     /* devient vert si rempli */
+}
+</style>
+
+{# --- JS pour détecter si un champ est rempli --- #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fields = document.querySelectorAll('input, textarea, select');
+
+    fields.forEach(field => {
+        const labelStar = field.parentNode.querySelector('.required-star');
+        if(!labelStar) return;
+
+        function updateStar() {
+            if(field.value.trim() !== '') {
+                labelStar.style.color = 'green';
+            } else {
+                labelStar.style.color = 'red';
+            }
+        }
+
+        field.addEventListener('input', updateStar);
+        updateStar(); // pour la valeur initiale
+    });
+});
+</script>
+
 {% endblock %}

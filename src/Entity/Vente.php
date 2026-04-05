@@ -2,102 +2,116 @@
 
 namespace App\Entity;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
+use App\Repository\VenteRepository;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: VenteRepository::class)]
+#[ORM\Table(name: 'vente')]
 class Vente
 {
-
     #[ORM\Id]
-    #[ORM\Column(type: "integer")]
-    private int $idVente;
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: 'integer')]
+    private ?int $idVente = null;
 
-    #[ORM\Column(type: "integer")]
-    private int $prixUnitaire;
-
-    #[ORM\Column(type: "integer")]
-    private int $quantite;
-
-    #[ORM\Column(type: "integer")]
-    private int $chiffreAffaires;
-
-    #[ORM\Column(type: "date")]
-    private \DateTimeInterface $date;
-
-    #[ORM\Column(type: "string", length: 25)]
-    private string $produit;
-
-    #[ORM\Column(type: "integer")]
-    private int $userId;
-
-    public function getIdVente()
+    public function getIdVente(): ?int
     {
         return $this->idVente;
     }
 
-    public function setIdVente($value)
+    public function setIdVente(int $idVente): self
     {
-        $this->idVente = $value;
+        $this->idVente = $idVente;
+        return $this;
     }
 
-    public function getPrixUnitaire()
+    #[ORM\Column(type: 'integer', nullable: false)]
+    private ?int $prixUnitaire = null;
+
+    public function getPrixUnitaire(): ?int
     {
         return $this->prixUnitaire;
     }
 
-    public function setPrixUnitaire($value)
+    public function setPrixUnitaire(int $prixUnitaire): self
     {
-        $this->prixUnitaire = $value;
+        $this->prixUnitaire = $prixUnitaire;
+        return $this;
     }
 
-    public function getQuantite()
+    #[ORM\Column(type: 'integer', nullable: false)]
+    private ?int $quantite = null;
+
+    public function getQuantite(): ?int
     {
         return $this->quantite;
     }
 
-    public function setQuantite($value)
+    public function setQuantite(int $quantite): self
     {
-        $this->quantite = $value;
+        $this->quantite = $quantite;
+        return $this;
     }
 
-    public function getChiffreAffaires()
+    #[ORM\Column(type: 'integer', nullable: false)]
+    private ?int $chiffreAffaires = null;
+
+    public function getChiffreAffaires(): ?int
     {
         return $this->chiffreAffaires;
     }
 
-    public function setChiffreAffaires($value)
+    public function setChiffreAffaires(int $chiffreAffaires): self
     {
-        $this->chiffreAffaires = $value;
+        $this->chiffreAffaires = $chiffreAffaires;
+        return $this;
     }
 
-    public function getDate()
+    #[ORM\Column(type: 'date', nullable: false)]
+    private ?\DateTimeInterface $date = null;
+
+    public function getDate(): ?\DateTimeInterface
     {
         return $this->date;
     }
 
-    public function setDate($value)
+    public function setDate(\DateTimeInterface $date): self
     {
-        $this->date = $value;
+        $this->date = $date;
+        return $this;
     }
 
-    public function getProduit()
+    #[ORM\Column(type: 'string', nullable: false)]
+    private ?string $produit = null;
+
+    public function getProduit(): ?string
     {
         return $this->produit;
     }
 
-    public function setProduit($value)
+    public function setProduit(string $produit): self
     {
-        $this->produit = $value;
+        $this->produit = $produit;
+        return $this;
     }
 
-    public function getUserId()
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'ventes')]
+    #[ORM\JoinColumn(name: 'userId', referencedColumnName: 'id')]
+    private ?User $user = null;
+
+    public function getUser(): ?User
     {
-        return $this->userId;
+        return $this->user;
     }
 
-    public function setUserId($value)
+    public function setUser(?User $user): self
     {
-        $this->userId = $value;
+        $this->user = $user;
+        return $this;
     }
+
 }

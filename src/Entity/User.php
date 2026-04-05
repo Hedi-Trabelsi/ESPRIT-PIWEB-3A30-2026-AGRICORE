@@ -2,319 +2,363 @@
 
 namespace App\Entity;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use App\Entity\Tache;
+use Symfony\Component\Validator\Constraints as Assert;
 
-#[ORM\Entity]
+use App\Repository\UserRepository;
+
+#[ORM\Entity(repositoryClass: UserRepository::class)]
+#[ORM\Table(name: 'user')]
 class User
 {
-
     #[ORM\Id]
-    #[ORM\Column(type: "integer")]
-    private int $id;
+    #[ORM\GeneratedValue]
+    #[ORM\Column(name: 'id', type: 'integer')]
+    private ?int $id = null;
 
-    #[ORM\Column(type: "string", length: 25)]
-    private string $nom;
-
-    #[ORM\Column(type: "string", length: 25)]
-    private string $prenom;
-
-    #[ORM\Column(type: "date")]
-    private \DateTimeInterface $date;
-
-    #[ORM\Column(type: "string", length: 25)]
-    private string $adresse;
-
-    #[ORM\Column(type: "integer")]
-    private int $role;
-
-    #[ORM\Column(type: "integer", name: "numeroT")]
-    private int $numeroT;
-
-    #[ORM\Column(type: "string", length: 100)]
-    private string $email;
-
-    #[ORM\Column(type: "string")]
-    private string $image;
-
-    #[ORM\Column(type: "string", length: 255)]
-    private string $password;
-
-    #[ORM\Column(type: "string", length: 255)]
-    private string $genre;
-
-    #[ORM\Column(type: "boolean")]
-    private bool $profile_complete;
-
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function setId($value)
+    public function setId(int $id): self
     {
-        $this->id = $value;
+        $this->id = $id;
+        return $this;
     }
 
-    public function getNom()
+    #[ORM\Column(name: 'nom', type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: "Le nom est obligatoire.")]
+    #[Assert\Length(min: 2, max: 50, minMessage: "Le nom doit contenir au moins {{ limit }} caracteres.", maxMessage: "Le nom ne doit pas depasser {{ limit }} caracteres.")]
+    private ?string $nom = null;
+
+    public function getNom(): ?string
     {
         return $this->nom;
     }
 
-    public function setNom($value)
+    public function setNom(string $nom): self
     {
-        $this->nom = $value;
+        $this->nom = $nom;
+        return $this;
     }
 
-    public function getPrenom()
+    #[ORM\Column(name: 'prenom', type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: "Le prenom est obligatoire.")]
+    #[Assert\Length(min: 2, max: 50, minMessage: "Le prenom doit contenir au moins {{ limit }} caracteres.", maxMessage: "Le prenom ne doit pas depasser {{ limit }} caracteres.")]
+    private ?string $prenom = null;
+
+    public function getPrenom(): ?string
     {
         return $this->prenom;
     }
 
-    public function setPrenom($value)
+    public function setPrenom(string $prenom): self
     {
-        $this->prenom = $value;
+        $this->prenom = $prenom;
+        return $this;
     }
 
-    public function getDate()
+    #[ORM\Column(name: 'date', type: 'date', nullable: true)]
+    private ?\DateTimeInterface $date = null;
+
+    public function getDate(): ?\DateTimeInterface
     {
         return $this->date;
     }
 
-    public function setDate($value)
+    public function setDate(?\DateTimeInterface $date): self
     {
-        $this->date = $value;
+        $this->date = $date;
+        return $this;
     }
 
-    public function getAdresse()
+    #[ORM\Column(name: 'adresse', type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: "L'adresse est obligatoire.")]
+    #[Assert\Length(min: 3, max: 255, minMessage: "L'adresse doit contenir au moins {{ limit }} caracteres.")]
+    private ?string $adresse = null;
+
+    public function getAdresse(): ?string
     {
         return $this->adresse;
     }
 
-    public function setAdresse($value)
+    public function setAdresse(string $adresse): self
     {
-        $this->adresse = $value;
+        $this->adresse = $adresse;
+        return $this;
     }
 
-    public function getRole()
+    #[ORM\Column(name: 'role', type: 'integer', nullable: false)]
+    #[Assert\NotBlank(message: "Le role est obligatoire.")]
+    private ?int $role = null;
+
+    public function getRole(): ?int
     {
         return $this->role;
     }
 
-    public function setRole($value)
+    public function setRole(int $role): self
     {
-        $this->role = $value;
+        $this->role = $role;
+        return $this;
     }
 
-    public function getNumeroT()
+    #[ORM\Column(name: 'numeroT', type: 'integer', nullable: false)]
+    #[Assert\NotBlank(message: "Le numero de telephone est obligatoire.")]
+    #[Assert\Positive(message: "Le numero de telephone doit etre un nombre positif.")]
+    private ?int $numeroT = null;
+
+    public function getNumeroT(): ?int
     {
         return $this->numeroT;
     }
 
-    public function setNumeroT($value)
+    public function setNumeroT(int $numeroT): self
     {
-        $this->numeroT = $value;
+        $this->numeroT = $numeroT;
+        return $this;
     }
 
-    public function getEmail()
+    #[ORM\Column(name: 'email', type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: "L'email est obligatoire.")]
+    #[Assert\Email(message: "L'email '{{ value }}' n'est pas un email valide.")]
+    private ?string $email = null;
+
+    public function getEmail(): ?string
     {
         return $this->email;
     }
 
-    public function setEmail($value)
+    public function setEmail(string $email): self
     {
-        $this->email = $value;
+        $this->email = $email;
+        return $this;
     }
 
-    public function getImage()
+    #[ORM\Column(name: 'image', type: 'blob', nullable: true)]
+    private mixed $image = null;
+
+    public function getImage(): ?string
     {
+        if (is_resource($this->image)) {
+            $this->image = stream_get_contents($this->image);
+        }
         return $this->image;
     }
 
-    public function setImage($value)
+    public function setImage(mixed $image): self
     {
-        $this->image = $value;
+        $this->image = $image;
+        return $this;
     }
 
-    public function getPassword()
+    /**
+     * Convert the image resource to string so the object can be serialized into the session.
+     */
+    public function prepareForSession(): self
+    {
+        if (is_resource($this->image)) {
+            $this->image = stream_get_contents($this->image);
+        }
+        return $this;
+    }
+
+    #[ORM\Column(name: 'password', type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: "Le mot de passe est obligatoire.")]
+    #[Assert\Length(min: 6, minMessage: "Le mot de passe doit contenir au moins {{ limit }} caracteres.")]
+    #[Assert\Regex(pattern: "/[a-z]/", message: "Le mot de passe doit contenir au moins une lettre minuscule.")]
+    #[Assert\Regex(pattern: "/[A-Z]/", message: "Le mot de passe doit contenir au moins une lettre majuscule.")]
+    #[Assert\Regex(pattern: "/[0-9]/", message: "Le mot de passe doit contenir au moins un chiffre.")]
+    private ?string $password = null;
+
+    public function getPassword(): ?string
     {
         return $this->password;
     }
 
-    public function setPassword($value)
+    public function setPassword(string $password): self
     {
-        $this->password = $value;
+        $this->password = $password;
+        return $this;
     }
 
-    public function getGenre()
+    #[ORM\Column(name: 'genre', type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: "Le genre est obligatoire.")]
+    private ?string $genre = null;
+
+    public function getGenre(): ?string
     {
         return $this->genre;
     }
 
-    public function setGenre($value)
+    public function setGenre(string $genre): self
     {
-        $this->genre = $value;
+        $this->genre = $genre;
+        return $this;
     }
 
-    public function getProfile_complete()
+    #[ORM\Column(name: 'profile_complete', type: 'boolean', nullable: true)]
+    private ?bool $profile_complete = null;
+
+    #[ORM\Column(name: 'banned', type: 'boolean', nullable: true)]
+    private ?bool $banned = false;
+
+    public function isProfile_complete(): ?bool
     {
         return $this->profile_complete;
     }
 
-    public function setProfile_complete($value)
+    public function setProfile_complete(?bool $profile_complete): self
     {
-        $this->profile_complete = $value;
+        $this->profile_complete = $profile_complete;
+        return $this;
     }
 
-    #[ORM\OneToMany(mappedBy: "idAgriculteur", targetEntity: Animal::class)]
-    private Collection $animals;
+    public function isBanned(): ?bool
+    {
+        return $this->banned;
+    }
 
-        public function getAnimals(): Collection
-        {
-            return $this->animals;
-        }
-    
-        public function addAnimal(Animal $animal): self
-        {
-            if (!$this->animals->contains($animal)) {
-                $this->animals[] = $animal;
-                $animal->setIdAgriculteur($this);
-            }
-    
-            return $this;
-        }
-    
-        public function removeAnimal(Animal $animal): self
-        {
-            if ($this->animals->removeElement($animal)) {
-                // set the owning side to null (unless already changed)
-                if ($animal->getIdAgriculteur() === $this) {
-                    $animal->setIdAgriculteur(null);
-                }
-            }
-    
-            return $this;
-        }
+    public function setBanned(?bool $banned): self
+    {
+        $this->banned = $banned;
+        return $this;
+    }
 
-    #[ORM\OneToMany(mappedBy: "userId", targetEntity: Depense::class)]
+    #[ORM\OneToMany(targetEntity: Depense::class, mappedBy: 'user')]
     private Collection $depenses;
 
-        public function getDepenses(): Collection
-        {
-            return $this->depenses;
+    /**
+     * @return Collection<int, Depense>
+     */
+    public function getDepenses(): Collection
+    {
+        if (!$this->depenses instanceof Collection) {
+            $this->depenses = new ArrayCollection();
         }
-    
-        public function addDepense(Depense $depense): self
-        {
-            if (!$this->depenses->contains($depense)) {
-                $this->depenses[] = $depense;
-                $depense->setUserId($this);
-            }
-    
-            return $this;
-        }
-    
-        public function removeDepense(Depense $depense): self
-        {
-            if ($this->depenses->removeElement($depense)) {
-                // set the owning side to null (unless already changed)
-                if ($depense->getUserId() === $this) {
-                    $depense->setUserId(null);
-                }
-            }
-    
-            return $this;
-        }
+        return $this->depenses;
+    }
 
-    #[ORM\OneToMany(mappedBy: "id_fournisseur", targetEntity: Equipements::class)]
-    private Collection $equipementss;
+    public function addDepense(Depense $depense): self
+    {
+        if (!$this->getDepenses()->contains($depense)) {
+            $this->getDepenses()->add($depense);
+        }
+        return $this;
+    }
 
-        public function getEquipementss(): Collection
-        {
-            return $this->equipementss;
-        }
-    
-        public function addEquipements(Equipements $equipements): self
-        {
-            if (!$this->equipementss->contains($equipements)) {
-                $this->equipementss[] = $equipements;
-                $equipements->setId_fournisseur($this);
-            }
-    
-            return $this;
-        }
-    
-        public function removeEquipements(Equipements $equipements): self
-        {
-            if ($this->equipementss->removeElement($equipements)) {
-                // set the owning side to null (unless already changed)
-                if ($equipements->getId_fournisseur() === $this) {
-                    $equipements->setId_fournisseur(null);
-                }
-            }
-    
-            return $this;
-        }
+    public function removeDepense(Depense $depense): self
+    {
+        $this->getDepenses()->removeElement($depense);
+        return $this;
+    }
 
-    #[ORM\OneToMany(mappedBy: "id_agriculteur", targetEntity: Maintenance::class)]
+    #[ORM\OneToMany(targetEntity: Equipement::class, mappedBy: 'user')]
+    private Collection $equipements;
+
+    /**
+     * @return Collection<int, Equipement>
+     */
+    public function getEquipements(): Collection
+    {
+        if (!$this->equipements instanceof Collection) {
+            $this->equipements = new ArrayCollection();
+        }
+        return $this->equipements;
+    }
+
+    public function addEquipement(Equipement $equipement): self
+    {
+        if (!$this->getEquipements()->contains($equipement)) {
+            $this->getEquipements()->add($equipement);
+        }
+        return $this;
+    }
+
+    public function removeEquipement(Equipement $equipement): self
+    {
+        $this->getEquipements()->removeElement($equipement);
+        return $this;
+    }
+
+    #[ORM\OneToMany(targetEntity: Maintenance::class, mappedBy: 'user')]
     private Collection $maintenances;
 
-        public function getMaintenances(): Collection
-        {
-            return $this->maintenances;
+    /**
+     * @return Collection<int, Maintenance>
+     */
+    public function getMaintenances(): Collection
+    {
+        if (!$this->maintenances instanceof Collection) {
+            $this->maintenances = new ArrayCollection();
         }
-    
-        public function addMaintenance(Maintenance $maintenance): self
-        {
-            if (!$this->maintenances->contains($maintenance)) {
-                $this->maintenances[] = $maintenance;
-                $maintenance->setId_agriculteur($this);
-            }
-    
-            return $this;
-        }
-    
-        public function removeMaintenance(Maintenance $maintenance): self
-        {
-            if ($this->maintenances->removeElement($maintenance)) {
-                // set the owning side to null (unless already changed)
-                if ($maintenance->getId_agriculteur() === $this) {
-                    $maintenance->setId_agriculteur(null);
-                }
-            }
-    
-            return $this;
-        }
+        return $this->maintenances;
+    }
 
-    #[ORM\OneToMany(mappedBy: "id_technicien", targetEntity: Tache::class)]
-    private Collection $taches;
+    public function addMaintenance(Maintenance $maintenance): self
+    {
+        if (!$this->getMaintenances()->contains($maintenance)) {
+            $this->getMaintenances()->add($maintenance);
+        }
+        return $this;
+    }
 
-        public function getTaches(): Collection
-        {
-            return $this->taches;
+    public function removeMaintenance(Maintenance $maintenance): self
+    {
+        $this->getMaintenances()->removeElement($maintenance);
+        return $this;
+    }
+
+    #[ORM\OneToMany(targetEntity: Vente::class, mappedBy: 'user')]
+    private Collection $ventes;
+
+    public function __construct()
+    {
+        $this->depenses = new ArrayCollection();
+        $this->equipements = new ArrayCollection();
+        $this->maintenances = new ArrayCollection();
+        $this->ventes = new ArrayCollection();
+    }
+
+    /**
+     * @return Collection<int, Vente>
+     */
+    public function getVentes(): Collection
+    {
+        if (!$this->ventes instanceof Collection) {
+            $this->ventes = new ArrayCollection();
         }
-    
-        public function addTache(Tache $tache): self
-        {
-            if (!$this->taches->contains($tache)) {
-                $this->taches[] = $tache;
-                $tache->setId_technicien($this);
-            }
-    
-            return $this;
+        return $this->ventes;
+    }
+
+    public function addVente(Vente $vente): self
+    {
+        if (!$this->getVentes()->contains($vente)) {
+            $this->getVentes()->add($vente);
         }
-    
-        public function removeTache(Tache $tache): self
-        {
-            if ($this->taches->removeElement($tache)) {
-                // set the owning side to null (unless already changed)
-                if ($tache->getId_technicien() === $this) {
-                    $tache->setId_technicien(null);
-                }
-            }
-    
-            return $this;
-        }
+        return $this;
+    }
+
+    public function removeVente(Vente $vente): self
+    {
+        $this->getVentes()->removeElement($vente);
+        return $this;
+    }
+
+    public function isProfileComplete(): ?bool
+    {
+        return $this->profile_complete;
+    }
+
+    public function setProfileComplete(?bool $profile_complete): static
+    {
+        $this->profile_complete = $profile_complete;
+
+        return $this;
+    }
+
 }

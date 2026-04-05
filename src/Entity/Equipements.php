@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 
 use App\Entity\User;
@@ -9,6 +10,7 @@ use Doctrine\Common\Collections\Collection;
 use App\Entity\Panier;
 
 #[ORM\Entity]
+#[ORM\Table(name: 'equipements_legacy')]
 class Equipements
 {
 
@@ -95,6 +97,11 @@ class Equipements
     #[ORM\OneToMany(mappedBy: "id_equipement", targetEntity: Panier::class)]
     private Collection $paniers;
 
+    public function __construct()
+    {
+        $this->paniers = new ArrayCollection();
+    }
+
         public function getPaniers(): Collection
         {
             return $this->paniers;
@@ -119,6 +126,23 @@ class Equipements
                 }
             }
     
+            return $this;
+        }
+
+        public function getIdEquipement(): ?int
+        {
+            return $this->id_equipement;
+        }
+
+        public function getIdFournisseur(): ?User
+        {
+            return $this->id_fournisseur;
+        }
+
+        public function setIdFournisseur(?User $id_fournisseur): static
+        {
+            $this->id_fournisseur = $id_fournisseur;
+
             return $this;
         }
 }

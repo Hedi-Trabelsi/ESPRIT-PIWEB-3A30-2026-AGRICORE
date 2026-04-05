@@ -1,0 +1,51 @@
+{% for animal in animals %}
+<div class="ag-card">
+  <div class="ag-card-top">
+    <span class="ag-code">#{{ animal.codeAnimal }}</span>
+    <div style="display:flex;gap:6px;">
+      <a href="{{ path('app_animal_edit', {'idAnimal': animal.idAnimal}) }}"
+         title="Modifier"
+         style="width:28px;height:28px;border-radius:7px;background:#fff8e1;color:#b45309;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border:0.5px solid #C0DD97;">
+        <i class="fas fa-pen" style="font-size:11px;"></i>
+      </a>
+      <form method="post" action="{{ path('app_animal_delete', {'idAnimal': animal.idAnimal}) }}"
+            style="margin:0;">
+        <button type="submit" title="Supprimer"
+                style="width:28px;height:28px;border-radius:7px;background:#fff1f1;color:#A32D2D;display:inline-flex;align-items:center;justify-content:center;border:0.5px solid #C0DD97;cursor:pointer;">
+          <i class="fas fa-trash-alt" style="font-size:11px;"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+  <div class="ag-card-body">
+    <div class="ag-animal-icon">
+      <i class="fas fa-paw" style="font-size:22px;color:#3B6D11;"></i>
+    </div>
+    <p class="ag-race">{{ animal.race }}</p>
+    <p class="ag-espece"><i class="fas fa-tag me-1"></i>{{ animal.espece }}</p>
+    <hr class="ag-divider">
+    <div class="ag-info-grid">
+      <div>
+        <div class="ag-info-label">Sexe</div>
+        <div class="ag-info-value" style="color:{{ animal.sexe == 'Mâle' ? '#185FA5' : '#993556' }};">
+          <i class="fas fa-{{ animal.sexe == 'Mâle' ? 'mars' : 'venus' }} me-1"></i>{{ animal.sexe }}
+        </div>
+      </div>
+      <div>
+        <div class="ag-info-label">Né le</div>
+        <div class="ag-info-value">{{ animal.dateNaissance ? animal.dateNaissance|date('d/m/Y') : '-' }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="ag-card-footer">
+    <a href="{{ path('app_animal_show', {'idAnimal': animal.idAnimal}) }}" class="ag-btn-voir">
+      <i class="fas fa-eye me-1"></i> Voir la fiche
+    </a>
+  </div>
+</div>
+{% else %}
+<div style="grid-column:1/-1;text-align:center;padding:3rem;color:#639922;">
+  <i class="fas fa-search fa-3x mb-3" style="opacity:0.4;display:block;"></i>
+  <p>Aucun résultat trouvé.</p>
+</div>
+{% endfor %}

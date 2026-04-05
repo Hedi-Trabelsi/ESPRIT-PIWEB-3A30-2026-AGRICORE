@@ -2,10 +2,12 @@
 
 namespace App\Entity;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 
 #[ORM\Entity]
+#[ORM\Table(name: 'action_logs_legacy')]
 class Action_logs
 {
 
@@ -125,5 +127,89 @@ class Action_logs
     public function setCreated_at($value)
     {
         $this->created_at = $value;
+    }
+
+    public function getUserId(): ?int
+    {
+        return $this->user_id;
+    }
+
+    public function setUserId(int $user_id): static
+    {
+        $this->user_id = $user_id;
+
+        return $this;
+    }
+
+    public function getActionType(): ?string
+    {
+        return $this->action_type;
+    }
+
+    public function setActionType(string $action_type): static
+    {
+        $this->action_type = $action_type;
+
+        return $this;
+    }
+
+    public function getTargetTable(): ?string
+    {
+        return $this->target_table;
+    }
+
+    public function setTargetTable(string $target_table): static
+    {
+        $this->target_table = $target_table;
+
+        return $this;
+    }
+
+    public function getTargetId(): ?int
+    {
+        return $this->target_id;
+    }
+
+    public function setTargetId(int $target_id): static
+    {
+        $this->target_id = $target_id;
+
+        return $this;
+    }
+
+    public function getOldValue(): ?string
+    {
+        return $this->old_value;
+    }
+
+    public function setOldValue(string $old_value): static
+    {
+        $this->old_value = $old_value;
+
+        return $this;
+    }
+
+    public function getNewValue(): ?string
+    {
+        return $this->new_value;
+    }
+
+    public function setNewValue(string $new_value): static
+    {
+        $this->new_value = $new_value;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTime
+    {
+        return $this->created_at;
+    }
+
+    public function setCreatedAt(\DateTime $created_at): static
+    {
+        $this->created_at = $created_at;
+
+        return $this;
     }
 }

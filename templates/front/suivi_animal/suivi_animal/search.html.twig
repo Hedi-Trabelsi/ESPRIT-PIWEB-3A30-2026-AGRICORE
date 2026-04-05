@@ -1,0 +1,178 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Recherche avancée — Suivis{% endblock %}
+{% block body %}
+<style>
+  :root{--green:#3B6D11;--light:#EAF3DE;--border:#C0DD97;--dark:#27500A;}
+  .sa-page{max-width:1100px;margin:0 auto;}
+  .sa-hero{background:linear-gradient(135deg,#27500A 0%,#3B6D11 60%,#639922 100%);border-radius:18px;padding:32px 36px;margin-bottom:2rem;color:white;display:flex;justify-content:space-between;align-items:center;}
+  .sa-hero h1{font-size:26px;font-weight:600;margin:0 0 6px;}
+  .sa-hero p{font-size:14px;opacity:.85;margin:0;}
+  .sa-hero-icon{font-size:56px;opacity:.25;}
+  .sa-panel{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:2rem;box-shadow:0 2px 12px rgba(59,109,17,.06);}
+  .sa-panel-head{background:var(--light);padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+  .sa-panel-head span{font-size:14px;font-weight:600;color:var(--dark);}
+  .sa-panel-body{padding:22px 24px;}
+  .sa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;}
+  .sa-field label{font-size:11px;font-weight:700;color:#639922;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;}
+  .sa-field input,.sa-field select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:9px;background:var(--light);font-size:13px;color:var(--dark);outline:none;box-sizing:border-box;}
+  .sa-field input:focus,.sa-field select:focus{border-color:var(--green);background:#fff;box-shadow:0 0 0 3px rgba(59,109,17,.08);}
+  .sa-range{display:flex;gap:8px;align-items:center;}
+  .sa-range input{flex:1;}
+  .sa-range span{color:#aaa;font-size:12px;}
+  .sa-actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;}
+  .sa-btn-search{background:var(--green);color:white;border:none;padding:10px 24px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;}
+  .sa-btn-reset{background:transparent;color:var(--green);border:1.5px solid var(--green);padding:10px 20px;border-radius:9px;font-size:14px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:7px;}
+  .sa-btn-pdf{background:#27500A;color:white;border:none;padding:10px 20px;border-radius:9px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:7px;text-decoration:none;}
+  .sa-badge-count{background:var(--light);border:1px solid var(--border);color:var(--dark);font-size:13px;font-weight:600;padding:5px 14px;border-radius:20px;}
+  .sa-table{width:100%;border-collapse:collapse;}
+  .sa-table thead tr{background:var(--dark);color:white;}
+  .sa-table thead th{padding:12px 16px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;text-align:left;}
+  .sa-table thead th:first-child{border-radius:10px 0 0 0;}
+  .sa-table thead th:last-child{border-radius:0 10px 0 0;}
+  .sa-table tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
+  .sa-table tbody tr:hover{background:var(--light);}
+  .sa-table tbody td{padding:10px 16px;font-size:12.5px;color:#333;}
+  .sa-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+  .sa-pill-bon{background:#EAF3DE;color:#27500A;}
+  .sa-pill-moyen{background:#FEF3C7;color:#92400E;}
+  .sa-pill-mauvais{background:#FEE2E2;color:#B91C1C;}
+  .sa-sort-link{color:white;text-decoration:none;display:flex;align-items:center;gap:5px;}
+  .sa-sort-link:hover{opacity:.8;}
+  .sa-empty{text-align:center;padding:3rem;color:#639922;}
+  .sa-action-btn{padding:4px 10px;border-radius:7px;font-size:12px;text-decoration:none;font-weight:500;}
+  .sa-action-btn.view{background:var(--light);color:var(--dark);border:1px solid var(--border);}
+  .sa-action-btn.edit{background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;}
+  .vital-cell{font-weight:600;color:var(--dark);}
+  .vital-unit{font-size:10px;color:#aaa;}
+</style>
+
+<div class="sa-page">
+  <div class="sa-hero">
+    <div>
+      <h1><i class="fas fa-sliders-h me-2"></i>Recherche avancée</h1>
+      <p>Filtrez les suivis sanitaires par critères précis</p>
+    </div>
+    <div class="sa-hero-icon"><i class="fas fa-heartbeat"></i></div>
+  </div>
+
+  <div class="sa-panel">
+    <div class="sa-panel-head">
+      <i class="fas fa-filter" style="color:#3B6D11;"></i>
+      <span>Critères de recherche</span>
+    </div>
+    <div class="sa-panel-body">
+      <form method="GET" action="{{ path('app_suivi_animal_search') }}">
+        <div class="sa-grid">
+          <div class="sa-field">
+            <label>État de santé</label>
+            <select name="etatSante">
+              <option value="">-- Tous --</option>
+              <option value="Bon"     {{ etatSante == 'Bon'     ? 'selected' : '' }}>Bon</option>
+              <option value="Moyen"   {{ etatSante == 'Moyen'   ? 'selected' : '' }}>Moyen</option>
+              <option value="Mauvais" {{ etatSante == 'Mauvais' ? 'selected' : '' }}>Mauvais</option>
+            </select>
+          </div>
+          <div class="sa-field">
+            <label>Niveau d'activité</label>
+            <select name="niveauActivite">
+              <option value="">-- Tous --</option>
+              <option value="Faible" {{ niveauActivite == 'Faible' ? 'selected' : '' }}>Faible</option>
+              <option value="Modéré" {{ niveauActivite == 'Modéré' ? 'selected' : '' }}>Modéré</option>
+              <option value="Élevé"  {{ niveauActivite == 'Élevé'  ? 'selected' : '' }}>Élevé</option>
+            </select>
+          </div>
+          <div class="sa-field">
+            <label>Température min (°C)</label>
+            <input type="number" name="tempMin" value="{{ tempMin }}" placeholder="ex: 30" step="0.1">
+          </div>
+          <div class="sa-field">
+            <label>Température max (°C)</label>
+            <input type="number" name="tempMax" value="{{ tempMax }}" placeholder="ex: 45" step="0.1">
+          </div>
+          <div class="sa-field">
+            <label>Trier par</label>
+            <select name="sortBy">
+              <option value="dateSuivi"       {{ sortBy == 'dateSuivi'       ? 'selected' : '' }}>Date</option>
+              <option value="temperature"     {{ sortBy == 'temperature'     ? 'selected' : '' }}>Température</option>
+              <option value="poids"           {{ sortBy == 'poids'           ? 'selected' : '' }}>Poids</option>
+              <option value="rythmeCardiaque" {{ sortBy == 'rythmeCardiaque' ? 'selected' : '' }}>BPM</option>
+              <option value="etatSante"       {{ sortBy == 'etatSante'       ? 'selected' : '' }}>État santé</option>
+            </select>
+          </div>
+          <div class="sa-field">
+            <label>Ordre</label>
+            <select name="order">
+              <option value="DESC" {{ order == 'DESC' ? 'selected' : '' }}>Décroissant ↓</option>
+              <option value="ASC"  {{ order == 'ASC'  ? 'selected' : '' }}>Croissant ↑</option>
+            </select>
+          </div>
+        </div>
+        <div class="sa-actions">
+          <button type="submit" class="sa-btn-search"><i class="fas fa-search"></i> Rechercher</button>
+          <a href="{{ path('app_suivi_animal_search') }}" class="sa-btn-reset"><i class="fas fa-undo"></i> Réinitialiser</a>
+          <a href="{{ path('app_suivi_animal_pdf') }}?sortBy={{ sortBy }}&order={{ order }}" target="_blank" class="sa-btn-pdf">
+            <i class="fas fa-file-pdf"></i> Export PDF
+          </a>
+          <a href="{{ path('app_suivi_animal_index') }}" class="sa-btn-reset"><i class="fas fa-arrow-left"></i> Retour</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="sa-panel">
+    <div class="sa-panel-head">
+      <i class="fas fa-table" style="color:#3B6D11;"></i>
+      <span>Résultats</span>
+    </div>
+    <div class="sa-panel-body" style="padding:0;">
+      <div style="padding:14px 22px 10px;">
+        <span class="sa-badge-count"><i class="fas fa-heartbeat me-1"></i>{{ suivi_animals|length }} résultat(s)</span>
+      </div>
+      {% if suivi_animals|length > 0 %}
+      <div style="overflow-x:auto;">
+        <table class="sa-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Animal</th>
+              <th><a href="?etatSante={{ etatSante }}&niveauActivite={{ niveauActivite }}&tempMin={{ tempMin }}&tempMax={{ tempMax }}&sortBy=dateSuivi&order={{ sortBy == 'dateSuivi' and order == 'DESC' ? 'ASC' : 'DESC' }}" class="sa-sort-link">Date {% if sortBy == 'dateSuivi' %}<i class="fas fa-sort-{{ order == 'ASC' ? 'up' : 'down' }}"></i>{% else %}<i class="fas fa-sort" style="opacity:.4;"></i>{% endif %}</a></th>
+              <th><a href="?etatSante={{ etatSante }}&niveauActivite={{ niveauActivite }}&tempMin={{ tempMin }}&tempMax={{ tempMax }}&sortBy=temperature&order={{ sortBy == 'temperature' and order == 'ASC' ? 'DESC' : 'ASC' }}" class="sa-sort-link">Temp. {% if sortBy == 'temperature' %}<i class="fas fa-sort-{{ order == 'ASC' ? 'up' : 'down' }}"></i>{% else %}<i class="fas fa-sort" style="opacity:.4;"></i>{% endif %}</a></th>
+              <th><a href="?etatSante={{ etatSante }}&niveauActivite={{ niveauActivite }}&tempMin={{ tempMin }}&tempMax={{ tempMax }}&sortBy=poids&order={{ sortBy == 'poids' and order == 'ASC' ? 'DESC' : 'ASC' }}" class="sa-sort-link">Poids {% if sortBy == 'poids' %}<i class="fas fa-sort-{{ order == 'ASC' ? 'up' : 'down' }}"></i>{% else %}<i class="fas fa-sort" style="opacity:.4;"></i>{% endif %}</a></th>
+              <th><a href="?etatSante={{ etatSante }}&niveauActivite={{ niveauActivite }}&tempMin={{ tempMin }}&tempMax={{ tempMax }}&sortBy=rythmeCardiaque&order={{ sortBy == 'rythmeCardiaque' and order == 'ASC' ? 'DESC' : 'ASC' }}" class="sa-sort-link">BPM {% if sortBy == 'rythmeCardiaque' %}<i class="fas fa-sort-{{ order == 'ASC' ? 'up' : 'down' }}"></i>{% else %}<i class="fas fa-sort" style="opacity:.4;"></i>{% endif %}</a></th>
+              <th>Activité</th>
+              <th><a href="?etatSante={{ etatSante }}&niveauActivite={{ niveauActivite }}&tempMin={{ tempMin }}&tempMax={{ tempMax }}&sortBy=etatSante&order={{ sortBy == 'etatSante' and order == 'ASC' ? 'DESC' : 'ASC' }}" class="sa-sort-link">État {% if sortBy == 'etatSante' %}<i class="fas fa-sort-{{ order == 'ASC' ? 'up' : 'down' }}"></i>{% else %}<i class="fas fa-sort" style="opacity:.4;"></i>{% endif %}</a></th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in suivi_animals %}
+            <tr>
+              <td style="color:#aaa;">{{ loop.index }}</td>
+              <td><strong style="color:#3B6D11;">{{ s.animal ? s.animal.codeAnimal : '—' }}</strong></td>
+              <td>{{ s.dateSuivi ? s.dateSuivi|date('d/m/Y H:i') : '-' }}</td>
+              <td><span class="vital-cell">{{ s.temperature }}</span><span class="vital-unit"> °C</span></td>
+              <td><span class="vital-cell">{{ s.poids }}</span><span class="vital-unit"> kg</span></td>
+              <td><span class="vital-cell">{{ s.rythmeCardiaque }}</span><span class="vital-unit"> bpm</span></td>
+              <td>{{ s.niveauActivite }}</td>
+              <td>
+                <span class="sa-pill sa-pill-{{ s.etatSante|lower }}">{{ s.etatSante }}</span>
+              </td>
+              <td style="display:flex;gap:6px;">
+                <a href="{{ path('app_suivi_animal_show', {'idSuivi': s.idSuivi}) }}" class="sa-action-btn view"><i class="fas fa-eye me-1"></i>Voir</a>
+                <a href="{{ path('app_suivi_animal_edit', {'idSuivi': s.idSuivi}) }}" class="sa-action-btn edit"><i class="fas fa-edit me-1"></i>Modifier</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="sa-empty">
+        <i class="fas fa-search fa-3x mb-3" style="opacity:.3;display:block;"></i>
+        <p>Aucun suivi ne correspond à vos critères.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

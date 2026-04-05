@@ -1,0 +1,168 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Recherche avancée — Animaux{% endblock %}
+{% block body %}
+<style>
+  :root{--green:#3B6D11;--light:#EAF3DE;--border:#C0DD97;--dark:#27500A;}
+  .sa-page{max-width:1100px;margin:0 auto;}
+  .sa-hero{background:linear-gradient(135deg,#27500A 0%,#3B6D11 60%,#639922 100%);border-radius:18px;padding:32px 36px;margin-bottom:2rem;color:white;display:flex;justify-content:space-between;align-items:center;}
+  .sa-hero h1{font-size:26px;font-weight:600;margin:0 0 6px;}
+  .sa-hero p{font-size:14px;opacity:.85;margin:0;}
+  .sa-hero-icon{font-size:56px;opacity:.25;}
+  .sa-panel{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:2rem;box-shadow:0 2px 12px rgba(59,109,17,.06);}
+  .sa-panel-head{background:var(--light);padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+  .sa-panel-head span{font-size:14px;font-weight:600;color:var(--dark);}
+  .sa-panel-body{padding:22px 24px;}
+  .sa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;}
+  .sa-field label{font-size:11px;font-weight:700;color:#639922;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;}
+  .sa-field input,.sa-field select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:9px;background:var(--light);font-size:13px;color:var(--dark);outline:none;box-sizing:border-box;}
+  .sa-field input:focus,.sa-field select:focus{border-color:var(--green);background:#fff;box-shadow:0 0 0 3px rgba(59,109,17,.08);}
+  .sa-actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;}
+  .sa-btn-search{background:var(--green);color:white;border:none;padding:10px 24px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;}
+  .sa-btn-reset{background:transparent;color:var(--green);border:1.5px solid var(--green);padding:10px 20px;border-radius:9px;font-size:14px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:7px;}
+  .sa-btn-pdf{background:#27500A;color:white;border:none;padding:10px 20px;border-radius:9px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:7px;text-decoration:none;}
+  .sa-results-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;}
+  .sa-badge-count{background:var(--light);border:1px solid var(--border);color:var(--dark);font-size:13px;font-weight:600;padding:5px 14px;border-radius:20px;}
+  .sa-table{width:100%;border-collapse:collapse;}
+  .sa-table thead tr{background:var(--dark);color:white;}
+  .sa-table thead th{padding:12px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;text-align:left;}
+  .sa-table thead th:first-child{border-radius:10px 0 0 0;}
+  .sa-table thead th:last-child{border-radius:0 10px 0 0;}
+  .sa-table tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
+  .sa-table tbody tr:hover{background:var(--light);}
+  .sa-table tbody td{padding:11px 16px;font-size:13px;color:#333;}
+  .sa-table tbody tr:last-child td:first-child{border-radius:0 0 0 10px;}
+  .sa-table tbody tr:last-child td:last-child{border-radius:0 0 10px 0;}
+  .sa-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+  .sa-pill-male{background:#DBEAFE;color:#1D4ED8;}
+  .sa-pill-female{background:#FCE7F3;color:#9D174D;}
+  .sa-sort-link{color:white;text-decoration:none;display:flex;align-items:center;gap:5px;}
+  .sa-sort-link:hover{opacity:.8;}
+  .sa-empty{text-align:center;padding:3rem;color:#639922;}
+  .sa-action-btn{padding:4px 10px;border-radius:7px;font-size:12px;text-decoration:none;font-weight:500;}
+  .sa-action-btn.view{background:var(--light);color:var(--dark);border:1px solid var(--border);}
+  .sa-action-btn.edit{background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;}
+</style>
+
+<div class="sa-page">
+  {# Hero #}
+  <div class="sa-hero">
+    <div>
+      <h1><i class="fas fa-sliders-h me-2"></i>Recherche avancée</h1>
+      <p>Filtrez et triez votre inventaire avec précision</p>
+    </div>
+    <div class="sa-hero-icon"><i class="fas fa-paw"></i></div>
+  </div>
+
+  {# Formulaire de filtres #}
+  <div class="sa-panel">
+    <div class="sa-panel-head">
+      <i class="fas fa-filter" style="color:#3B6D11;"></i>
+      <span>Critères de recherche</span>
+    </div>
+    <div class="sa-panel-body">
+      <form method="GET" action="{{ path('app_animal_search') }}">
+        <div class="sa-grid">
+          <div class="sa-field">
+            <label>Code animal</label>
+            <input type="text" name="codeAnimal" value="{{ codeAnimal }}" placeholder="ex: A001">
+          </div>
+          <div class="sa-field">
+            <label>Espèce</label>
+            <input type="text" name="espece" value="{{ espece }}" placeholder="ex: Bovin">
+          </div>
+          <div class="sa-field">
+            <label>Race</label>
+            <input type="text" name="race" value="{{ race }}" placeholder="ex: Holstein">
+          </div>
+          <div class="sa-field">
+            <label>Sexe</label>
+            <select name="sexe">
+              <option value="">-- Tous --</option>
+              <option value="Mâle"    {{ sexe == 'Mâle'    ? 'selected' : '' }}>Mâle</option>
+              <option value="Femelle" {{ sexe == 'Femelle' ? 'selected' : '' }}>Femelle</option>
+            </select>
+          </div>
+          <div class="sa-field">
+            <label>Trier par</label>
+            <select name="sortBy">
+              <option value="codeAnimal"    {{ sortBy == 'codeAnimal'    ? 'selected' : '' }}>Code</option>
+              <option value="espece"        {{ sortBy == 'espece'        ? 'selected' : '' }}>Espèce</option>
+              <option value="race"          {{ sortBy == 'race'          ? 'selected' : '' }}>Race</option>
+              <option value="sexe"          {{ sortBy == 'sexe'          ? 'selected' : '' }}>Sexe</option>
+              <option value="dateNaissance" {{ sortBy == 'dateNaissance' ? 'selected' : '' }}>Date naissance</option>
+            </select>
+          </div>
+          <div class="sa-field">
+            <label>Ordre</label>
+            <select name="order">
+              <option value="ASC"  {{ order == 'ASC'  ? 'selected' : '' }}>Croissant ↑</option>
+              <option value="DESC" {{ order == 'DESC' ? 'selected' : '' }}>Décroissant ↓</option>
+            </select>
+          </div>
+        </div>
+        <div class="sa-actions">
+          <button type="submit" class="sa-btn-search"><i class="fas fa-search"></i> Rechercher</button>
+          <a href="{{ path('app_animal_search') }}" class="sa-btn-reset"><i class="fas fa-undo"></i> Réinitialiser</a>
+          <a href="{{ path('app_animal_pdf') }}?codeAnimal={{ codeAnimal }}&espece={{ espece }}&race={{ race }}&sexe={{ sexe }}&sortBy={{ sortBy }}&order={{ order }}" target="_blank" class="sa-btn-pdf">
+            <i class="fas fa-file-pdf"></i> Export PDF
+          </a>
+          <a href="{{ path('app_animal_index') }}" class="sa-btn-reset"><i class="fas fa-arrow-left"></i> Retour</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# Résultats #}
+  <div class="sa-panel">
+    <div class="sa-panel-head">
+      <i class="fas fa-table" style="color:#3B6D11;"></i>
+      <span>Résultats</span>
+    </div>
+    <div class="sa-panel-body" style="padding:0;">
+      <div style="padding:14px 22px 10px;display:flex;justify-content:space-between;align-items:center;">
+        <span class="sa-badge-count"><i class="fas fa-paw me-1"></i>{{ animals|length }} résultat(s)</span>
+      </div>
+      {% if animals|length > 0 %}
+      <div style="overflow-x:auto;">
+        <table class="sa-table">
+          <thead>
+            <tr>
+              <th><a href="?codeAnimal={{ codeAnimal }}&espece={{ espece }}&race={{ race }}&sexe={{ sexe }}&sortBy=codeAnimal&order={{ sortBy == 'codeAnimal' and order == 'ASC' ? 'DESC' : 'ASC' }}" class="sa-sort-link">Code {% if sortBy == 'codeAnimal' %}<i class="fas fa-sort-{{ order == 'ASC' ? 'up' : 'down' }}"></i>{% else %}<i class="fas fa-sort" style="opacity:.4;"></i>{% endif %}</a></th>
+              <th><a href="?codeAnimal={{ codeAnimal }}&espece={{ espece }}&race={{ race }}&sexe={{ sexe }}&sortBy=espece&order={{ sortBy == 'espece' and order == 'ASC' ? 'DESC' : 'ASC' }}" class="sa-sort-link">Espèce {% if sortBy == 'espece' %}<i class="fas fa-sort-{{ order == 'ASC' ? 'up' : 'down' }}"></i>{% else %}<i class="fas fa-sort" style="opacity:.4;"></i>{% endif %}</a></th>
+              <th><a href="?codeAnimal={{ codeAnimal }}&espece={{ espece }}&race={{ race }}&sexe={{ sexe }}&sortBy=race&order={{ sortBy == 'race' and order == 'ASC' ? 'DESC' : 'ASC' }}" class="sa-sort-link">Race {% if sortBy == 'race' %}<i class="fas fa-sort-{{ order == 'ASC' ? 'up' : 'down' }}"></i>{% else %}<i class="fas fa-sort" style="opacity:.4;"></i>{% endif %}</a></th>
+              <th><a href="?codeAnimal={{ codeAnimal }}&espece={{ espece }}&race={{ race }}&sexe={{ sexe }}&sortBy=sexe&order={{ sortBy == 'sexe' and order == 'ASC' ? 'DESC' : 'ASC' }}" class="sa-sort-link">Sexe {% if sortBy == 'sexe' %}<i class="fas fa-sort-{{ order == 'ASC' ? 'up' : 'down' }}"></i>{% else %}<i class="fas fa-sort" style="opacity:.4;"></i>{% endif %}</a></th>
+              <th><a href="?codeAnimal={{ codeAnimal }}&espece={{ espece }}&race={{ race }}&sexe={{ sexe }}&sortBy=dateNaissance&order={{ sortBy == 'dateNaissance' and order == 'ASC' ? 'DESC' : 'ASC' }}" class="sa-sort-link">Date naissance {% if sortBy == 'dateNaissance' %}<i class="fas fa-sort-{{ order == 'ASC' ? 'up' : 'down' }}"></i>{% else %}<i class="fas fa-sort" style="opacity:.4;"></i>{% endif %}</a></th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for animal in animals %}
+            <tr>
+              <td><strong style="color:#3B6D11;">#{{ animal.codeAnimal }}</strong></td>
+              <td>{{ animal.espece }}</td>
+              <td>{{ animal.race }}</td>
+              <td>
+                <span class="sa-pill {{ animal.sexe == 'Mâle' ? 'sa-pill-male' : 'sa-pill-female' }}">
+                  <i class="fas fa-{{ animal.sexe == 'Mâle' ? 'mars' : 'venus' }} me-1"></i>{{ animal.sexe }}
+                </span>
+              </td>
+              <td>{{ animal.dateNaissance ? animal.dateNaissance|date('d/m/Y') : '-' }}</td>
+              <td style="display:flex;gap:6px;">
+                <a href="{{ path('app_animal_show', {'idAnimal': animal.idAnimal}) }}" class="sa-action-btn view"><i class="fas fa-eye me-1"></i>Voir</a>
+                <a href="{{ path('app_animal_edit', {'idAnimal': animal.idAnimal}) }}" class="sa-action-btn edit"><i class="fas fa-edit me-1"></i>Modifier</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="sa-empty">
+        <i class="fas fa-search fa-3x mb-3" style="opacity:.3;display:block;"></i>
+        <p>Aucun animal ne correspond à vos critères.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

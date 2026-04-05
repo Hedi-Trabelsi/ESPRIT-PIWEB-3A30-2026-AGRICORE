@@ -2,11 +2,13 @@
 
 namespace App\Entity;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 use App\Entity\Animal;
 
 #[ORM\Entity]
+#[ORM\Table(name: 'suivi_animal_legacy')]
 class Suivi_animal
 {
 
