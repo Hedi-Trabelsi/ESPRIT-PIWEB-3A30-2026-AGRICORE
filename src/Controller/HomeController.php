@@ -6,7 +6,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use App\Repository\MaintenanceRepository;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-
+use Symfony\Component\HttpFoundation\Request;
 class HomeController extends AbstractController
 {
     #[Route('/', name: 'app_home')]
@@ -65,6 +65,26 @@ class HomeController extends AbstractController
         ]);
     }
 
+    #[Route('/maintenance/planifiee', name: 'app_maintenance_planifiee')]
+    public function maintenancePlanifiee(MaintenanceRepository $maintenanceRepository): Response
+    {
+        $maintenances = $maintenanceRepository->findBy(['statut' => 'Planifiée']);
+        
+        return $this->render('front/maintenance/interventions_planifiees.html.twig', [
+            'listeMaintenances' => $maintenances,
+        ]);
+    }
+
+#[Route('/maintenance/historique', name: 'app_maintenance_historique')]
+    public function Hmaintenance(MaintenanceRepository $maintenanceRepository): Response
+    {
+        // On essaie avec la minuscule qui est la norme Symfony
+        $maintenancesResolues = $maintenanceRepository->findBy(['statut' => 'Résolue']);
+
+        return $this->render('front/maintenance/HistoriqueMaintenances.html.twig', [
+            'listeMaintenances' => $maintenancesResolues,
+        ]);
+    }
     #[Route('/evenements', name: 'app_evenements')]
     public function evenements(): Response
     {

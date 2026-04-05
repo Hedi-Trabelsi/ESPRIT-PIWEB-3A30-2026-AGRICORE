@@ -19,7 +19,7 @@ class MaintenanceController extends AbstractController
     {
         // On récupère les valeurs envoyées par le formulaire (URL)
         $search = $request->query->get('q');
-        $status = $request->query->get('s', 'all');
+        $status = $request->query->get('s', 'Planifiée');
 
         // On utilise ta nouvelle méthode DQL du Repository
         $maintenances = $repo->findBySearchAndStatus($search, $status);

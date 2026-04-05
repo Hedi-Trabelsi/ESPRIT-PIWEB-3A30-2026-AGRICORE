@@ -30,7 +30,7 @@ class Tache
         pattern: "/^(?![0-9]*$)[a-zA-Z0-9\s\.,!?]{7,}$/",
         message: "La description doit faire au moins 7 caractères et ne pas contenir que des chiffres."
     )]
-    private string $description;
+    private ?string $description = null;
 
     // Ajout de name: "cout_estimee"
     #[ORM\Column(name: "cout_estimee", type: "string", length: 25)]
@@ -53,7 +53,7 @@ class Tache
         pattern: "/^[a-zA-Z\s]+$/",
         message: "Le nom de la tâche ne doit contenir que des lettres."
     )]
-    private string $nomTache;
+    private ?string $nomTache = null;
 
     #[ORM\Column(type: "integer")]
     #[Assert\NotBlank(message: "L'évaluation est obligatoire.")]
@@ -87,11 +87,11 @@ class Tache
         return $this->description;
     }
 
-    public function setDescription(string $value): self
-    {
-        $this->description = $value;
-        return $this;
-    }
+    public function setDescription(?string $value): self // <-- Ajoute le ? ici
+{
+    $this->description = $value;
+    return $this;
+}
 
     public function getCoutEstimee(): ?string
     {
@@ -120,12 +120,11 @@ class Tache
         return $this->nomTache;
     }
 
-    public function setNomTache(string $value): self
-    {
-        $this->nomTache = $value;
-        return $this;
-    }
-
+   public function setNomTache(?string $value): self // <-- Ajoute le ? ici
+{
+    $this->nomTache = $value;
+    return $this;
+}
     public function getEvaluation(): int
     {
         return $this->evaluation;

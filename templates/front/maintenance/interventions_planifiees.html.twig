@@ -4,7 +4,7 @@
 {% include 'front/partials/_tech_navbar.html.twig' %}
 {% endblock %}
 
-{% block title %}Interventions à traiter{% endblock %}
+{% block title %}Interventions planifiées{% endblock %}
 
 {% block body %}
 <style>
@@ -33,8 +33,6 @@
         transform: translateY(-8px);
         box-shadow: 0 15px 30px rgba(0,0,0,0.08);
     }
-
-   
 
     .card-title-custom {
         font-weight: 800;
@@ -76,7 +74,7 @@
 
 <div class="container mt-5">
     <div class="header-section text-center">
-        <h1 class="fw-bold m-0">Interventions à traiter</h1>
+        <h1 class="fw-bold m-0">Interventions planifiées</h1>
     </div>
 
     {% if listeMaintenances is empty %}
@@ -88,11 +86,8 @@
             {% for m in listeMaintenances %}
                 <div class="col-lg-4 col-md-6">
                     <div class="custom-card shadow-sm">
-                        {# Affichage de la priorité #}
-                       
                         <h5 class="card-title-custom">{{ m.nomMaintenance }}</h5>
-                        
-                        {# Affichage Equipement (sans icône) et Lieu #}
+
                         <div class="small text-dark fw-bold mb-1">
                             {{ m.Equipement }}
                         </div>
@@ -100,7 +95,7 @@
                             <i class="fas fa-map-marker-alt me-1"></i> {{ m.Lieu }}
                         </div>
 
-                        <button type="button" class="btn-plus" data-bs-toggle="modal" data-bs-target="#detailModal{{ m.Id_maintenance }}">
+                        <button type="button" class="btn-plus" onclick="window.location.href='{{ path('app_maintenance_taches', {'id_maintenance': m.Id_maintenance}) }}'">
                             PLUS
                         </button>
                     </div>
@@ -146,11 +141,14 @@
 
                                 <div class="mt-4 d-flex justify-content-between align-items-center">
                                     <div class="d-flex gap-2">
-                                        <a href="{{ path('app_tache_new', {'id_maintenance': m.Id_maintenance}) }}" class="btn btn-sm btn-success rounded-pill px-4">
-                                            <i class="fas fa-calendar-check me-1"></i> Planifier l'intervention
+                                        <a href="{{ path('app_maintenance_taches', {'id_maintenance': m.Id_maintenance}) }}" class="btn btn-sm btn-outline-info rounded-pill px-3">
+                                            Voir tâches
+                                        </a>
+                                        <a href="{{ path('app_maintenance_edit', {'id_maintenance': m.Id_maintenance}) }}" class="btn btn-sm btn-warning rounded-pill px-3">
+                                            <i class="fas fa-edit me-1"></i> Modifier
                                         </a>
                                     </div>
-                             
+                                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Fermer</button>
                                 </div>
                             </div>
                         </div>

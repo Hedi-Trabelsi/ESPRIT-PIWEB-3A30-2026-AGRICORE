@@ -203,12 +203,7 @@
 
                         <button type="button" 
                                 class="btn-plus" 
-                                {% if m.Statut in ['Résolue', 'Planifiée', 'Résolu'] %}
-                                    onclick="window.location.href='{{ path('app_maintenance_detail', {'id_maintenance': m.Id_maintenance}) }}'"
-                                {% else %}
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#detailModal{{ m.Id_maintenance }}"
-                                {% endif %}>
+                                onclick="window.location.href='{{ path('app_maintenance_taches', {'id_maintenance': m.Id_maintenance}) }}'">
                             PLUS
                         </button>
                     </div>
