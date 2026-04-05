@@ -26,12 +26,6 @@ class BackController extends AbstractController
         return $this->render('back/achat_equipement/equipement.html.twig');
     }
 
-    #[Route('/back/animaux', name: 'back_animaux')]
-    public function animaux(): Response
-    {
-        return $this->render('back/suivi_animal/animal.html.twig');
-    }
-
     #[Route('/back/ventes-depenses', name: 'back_ventes_depenses')]
     public function ventesDepenses(): Response
     {

@@ -1,0 +1,51 @@
+{% extends 'back/base_back.html.twig' %}
+{% block title %}Suivi #{{ suivi.idSuivi }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+    :root { --agri-green:#2d6a4f; --agri-dark:#061a14; }
+    .detail-card { background:#fff; border-radius:16px; border:1px solid #e8f0eb; padding:32px; max-width:600px; }
+    .field-row { display:flex; justify-content:space-between; padding:13px 0; border-bottom:1px solid #f3f4f6; font-size:.9rem; }
+    .field-row:last-child { border-bottom:none; }
+    .field-label { color:#6b7280; font-weight:600; }
+    .badge-etat { padding:4px 12px; border-radius:50px; font-size:.8rem; font-weight:600; }
+    .etat-bon     { background:#dcfce7; color:#16a34a; }
+    .etat-moyen   { background:#fef9c3; color:#ca8a04; }
+    .etat-mauvais { background:#fee2e2; color:#dc2626; }
+    .remarque-box { background:#f8faf9; border-radius:10px; padding:14px 18px; font-size:.88rem; color:#374151; border:1px solid #e8f0eb; margin-top:8px; }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{{ path('back_suivis') }}" class="btn btn-outline-secondary rounded-3" style="font-size:.85rem"><i class="fas fa-arrow-left me-1"></i>Retour</a>
+        <h4 class="fw-bold mb-0" style="color:var(--agri-dark)"><i class="fas fa-heartbeat me-2" style="color:var(--agri-green)"></i>Suivi #{{ suivi.idSuivi }}</h4>
+        <a href="{{ path('back_suivi_edit', {id: suivi.idSuivi}) }}" class="btn ms-auto" style="background:var(--agri-green);color:#fff;border-radius:8px;font-size:.85rem;font-weight:600"><i class="fas fa-pen me-1"></i>Modifier</a>
+    </div>
+
+    <div class="detail-card">
+        <h6 class="fw-bold mb-3 text-muted text-uppercase" style="font-size:.75rem;letter-spacing:.08em">Détails du suivi</h6>
+        <div class="field-row">
+            <span class="field-label">Animal</span>
+            <span class="fw-semibold">
+                {% if suivi.animal %}
+                    <a href="{{ path('back_animal_show', {id: suivi.animal.idAnimal}) }}" style="color:var(--agri-green)">{{ suivi.animal.codeAnimal }}</a>
+                    <span class="text-muted ms-1">({{ suivi.animal.espece }} – {{ suivi.animal.race }})</span>
+                {% else %}—{% endif %}
+            </span>
+        </div>
+        <div class="field-row"><span class="field-label">Date du suivi</span><span>{{ suivi.dateSuivi|date('d/m/Y H:i') }}</span></div>
+        <div class="field-row"><span class="field-label">Température</span><span>{{ suivi.temperature }} °C</span></div>
+        <div class="field-row"><span class="field-label">Poids</span><span>{{ suivi.poids }} kg</span></div>
+        <div class="field-row"><span class="field-label">Rythme cardiaque</span><span>{{ suivi.rythmeCardiaque }} bpm</span></div>
+        <div class="field-row"><span class="field-label">Niveau d'activité</span><span>{{ suivi.niveauActivite }}</span></div>
+        <div class="field-row">
+            <span class="field-label">État de santé</span>
+            <span class="badge-etat etat-{{ suivi.etatSante|lower }}">{{ suivi.etatSante }}</span>
+        </div>
+        <div class="mt-3">
+            <div class="field-label mb-1">Remarque</div>
+            <div class="remarque-box">{{ suivi.remarque }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

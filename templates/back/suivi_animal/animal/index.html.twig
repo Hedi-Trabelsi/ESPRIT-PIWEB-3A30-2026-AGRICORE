@@ -1,0 +1,115 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block title %}Admin – Animaux{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+    :root { --agri-green: #2d6a4f; --agri-dark: #061a14; }
+    .page-header { background:#fff; border-radius:16px; padding:24px 32px; margin-bottom:24px; border:1px solid #e8f0eb; display:flex; justify-content:space-between; align-items:center; }
+    .control-bar { background:#fff; border-radius:14px; padding:16px 24px; margin-bottom:24px; border:1px solid #e8f0eb; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .table-card { background:#fff; border-radius:16px; border:1px solid #e8f0eb; overflow:hidden; }
+    .table thead th { background:#f8faf9; color:#374151; font-weight:600; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; border-bottom:2px solid #e8f0eb; padding:14px 16px; }
+    .table tbody td { padding:14px 16px; vertical-align:middle; border-bottom:1px solid #f3f4f6; font-size:.9rem; }
+    .table tbody tr:hover { background:#f8faf9; }
+    .badge-sexe { padding:4px 12px; border-radius:50px; font-size:.75rem; font-weight:600; }
+    .badge-male { background:#dbeafe; color:#1d4ed8; }
+    .badge-femelle { background:#fce7f3; color:#be185d; }
+    .sort-link { color:inherit; text-decoration:none; display:flex; align-items:center; gap:4px; }
+    .sort-link:hover { color:var(--agri-green); }
+    .btn-agri { background:var(--agri-green); color:#fff; border:none; border-radius:8px; padding:8px 18px; font-weight:600; font-size:.85rem; }
+    .btn-agri:hover { background:#1e4d38; color:#fff; }
+    .search-box { border:1px solid #d1d5db; border-radius:8px; padding:8px 14px; font-size:.9rem; min-width:240px; }
+    .search-box:focus { outline:none; border-color:var(--agri-green); box-shadow:0 0 0 3px rgba(45,106,79,.1); }
+    .select-sort { border:1px solid #d1d5db; border-radius:8px; padding:8px 12px; font-size:.85rem; }
+    .action-btn { width:32px; height:32px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; border:none; cursor:pointer; transition:.2s; }
+    .btn-view { background:#eff6ff; color:#2563eb; }
+    .btn-edit { background:#f0fdf4; color:#16a34a; }
+    .btn-del  { background:#fef2f2; color:#dc2626; }
+    .action-btn:hover { filter:brightness(.9); transform:scale(1.08); }
+    .empty-state { text-align:center; padding:60px 20px; color:#9ca3af; }
+</style>
+
+<div class="container-fluid py-4">
+
+    {% for msg in app.flashes('success') %}
+        <div class="alert alert-success rounded-3 mb-3">{{ msg }}</div>
+    {% endfor %}
+
+    <div class="page-header">
+        <div>
+            <h4 class="fw-bold mb-1" style="color:var(--agri-dark)"><i class="fas fa-paw me-2" style="color:var(--agri-green)"></i>Gestion des Animaux</h4>
+            <p class="text-muted mb-0 small">{{ animals|length }} animal(s) au total</p>
+        </div>
+        <a href="{{ path('back_animal_new') }}" class="btn btn-agri">
+            <i class="fas fa-plus me-2"></i>Ajouter un animal
+        </a>
+    </div>
+
+    <form method="get" action="{{ path('back_animaux') }}">
+        <div class="control-bar">
+            <input type="text" name="q" value="{{ q }}" placeholder="Rechercher (code, espèce, race…)" class="search-box">
+            <select name="sortBy" class="select-sort">
+                <option value="codeAnimal"    {% if sortBy == 'codeAnimal'    %}selected{% endif %}>Trier par Code</option>
+                <option value="espece"        {% if sortBy == 'espece'        %}selected{% endif %}>Trier par Espèce</option>
+                <option value="race"          {% if sortBy == 'race'          %}selected{% endif %}>Trier par Race</option>
+                <option value="sexe"          {% if sortBy == 'sexe'          %}selected{% endif %}>Trier par Sexe</option>
+                <option value="dateNaissance" {% if sortBy == 'dateNaissance' %}selected{% endif %}>Trier par Date</option>
+            </select>
+            <select name="order" class="select-sort">
+                <option value="ASC"  {% if order == 'ASC'  %}selected{% endif %}>Croissant</option>
+                <option value="DESC" {% if order == 'DESC' %}selected{% endif %}>Décroissant</option>
+            </select>
+            <button type="submit" class="btn btn-agri"><i class="fas fa-search me-1"></i>Filtrer</button>
+            {% if q %}<a href="{{ path('back_animaux') }}" class="btn btn-outline-secondary rounded-3" style="font-size:.85rem">Réinitialiser</a>{% endif %}
+        </div>
+    </form>
+
+    <div class="table-card">
+        {% if animals is empty %}
+            <div class="empty-state">
+                <i class="fas fa-paw fa-3x mb-3" style="color:#d1d5db"></i>
+                <p class="fw-semibold">Aucun animal trouvé</p>
+            </div>
+        {% else %}
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th><a href="{{ path('back_animaux', {q:q, sortBy:'codeAnimal', order: sortBy=='codeAnimal' and order=='ASC' ? 'DESC' : 'ASC'}) }}" class="sort-link">Code <i class="fas fa-sort fa-xs"></i></a></th>
+                    <th><a href="{{ path('back_animaux', {q:q, sortBy:'espece', order: sortBy=='espece' and order=='ASC' ? 'DESC' : 'ASC'}) }}" class="sort-link">Espèce <i class="fas fa-sort fa-xs"></i></a></th>
+                    <th><a href="{{ path('back_animaux', {q:q, sortBy:'race', order: sortBy=='race' and order=='ASC' ? 'DESC' : 'ASC'}) }}" class="sort-link">Race <i class="fas fa-sort fa-xs"></i></a></th>
+                    <th><a href="{{ path('back_animaux', {q:q, sortBy:'sexe', order: sortBy=='sexe' and order=='ASC' ? 'DESC' : 'ASC'}) }}" class="sort-link">Sexe <i class="fas fa-sort fa-xs"></i></a></th>
+                    <th><a href="{{ path('back_animaux', {q:q, sortBy:'dateNaissance', order: sortBy=='dateNaissance' and order=='ASC' ? 'DESC' : 'ASC'}) }}" class="sort-link">Naissance <i class="fas fa-sort fa-xs"></i></a></th>
+                    <th>Agriculteur ID</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for animal in animals %}
+                <tr>
+                    <td><span class="fw-semibold">{{ animal.codeAnimal }}</span></td>
+                    <td>{{ animal.espece }}</td>
+                    <td>{{ animal.race }}</td>
+                    <td>
+                        <span class="badge-sexe {% if animal.sexe == 'Mâle' %}badge-male{% else %}badge-femelle{% endif %}">
+                            {{ animal.sexe }}
+                        </span>
+                    </td>
+                    <td>{{ animal.dateNaissance ? animal.dateNaissance|date('d/m/Y') : '—' }}</td>
+                    <td><span class="text-muted">#{{ animal.idAgriculteur }}</span></td>
+                    <td class="text-center">
+                        <a href="{{ path('back_animal_show', {id: animal.idAnimal}) }}" class="action-btn btn-view" title="Voir"><i class="fas fa-eye fa-xs"></i></a>
+                        <a href="{{ path('back_animal_edit', {id: animal.idAnimal}) }}" class="action-btn btn-edit" title="Modifier"><i class="fas fa-pen fa-xs"></i></a>
+                        <form method="post" action="{{ path('back_animal_delete', {id: animal.idAnimal}) }}" style="display:inline">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete'~animal.idAnimal) }}">
+                            <button type="submit" class="action-btn btn-del" title="Supprimer"><i class="fas fa-trash fa-xs"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

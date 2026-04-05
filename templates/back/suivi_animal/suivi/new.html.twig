@@ -1,0 +1,82 @@
+{% extends 'back/base_back.html.twig' %}
+{% block title %}Ajouter un suivi{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+    :root { --agri-green:#2d6a4f; }
+    .form-card { background:#fff; border-radius:16px; border:1px solid #e8f0eb; padding:32px; max-width:620px; }
+    .form-label { font-weight:600; font-size:.85rem; color:#374151; }
+    .form-control, .form-select { border-radius:8px; border:1px solid #d1d5db; font-size:.9rem; padding:10px 14px; }
+    .form-control:focus, .form-select:focus { border-color:var(--agri-green); box-shadow:0 0 0 3px rgba(45,106,79,.1); }
+    .btn-agri { background:var(--agri-green); color:#fff; border:none; border-radius:8px; padding:10px 24px; font-weight:600; }
+    .btn-agri:hover { background:#1e4d38; color:#fff; }
+    .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{{ path('back_suivis') }}" class="btn btn-outline-secondary rounded-3" style="font-size:.85rem"><i class="fas fa-arrow-left me-1"></i>Retour</a>
+        <h4 class="fw-bold mb-0"><i class="fas fa-plus-circle me-2" style="color:var(--agri-green)"></i>Ajouter un suivi</h4>
+    </div>
+
+    <div class="form-card">
+        <form method="post" action="{{ path('back_suivi_new') }}">
+            <div class="mb-3">
+                <label class="form-label">Animal *</label>
+                <select name="idAnimal" class="form-select" required>
+                    <option value="">-- Choisir un animal --</option>
+                    {% for animal in animals %}
+                        <option value="{{ animal.idAnimal }}" {% if preselectedAnimal is defined and preselectedAnimal == animal.idAnimal ~ '' %}selected{% endif %}>{{ animal.codeAnimal }} – {{ animal.espece }} ({{ animal.race }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Date du suivi *</label>
+                <input type="datetime-local" name="dateSuivi" class="form-control" required max="{{ "now"|date('Y-m-d') }}T23:59">
+            </div>
+            <div class="row-2 mb-3">
+                <div>
+                    <label class="form-label">Température (°C) *</label>
+                    <input type="number" step="0.1" name="temperature" class="form-control" required min="30" max="45" placeholder="ex: 38.5">
+                </div>
+                <div>
+                    <label class="form-label">Poids (kg) *</label>
+                    <input type="number" step="0.1" name="poids" class="form-control" required min="0.1" placeholder="ex: 450">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Rythme cardiaque (bpm) *</label>
+                <input type="number" name="rythmeCardiaque" class="form-control" required min="20" max="300" placeholder="ex: 60">
+            </div>
+            <div class="row-2 mb-3">
+                <div>
+                    <label class="form-label">Niveau d'activité *</label>
+                    <select name="niveauActivite" class="form-select" required>
+                        <option value="">-- Choisir --</option>
+                        <option value="Faible">Faible</option>
+                        <option value="Modéré">Modéré</option>
+                        <option value="Élevé">Élevé</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">État de santé *</label>
+                    <select name="etatSante" class="form-select" required>
+                        <option value="">-- Choisir --</option>
+                        <option value="Bon">Bon</option>
+                        <option value="Moyen">Moyen</option>
+                        <option value="Mauvais">Mauvais</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Remarque *</label>
+                <textarea name="remarque" class="form-control" rows="3" required minlength="5" placeholder="Observations…"></textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-agri"><i class="fas fa-save me-2"></i>Enregistrer</button>
+                <a href="{{ path('back_suivis') }}" class="btn btn-outline-secondary rounded-3">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

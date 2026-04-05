@@ -208,8 +208,10 @@
                             <div class="circle-btn" style="opacity: 0.5; cursor: not-allowed;" title="Verrouillé"><i class="fas fa-lock text-danger"></i></div>
                         {% endif %}
 
-                        <a href="{{ path('back_evenements_delete', {id: ev.id_ev}) }}" class="circle-btn" onclick="return confirm('Supprimer ?')"><i class="fas fa-trash text-danger"></i></a>
-                    </div>
+<a href="{{ path('back_evenements_delete', {id: ev.id_ev}) }}"
+   class="circle-btn">
+    <i class="fas fa-trash text-danger"></i>
+</a>                    </div>
                 </div>
             </div>
         {% endfor %}

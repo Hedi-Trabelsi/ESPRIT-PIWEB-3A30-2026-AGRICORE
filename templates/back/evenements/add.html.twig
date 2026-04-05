@@ -22,10 +22,10 @@
     }
 
     .form-group { position: relative; margin-bottom: 1.5rem; }
-    
+
     .form-control {
         border-radius: 18px;
-        padding: 14px 45px 14px 22px; 
+        padding: 14px 45px 14px 22px;
         border: 2px solid #f1f5f9;
         background: #f8fafc;
         transition: all 0.3s;
@@ -42,7 +42,7 @@
 
     .is-valid-field { border-color: var(--agri-green) !important; background-color: #f0fdf4 !important; }
     .is-invalid-field { border-color: var(--error-red) !important; background-color: #fef2f2 !important; }
-    
+
     .error-msg {
         color: var(--error-red);
         font-size: 0.75rem;
@@ -76,7 +76,7 @@
             <div class="row g-5">
                 <div class="col-lg-6">
                     <h5 class="mb-4 fw-bold">Configuration de l'événement</h5>
-                    
+
                     <div class="form-group">
                         <label class="form-label fw-bold small text-uppercase">Titre</label>
                         <input type="text" name="titre" id="titre" class="form-control" placeholder="Min. 5 caractères">
@@ -160,91 +160,136 @@ document.addEventListener('DOMContentLoaded', function() {
     var marker = L.marker([36.8065, 10.1815]).addTo(map);
 
     // --- VALIDATION ENGINE ---
-    const validate = (id, condition, errorId = null) => {
-        const input = document.getElementById(id);
-        const check = document.getElementById(id + '-check');
-        const error = errorId ? document.getElementById(errorId) : null;
+    const setValid = (el, errId) => {
+        el.classList.add('is-valid-field'); el.classList.remove('is-invalid-field');
+        const chk = document.getElementById(el.id + '-check');
+        if (chk) chk.style.display = 'block';
+        if (errId) document.getElementById(errId).style.display = 'none';
+    };
+    const setInvalid = (el, errId) => {
+        el.classList.remove('is-valid-field'); el.classList.add('is-invalid-field');
+        const chk = document.getElementById(el.id + '-check');
+        if (chk) chk.style.display = 'none';
+        if (errId) document.getElementById(errId).style.display = 'block';
+    };
 
-        if (condition) {
-            input.classList.add('is-valid-field');
-            input.classList.remove('is-invalid-field');
-            if(check) check.style.display = 'block';
-            if(error) error.style.display = 'none';
-            return true;
-        } else {
-            input.classList.remove('is-valid-field');
-            input.classList.add('is-invalid-field');
-            if(check) check.style.display = 'none';
-            if(error) error.style.display = 'block';
-            return false;
-        }
+    const checkTitre = () => {
+        const el = document.getElementById('titre');
+        const ok = el.value.trim().length >= 5;
+        ok ? setValid(el, 'titre-error') : setInvalid(el, 'titre-error'); return ok;
+    };
+    const checkDescription = () => {
+        const el = document.getElementById('description');
+        const ok = el.value.trim().length >= 10;
+        ok ? setValid(el, 'description-error') : setInvalid(el, 'description-error'); return ok;
+    };
+    const checkCapacite = () => {
+        const el = document.getElementById('capacite');
+        const ok = el.value !== '' && parseInt(el.value) > 0;
+        ok ? setValid(el, 'capacite-error') : setInvalid(el, 'capacite-error'); return ok;
+    };
+    const checkFrais = () => {
+        const el = document.getElementById('frais');
+        const ok = el.value !== '' && parseFloat(el.value) >= 0;
+        ok ? setValid(el, null) : setInvalid(el, null); return ok;
+    };
+    const checkDates = () => {
+        const d1 = document.getElementById('date_debut');
+        const d2 = document.getElementById('date_fin');
+        if (!d1.value) { setInvalid(d1, null); return false; }
+        setValid(d1, null);
+        if (!d2.value) { setInvalid(d2, 'date-error'); return false; }
+        const ok = new Date(d2.value) > new Date(d1.value);
+        ok ? setValid(d2, 'date-error') : setInvalid(d2, 'date-error'); return ok;
     };
 
     // --- REAL-TIME LISTENERS ---
-    document.getElementById('titre').addEventListener('input', e => validate('titre', e.target.value.length >= 5, 'titre-error'));
-    document.getElementById('description').addEventListener('input', e => validate('description', e.target.value.length >= 10, 'description-error'));
-    document.getElementById('capacite').addEventListener('input', function() {
-        validate('capacite', this.value !== "" && parseInt(this.value) > 0, 'capacite-error');
-    });
-    document.getElementById('frais').addEventListener('input', e => validate('frais', e.target.value !== "" && e.target.value >= 0));
-
-    const checkDates = () => {
-        const start = document.getElementById('date_debut').value;
-        const end = document.getElementById('date_fin').value;
-        validate('date_debut', start !== "");
-        if (start && end) {
-            return validate('date_fin', new Date(end) > new Date(start), 'date-error');
-        }
-        return validate('date_fin', end !== "");
-    };
+    document.getElementById('titre').addEventListener('input', checkTitre);
+    document.getElementById('description').addEventListener('input', checkDescription);
+    document.getElementById('capacite').addEventListener('input', checkCapacite);
+    document.getElementById('frais').addEventListener('input', checkFrais);
     document.getElementById('date_debut').addEventListener('change', checkDates);
     document.getElementById('date_fin').addEventListener('change', checkDates);
 
     // --- MAP LOGIC ---
     map.on('click', function(e) {
         marker.setLatLng(e.latlng);
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`)
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&accept-language=fr`)
             .then(res => res.json())
             .then(data => {
-                lieuInput.value = data.display_name;
+                const name = data.address.city || data.address.town || data.address.village
+                           || data.address.county || data.display_name;
+                lieuInput.value = name;
                 locationFound = true;
+                hideSuggestions();
                 validate('lieu-input', true, 'lieu-error');
             });
     });
+
+    // --- SUGGESTIONS DROPDOWN ---
+    const suggestBox = document.createElement('div');
+    suggestBox.id = 'lieu-suggestions';
+    suggestBox.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid #10b981;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:9999;max-height:200px;overflow-y:auto;display:none;margin-top:4px;';
+    lieuInput.parentElement.style.position = 'relative';
+    lieuInput.parentElement.appendChild(suggestBox);
+
+    function hideSuggestions() { suggestBox.style.display = 'none'; suggestBox.innerHTML = ''; }
+
+    function showSuggestions(results) {
+        suggestBox.innerHTML = '';
+        if (!results.length) { hideSuggestions(); return; }
+        results.forEach(r => {
+            const item = document.createElement('div');
+            item.textContent = r.display_name;
+            item.style.cssText = 'padding:10px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid #f1f5f9;';
+            item.addEventListener('mouseenter', () => item.style.background = '#f0fdf4');
+            item.addEventListener('mouseleave', () => item.style.background = '#fff');
+            item.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                lieuInput.value = r.display_name;
+                map.flyTo([r.lat, r.lon], 14);
+                marker.setLatLng([r.lat, r.lon]);
+                locationFound = true;
+                hideSuggestions();
+                validate('lieu-input', true, 'lieu-error');
+            });
+            suggestBox.appendChild(item);
+        });
+        suggestBox.style.display = 'block';
+    }
 
     let searchTimer;
     lieuInput.addEventListener('input', function() {
         locationFound = false;
         clearTimeout(searchTimer);
-        if (this.value.length < 3) return validate('lieu-input', false, 'lieu-error');
+        if (this.value.length < 3) { hideSuggestions(); return validate('lieu-input', false, 'lieu-error'); }
         searchTimer = setTimeout(() => {
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(this.value)}&limit=1`)
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(this.value)}&limit=5&accept-language=fr`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.length > 0) {
-                        map.flyTo([data[0].lat, data[0].lon], 14);
+                        showSuggestions(data);
+                        map.flyTo([data[0].lat, data[0].lon], 13);
                         marker.setLatLng([data[0].lat, data[0].lon]);
                         locationFound = true;
                         validate('lieu-input', true, 'lieu-error');
                     } else {
+                        hideSuggestions();
                         validate('lieu-input', false, 'lieu-error');
                     }
                 });
-        }, 800);
+        }, 500);
     });
+
+    lieuInput.addEventListener('blur', () => setTimeout(hideSuggestions, 150));
+    lieuInput.addEventListener('focus', () => { if (suggestBox.children.length) suggestBox.style.display = 'block'; });
 
     // --- FORM SUBMIT GUARD ---
     form.addEventListener('submit', function(e) {
-        const results = [
-            validate('titre', document.getElementById('titre').value.length >= 5, 'titre-error'),
-            validate('description', document.getElementById('description').value.length >= 10, 'description-error'),
-            checkDates(),
-            validate('lieu-input', locationFound || lieuInput.value.length > 5, 'lieu-error'),
-            validate('frais', document.getElementById('frais').value !== ""),
-            validate('capacite', document.getElementById('capacite').value !== "" && parseInt(document.getElementById('capacite').value) > 0, 'capacite-error')
-        ];
-
-        if (results.includes(false)) {
+        const ok = [checkTitre(), checkDescription(), checkDates(),
+                    validate('lieu-input', locationFound || lieuInput.value.length > 5, 'lieu-error'),
+                    checkFrais(), checkCapacite()];
+        if (ok.includes(false)) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
             btn.classList.add('animate__animated', 'animate__shakeX');

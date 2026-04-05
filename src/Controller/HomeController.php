@@ -2,9 +2,12 @@
 
 namespace App\Controller;
 
+use App\Repository\AnimalRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\HttpFoundation\Request;
+
 
 class HomeController extends AbstractController
 {
@@ -32,10 +35,21 @@ class HomeController extends AbstractController
         return $this->render('front/maintenance/maintenance.html.twig');
     }
 
-    #[Route('/suivi-animal', name: 'app_suivi_animal')]
-    public function suiviAnimal(): Response
+     #[Route('/suivi-animal', name: 'app_suivi_animal')]
+    public function suiviAnimal(Request $request, AnimalRepository $animalRepository): Response
     {
-        return $this->render('front/suivi_animal/suivi_animal.html.twig');
+        $q = $request->query->get('q', '');
+        $sortBy = $request->query->get('sortBy', 'codeAnimal');
+        $order = $request->query->get('order', 'ASC');
+
+        $animals = $animalRepository->findAll(); // simple pour maintenant
+
+        return $this->render('front/suivi_animal/animal/index.html.twig', [
+            'animals' => $animals,
+            'q' => $q,
+            'sortBy' => $sortBy,
+            'order' => $order,
+        ]);
     }
 
     #[Route('/achat-equipement', name: 'app_achat_equipement')]

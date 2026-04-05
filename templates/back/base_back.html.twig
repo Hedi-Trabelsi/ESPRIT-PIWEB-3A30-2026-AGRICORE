@@ -8,7 +8,7 @@
   <link rel="shortcut icon" type="image/png" href="{{ asset('img/logoo.png') }}" />
   <link rel="stylesheet" href="{{ asset('css/styles.min.css') }}" />
   <style>
-  
+
     .top-navbar-white {
       position: fixed;
       top: 0;
@@ -66,7 +66,7 @@
 .sidebar-link.active .hide-menu {
     color: inherit !important;               /* icônes et texte secondaires restent normaux */
 }
-     </style> 
+     </style>
 
 </head>
 
@@ -81,7 +81,7 @@
         <a href="{{ path('back_dashboard') }}" class="d-flex align-items-center gap-2">
           <img src="{{ asset('img/logo.png') }}" alt="Logo" style="height: 40px; width: auto;" />
         </a>
-       
+
       </div>
       <div class="user-info d-flex align-items-center gap-3">
         <div class="dropdown position-relative">
@@ -101,11 +101,11 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Sidebar Start -->
     <aside class="left-sidebar">
       <div style="height: 100%; display: flex; flex-direction: column;">
-        
+
         <!-- Sidebar navigation -->
         <nav class="sidebar-nav scroll-sidebar" style="height: 100%; position: relative; display: flex; flex-direction: column;">
           <div class="close-btn d-xl-none d-block sidebartoggler cursor-pointer" id="sidebarCollapse" style="position: absolute; top: 10px; right: 10px;">
@@ -115,7 +115,7 @@
             <li class="nav-small-cap">
               <iconify-icon icon="solar:menu-dots-linear" class="nav-small-cap-icon fs-4"></iconify-icon>
             </li>
-            
+
             <!-- Dashboard -->
             <li class="sidebar-item">
               <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_dashboard' %} active{% endif %}" href="{{ path('back_dashboard') }}" aria-expanded="false">
@@ -123,8 +123,8 @@
                 <span class="hide-menu">Dashboard</span>
               </a>
             </li>
-            
-                
+
+
             <!-- Maintenance -->
             <li class="sidebar-item">
               <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_maintenance' %} active{% endif %}" href="{{ path('back_maintenance') }}" aria-expanded="false">
@@ -132,7 +132,7 @@
                 <span class="hide-menu">Maintenances</span>
               </a>
             </li>
-            
+
             <!-- Équipement avec Tracteur -->
             <li class="sidebar-item">
               <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_equipements' %} active{% endif %}" href="{{ path('back_equipements') }}" aria-expanded="false">
@@ -140,7 +140,7 @@
                 <span class="hide-menu">Équipements</span>
               </a>
             </li>
-            
+
             <!-- Événements -->
             <li class="sidebar-item">
               <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_evenements_list' %} active{% endif %}" href="{{ path('back_evenements_list') }}" aria-expanded="false">
@@ -148,15 +148,23 @@
                 <span class="hide-menu">Événements</span>
               </a>
             </li>
-            
+
             <!-- Animaux -->
             <li class="sidebar-item">
-              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_animaux' %} active{% endif %}" href="{{ path('back_animaux') }}" aria-expanded="false">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') starts with 'back_animal' %} active{% endif %}" href="{{ path('back_animaux') }}" aria-expanded="false">
                 <i class="ti ti-paw"></i>
                 <span class="hide-menu">Animaux</span>
               </a>
             </li>
-            
+
+            <!-- Suivis Animaux -->
+            <li class="sidebar-item">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') starts with 'back_suivi' %} active{% endif %}" href="{{ path('back_suivis') }}" aria-expanded="false">
+                <i class="ti ti-heartbeat"></i>
+                <span class="hide-menu">Suivis Animaux</span>
+              </a>
+            </li>
+
             <!-- Ventes et dépenses -->
             <li class="sidebar-item">
               <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_ventes_depenses' %} active{% endif %}" href="{{ path('back_ventes_depenses') }}" aria-expanded="false">
@@ -164,7 +172,7 @@
                 <span class="hide-menu">Ventes et dépenses</span>
               </a>
             </li>
-            
+
             <!-- Utilisateurs -->
             <li class="sidebar-item">
               <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_utilisateurs' %} active{% endif %}" href="{{ path('back_utilisateurs') }}" aria-expanded="false">
@@ -182,7 +190,7 @@
       </div>
     </aside>
     <!-- Sidebar End -->
-    
+
     <!-- Main Content -->
     <div class="body-wrapper">
       <div class="container-fluid">
@@ -200,9 +208,9 @@
         {% endblock %}
       </div>
     </div>
-    
+
   </div>
-  
+
   <script src="{{ asset('lib/jquery/dist/jquery.min.js') }}"></script>
   <script src="{{ asset('lib/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
   <script src="{{ asset('js/sidebarmenu.js') }}"></script>
