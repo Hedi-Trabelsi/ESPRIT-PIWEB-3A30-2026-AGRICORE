@@ -1,0 +1,256 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+
+<style>
+    :root {
+        --agri-dark: #061a14;
+        --agri-green: #10b981;
+        --error-red: #ef4444;
+    }
+
+    .main-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(15px);
+        border-radius: 35px;
+        border: 1px solid #ffffff;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.08);
+        padding: 50px;
+    }
+
+    .form-group { position: relative; margin-bottom: 1.5rem; }
+    
+    .form-control {
+        border-radius: 18px;
+        padding: 14px 45px 14px 22px; 
+        border: 2px solid #f1f5f9;
+        background: #f8fafc;
+        transition: all 0.3s;
+    }
+
+    .validation-icon {
+        position: absolute;
+        right: 20px;
+        top: 48px;
+        font-size: 1.1rem;
+        display: none;
+        z-index: 5;
+    }
+
+    .is-valid-field { border-color: var(--agri-green) !important; background-color: #f0fdf4 !important; }
+    .is-invalid-field { border-color: var(--error-red) !important; background-color: #fef2f2 !important; }
+    
+    .error-msg {
+        color: var(--error-red);
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-top: 5px;
+        display: none;
+    }
+
+    #map-selector {
+        height: 580px;
+        width: 100%;
+        border-radius: 25px;
+        border: 8px solid white;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.06);
+    }
+
+    .btn-submit-agri {
+        background: var(--agri-dark);
+        color: white;
+        padding: 16px 40px;
+        border-radius: 20px;
+        font-weight: 800;
+        border: none;
+        transition: 0.3s;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="main-card animate__animated animate__fadeInUp">
+        <form method="post" id="eventForm" novalidate>
+            <div class="row g-5">
+                <div class="col-lg-6">
+                    <h5 class="mb-4 fw-bold">Configuration de l'événement</h5>
+                    
+                    <div class="form-group">
+                        <label class="form-label fw-bold small text-uppercase">Titre</label>
+                        <input type="text" name="titre" id="titre" class="form-control" placeholder="Min. 5 caractères">
+                        <i class="fas fa-check-circle text-success validation-icon" id="titre-check"></i>
+                        <div class="error-msg" id="titre-error">Le titre est requis (min. 5).</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label fw-bold small text-uppercase">Description</label>
+                        <textarea name="description" id="description" class="form-control" rows="2" placeholder="Détails..."></textarea>
+                        <i class="fas fa-check-circle text-success validation-icon" id="description-check" style="top: 48px;"></i>
+                        <div class="error-msg" id="description-error">La description est requise (min. 10).</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label fw-bold small text-uppercase">Date de Début</label>
+                                <input type="datetime-local" name="date_debut" id="date_debut" class="form-control">
+                                <i class="fas fa-check-circle text-success validation-icon" id="date_debut-check"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label fw-bold small text-uppercase">Date de Fin</label>
+                                <input type="datetime-local" name="date_fin" id="date_fin" class="form-control">
+                                <i class="fas fa-check-circle text-success validation-icon" id="date_fin-check"></i>
+                                <div class="error-msg" id="date-error">La fin doit être après le début.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label fw-bold small text-uppercase">Lieu</label>
+                        <input type="text" id="lieu-input" name="lieu" class="form-control" placeholder="Tapez ou cliquez la carte...">
+                        <i class="fas fa-check-circle text-success validation-icon" id="lieu-check"></i>
+                        <div class="error-msg" id="lieu-error">Lieu non trouvé.</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="form-label fw-bold small text-uppercase">Prix (DT)</label>
+                                <input type="number" name="frais_inscription" id="frais" class="form-control" min="0" step="0.01">
+                                <i class="fas fa-check-circle text-success validation-icon" id="frais-check"></i>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="form-label fw-bold small text-uppercase">Capacité</label>
+                                <input type="number" name="capacite" id="capacite" class="form-control">
+                                <i class="fas fa-check-circle text-success validation-icon" id="capacite-check"></i>
+                                <div class="error-msg" id="capacite-error">La capacité doit être supérieure à 1.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div id="map-selector"></div>
+                </div>
+            </div>
+
+            <div class="mt-5 pt-4 border-top d-flex justify-content-end">
+                <button class="btn btn-submit-agri" type="submit" id="submitBtn">Enregistrer l'événement</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('eventForm');
+    const lieuInput = document.getElementById('lieu-input');
+    let locationFound = false;
+
+    // --- MAP SETUP ---
+    var map = L.map('map-selector', { zoomControl: false }).setView([36.8065, 10.1815], 11);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+    var marker = L.marker([36.8065, 10.1815]).addTo(map);
+
+    // --- VALIDATION ENGINE ---
+    const validate = (id, condition, errorId = null) => {
+        const input = document.getElementById(id);
+        const check = document.getElementById(id + '-check');
+        const error = errorId ? document.getElementById(errorId) : null;
+
+        if (condition) {
+            input.classList.add('is-valid-field');
+            input.classList.remove('is-invalid-field');
+            if(check) check.style.display = 'block';
+            if(error) error.style.display = 'none';
+            return true;
+        } else {
+            input.classList.remove('is-valid-field');
+            input.classList.add('is-invalid-field');
+            if(check) check.style.display = 'none';
+            if(error) error.style.display = 'block';
+            return false;
+        }
+    };
+
+    // --- REAL-TIME LISTENERS ---
+    document.getElementById('titre').addEventListener('input', e => validate('titre', e.target.value.length >= 5, 'titre-error'));
+    document.getElementById('description').addEventListener('input', e => validate('description', e.target.value.length >= 10, 'description-error'));
+    document.getElementById('capacite').addEventListener('input', function() {
+        validate('capacite', this.value !== "" && parseInt(this.value) > 0, 'capacite-error');
+    });
+    document.getElementById('frais').addEventListener('input', e => validate('frais', e.target.value !== "" && e.target.value >= 0));
+
+    const checkDates = () => {
+        const start = document.getElementById('date_debut').value;
+        const end = document.getElementById('date_fin').value;
+        validate('date_debut', start !== "");
+        if (start && end) {
+            return validate('date_fin', new Date(end) > new Date(start), 'date-error');
+        }
+        return validate('date_fin', end !== "");
+    };
+    document.getElementById('date_debut').addEventListener('change', checkDates);
+    document.getElementById('date_fin').addEventListener('change', checkDates);
+
+    // --- MAP LOGIC ---
+    map.on('click', function(e) {
+        marker.setLatLng(e.latlng);
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`)
+            .then(res => res.json())
+            .then(data => {
+                lieuInput.value = data.display_name;
+                locationFound = true;
+                validate('lieu-input', true, 'lieu-error');
+            });
+    });
+
+    let searchTimer;
+    lieuInput.addEventListener('input', function() {
+        locationFound = false;
+        clearTimeout(searchTimer);
+        if (this.value.length < 3) return validate('lieu-input', false, 'lieu-error');
+        searchTimer = setTimeout(() => {
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(this.value)}&limit=1`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        map.flyTo([data[0].lat, data[0].lon], 14);
+                        marker.setLatLng([data[0].lat, data[0].lon]);
+                        locationFound = true;
+                        validate('lieu-input', true, 'lieu-error');
+                    } else {
+                        validate('lieu-input', false, 'lieu-error');
+                    }
+                });
+        }, 800);
+    });
+
+    // --- FORM SUBMIT GUARD ---
+    form.addEventListener('submit', function(e) {
+        const results = [
+            validate('titre', document.getElementById('titre').value.length >= 5, 'titre-error'),
+            validate('description', document.getElementById('description').value.length >= 10, 'description-error'),
+            checkDates(),
+            validate('lieu-input', locationFound || lieuInput.value.length > 5, 'lieu-error'),
+            validate('frais', document.getElementById('frais').value !== ""),
+            validate('capacite', document.getElementById('capacite').value !== "" && parseInt(document.getElementById('capacite').value) > 0, 'capacite-error')
+        ];
+
+        if (results.includes(false)) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.classList.add('animate__animated', 'animate__shakeX');
+            setTimeout(() => btn.classList.remove('animate__shakeX'), 1000);
+        }
+    });
+});
+</script>
+{% endblock %}

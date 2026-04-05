@@ -26,12 +26,6 @@ class BackController extends AbstractController
         return $this->render('back/achat_equipement/equipement.html.twig');
     }
 
-    #[Route('/back/evenements', name: 'back_evenements')]
-    public function evenements(): Response
-    {
-        return $this->render('back/evenements/evenements.html.twig');
-    }
-
     #[Route('/back/animaux', name: 'back_animaux')]
     public function animaux(): Response
     {
@@ -42,18 +36,6 @@ class BackController extends AbstractController
     public function ventesDepenses(): Response
     {
         return $this->render('back/ventes_depenses/ventes_depenses.html.twig');
-    }
-
-    #[Route('/back/utilisateurs', name: 'back_utilisateurs')]
-    public function utilisateurs(): Response
-    {
-        return $this->render('back/utilisateurs/utilisateurs.html.twig');
-    }
-
-    #[Route('/back/profile', name: 'back_profile')]
-    public function profile(): Response
-    {
-        return $this->render('back/utilisateurs/profile.html.twig');
     }
 
 }

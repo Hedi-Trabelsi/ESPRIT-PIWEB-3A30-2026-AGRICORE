@@ -32,12 +32,6 @@ class HomeController extends AbstractController
         return $this->render('front/maintenance/maintenance.html.twig');
     }
 
-    #[Route('/evenements', name: 'app_evenements')]
-    public function evenements(): Response
-    {
-        return $this->render('front/evenements/evenements.html.twig');
-    }
-
     #[Route('/suivi-animal', name: 'app_suivi_animal')]
     public function suiviAnimal(): Response
     {
@@ -56,32 +50,16 @@ class HomeController extends AbstractController
         return $this->render('front/ventes_depenses/ventes_depenses.html.twig');
     }
 
-    // ← AJOUTE CE QUI SUIT
-    #[Route('/profil', name: 'app_profile')]
-    public function profile(): Response
-    {
-        return $this->render('front/utilisateurs/profil.html.twig');
-    }
     #[Route('/services', name: 'app_services')]
-public function services(): Response
-{
-    return $this->render('front/home/services.html.twig');
-}
-#[Route('/tech', name: 'app_tech_home')]
-public function techHome(): Response
-{
-    return $this->render('front/home/tech_home.html.twig');
-}
-
-    #[Route('/utilisateurs/login', name: 'front_login')]
-    public function login(): Response
+    public function services(): Response
     {
-        return $this->render('front/utilisateurs/login.html.twig');
+        return $this->render('front/home/services.html.twig');
     }
 
-    #[Route('/utilisateurs/register', name: 'front_register')]
-    public function register(): Response
+    #[Route('/tech', name: 'app_tech_home')]
+    public function techHome(): Response
     {
-        return $this->render('front/utilisateurs/register.html.twig');
+        return $this->render('front/home/tech_home.html.twig');
     }
+
 }

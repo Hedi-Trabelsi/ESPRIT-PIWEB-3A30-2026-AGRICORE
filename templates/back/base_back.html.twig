@@ -85,21 +85,18 @@
       </div>
       <div class="user-info d-flex align-items-center gap-3">
         <div class="dropdown position-relative">
-          <a class="nav-link" href="javascript:void(0)" id="drop1" data-bs-toggle="dropdown" aria-expanded="false">
+          <a class="nav-link position-relative" href="{{ path('back_utilisateurs') }}" title="Notifications">
             <i class="ti ti-bell fs-5" style="color:#198754"></i>
-            <span class="notification"></span>
+            {% block notification_badge %}{% endblock %}
           </a>
-          <div class="dropdown-menu dropdown-menu-end" aria-labelledby="drop1">
-           {% block notifications %}
-  <a href="#" class="notification-icon">
-    <i class="ti ti-bell"></i>
-  </a>
-{% endblock %}
-          </div>
         </div>
         <div>
           <a class="d-flex align-items-center gap-2 text-decoration-none" href="{{ path('back_profile') }}" >
-            <img src="{{ asset('img/profile.webp') }}" alt="" width="40" height="40" class="rounded-circle" />
+            {% if app.session.get('user') and app.session.get('user').image %}
+              <img src="data:image/jpeg;base64,{{ app.session.get('user').image }}" alt="" width="40" height="40" class="rounded-circle" style="object-fit:cover;" />
+            {% else %}
+              <img src="{{ asset('img/profile.webp') }}" alt="" width="40" height="40" class="rounded-circle" />
+            {% endif %}
           </a>
         </div>
       </div>
@@ -146,7 +143,7 @@
             
             <!-- Événements -->
             <li class="sidebar-item">
-              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_evenements' %} active{% endif %}" href="{{ path('back_evenements') }}" aria-expanded="false">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_evenements_list' %} active{% endif %}" href="{{ path('back_evenements_list') }}" aria-expanded="false">
                 <i class="ti ti-calendar-event"></i>
                 <span class="hide-menu">Événements</span>
               </a>
@@ -175,7 +172,7 @@
                 <span class="hide-menu">Utilisateurs</span>
               </a>
   <li class="sidebar-item" style="margin-top: auto; padding-bottom: 30px;">
-  <a class="sidebar-link d-flex align-items-center" href="{{ path('front_login') }}" aria-expanded="false" style="padding-left: 1px;">
+  <a class="sidebar-link d-flex align-items-center" href="{{ path('utilisateur_logout') }}" aria-expanded="false" style="padding-left: 1px;">
     <i class="ti ti-logout me-0"></i>
     <span class="hide-menu">Déconnexion</span>
   </a>

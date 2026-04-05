@@ -1,1 +1,119 @@
-Connexion
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Connexion - Agricore</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="{{ asset('img/logoo.png') }}" rel="icon">
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=Open+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ asset('css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/utilisateur/utilisateur.css') }}" rel="stylesheet">
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+</head>
+<body>
+
+<div class="auth-wrapper">
+
+    {# ===== Left Brand Panel ===== #}
+    <div class="auth-brand-panel">
+        <img src="{{ asset('img/champ-image.jpg') }}" alt="" class="auth-brand-bg">
+        <div class="auth-brand-content">
+            <img src="{{ asset('img/logo.png') }}" alt="Agricore" class="auth-brand-logo">
+            <h1>Gerez votre exploitation en toute simplicite</h1>
+            <p>Agricore centralise le suivi de vos equipements, animaux, evenements et finances dans une seule plateforme.</p>
+            <div class="auth-dots">
+                <span class="active"></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        <div class="auth-brand-footer">
+            &copy; 2026 Agricore. Tous droits reserves.
+        </div>
+    </div>
+
+    {# ===== Right Form Panel ===== #}
+    <div class="auth-form-panel">
+        <div class="auth-form-inner">
+
+            <img src="{{ asset('img/logo.png') }}" alt="Agricore" class="auth-mobile-logo">
+
+            <h2>Bon retour</h2>
+            <p class="auth-desc">Connectez-vous a votre compte pour continuer</p>
+
+            {% for msg in app.flashes('error') %}
+                <div class="auth-alert auth-alert-error">
+                    <i class="fas fa-exclamation-circle"></i> {{ msg }}
+                </div>
+            {% endfor %}
+
+            {% for msg in app.flashes('success') %}
+                <div class="auth-alert auth-alert-success">
+                    <i class="fas fa-check-circle"></i> {{ msg }}
+                </div>
+            {% endfor %}
+
+            <form method="post" action="{{ path('front_login') }}">
+
+                <div class="field">
+                    <label for="email">Adresse email</label>
+                    <div class="field-input-wrap">
+                        <input type="email" id="email" name="email" placeholder="nom@exemple.com" required>
+                        <i class="fas fa-envelope fi-icon"></i>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="password">Mot de passe</label>
+                    <div class="field-input-wrap">
+                        <input type="password" id="password" name="password" placeholder="Entrez votre mot de passe" required>
+                        <i class="fas fa-lock fi-icon"></i>
+                        <button type="button" class="field-toggle" onclick="togglePw('password',this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Verification de securite</label>
+                    <div class="h-captcha" data-sitekey="{{ hcaptcha_site_key }}"></div>
+                </div>
+
+                <div class="auth-options-row">
+                    <label class="auth-remember">
+                        <input type="checkbox" name="remember_me"> Se souvenir de moi
+                    </label>
+                    <a href="{{ path('front_forgot_password') }}" class="auth-forgot">Mot de passe oublie ?</a>
+                </div>
+
+                <button type="submit" class="auth-submit">
+                    Se connecter <i class="fas fa-arrow-right"></i>
+                </button>
+
+            </form>
+
+            <div class="auth-footer-link">
+                Pas encore inscrit ? <a href="{{ path('front_register') }}">Creer un compte</a>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+function togglePw(id, btn) {
+    var f = document.getElementById(id),
+        i = btn.querySelector('i');
+    if (f.type === 'password') {
+        f.type = 'text';
+        i.className = 'fas fa-eye-slash';
+    } else {
+        f.type = 'password';
+        i.className = 'fas fa-eye';
+    }
+}
+</script>
+</body>
+</html>
