@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\VenteRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: VenteRepository::class)]
 #[ORM\Table(name: 'vente')]
@@ -16,18 +17,31 @@ class Vente
     private ?int $id = null;
 
     #[ORM\Column(name: 'prixUnitaire')]
+    #[Assert\NotBlank(message: "Le prix unitaire est obligatoire")]
+    #[Assert\Positive(message: "Le prix unitaire doit être positif")]
     private ?int $prixUnitaire = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank(message: "La quantité est obligatoire")]
+    #[Assert\Positive(message: "La quantité doit être positive")]
     private ?int $quantite = null;
 
     #[ORM\Column(name: 'chiffreAffaires')]
     private ?int $chiffreAffaires = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[Assert\NotBlank(message: "La date est obligatoire")]
+    #[Assert\LessThanOrEqual("today", message: "La date ne peut pas être dans le futur")]
     private ?\DateTimeInterface $date = null;
 
     #[ORM\Column(length: 25)]
+    #[Assert\NotBlank(message: "Le nom du produit est obligatoire")]
+    #[Assert\Length(
+        min: 2,
+        max: 25,
+        minMessage: "Le nom du produit doit faire au moins {{ limit }} caractères",
+        maxMessage: "Le nom du produit ne peut pas dépasser {{ limit }} caractères"
+    )]
     private ?string $produit = null;
 
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'ventes')]

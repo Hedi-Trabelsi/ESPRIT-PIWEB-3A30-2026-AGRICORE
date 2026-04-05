@@ -95,18 +95,93 @@
         background: #edf2f7;
         color: #2d3748;
     }
+    .search-filter-container {
+        max-width: 800px;
+        margin: 0 auto 50px auto;
+        display: flex;
+        gap: 15px;
+    }
+    .search-input-group {
+        position: relative;
+        flex: 1;
+    }
+    .search-input-group .bi-search {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #a0aec0;
+    }
+    .search-input-group input {
+        padding-left: 45px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        height: 50px;
+    }
+    .filter-select-front {
+        width: 200px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        padding: 0 15px;
+        height: 50px;
+        font-weight: 500;
+        color: #4a5568;
+    }
+    .btn-search-front {
+        background: #198754;
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        padding: 0 25px;
+        height: 50px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .btn-search-front:hover {
+        background: #146c43;
+    }
 </style>
 
 <div class="container py-5">
-    <div class="row mb-5">
+    <div class="row mb-4">
         <div class="col-12 text-center">
             <h1 class="display-4 font-weight-bold mb-3">Ventes & Dépenses</h1>
             <p class="lead text-muted">Consultez les statistiques financières de nos membres</p>
         </div>
     </div>
 
+    <form action="{{ path('app_ventes_depenses') }}" method="get" class="search-filter-container">
+        <div class="search-input-group">
+            <i class="bi bi-search"></i>
+            <input type="text" name="q" class="form-control" placeholder="Rechercher par nom ou email..." value="{{ searchTerm }}">
+        </div>
+        <select name="role" class="form-select filter-select-front" onchange="this.form.submit()">
+            <option value="">Tous les rôles</option>
+            <option value="1" {{ filterRole == '1' ? 'selected' : '' }}>Agriculteur</option>
+            <option value="2" {{ filterRole == '2' ? 'selected' : '' }}>Administrateur</option>
+        </select>
+        <button type="submit" class="btn-search-front">
+            Rechercher
+        </button>
+        {% if searchTerm or filterRole %}
+            <a href="{{ path('app_ventes_depenses') }}" class="btn btn-outline-secondary d-flex align-items-center px-3" style="border-radius: 12px; height: 50px;">
+                <i class="bi bi-x-lg"></i>
+            </a>
+        {% endif %}
+    </form>
+
     <div class="row g-4">
-        {% for stat in usersWithStats %}
+        {% if usersWithStats is empty %}
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-search display-1 text-muted mb-3 d-block"></i>
+                <h3 class="text-muted">Aucun membre trouvé</h3>
+                <p class="text-muted">Désolé, nous n'avons trouvé aucun membre correspondant à vos critères.</p>
+                <a href="{{ path('app_ventes_depenses') }}" class="btn btn-success mt-3 rounded-pill px-4">
+                    Réinitialiser les filtres
+                </a>
+            </div>
+        {% else %}
+            {% for stat in usersWithStats %}
             {% set user = stat.user %}
             <div class="col-md-4">
                 <div class="user-card">
@@ -148,6 +223,7 @@
                 </div>
             </div>
         {% endfor %}
+    {% endif %}
     </div>
 </div>
 {% endblock %}

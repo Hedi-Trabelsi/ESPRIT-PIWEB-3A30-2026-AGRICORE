@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\DepenseRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: DepenseRepository::class)]
 #[ORM\Table(name: 'depense')]
@@ -16,12 +17,21 @@ class Depense
     private ?int $id = null;
 
     #[ORM\Column(type: 'string', columnDefinition: "ENUM('MAINDOEUVRE', 'INTRANT', 'CARBURANT', 'REPARATION', 'AUTRE')")]
+    #[Assert\NotBlank(message: "Le type de dépense est obligatoire")]
+    #[Assert\Choice(
+        choices: ['MAINDOEUVRE', 'INTRANT', 'CARBURANT', 'REPARATION', 'AUTRE'],
+        message: "Veuillez choisir un type de dépense valide"
+    )]
     private ?string $type = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank(message: "Le montant est obligatoire")]
+    #[Assert\Positive(message: "Le montant doit être positif")]
     private ?float $montant = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[Assert\NotBlank(message: "La date est obligatoire")]
+    #[Assert\LessThanOrEqual("today", message: "La date ne peut pas être dans le futur")]
     private ?\DateTimeInterface $date = null;
 
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'depenses')]

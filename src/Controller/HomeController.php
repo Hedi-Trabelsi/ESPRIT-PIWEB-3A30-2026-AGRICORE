@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -55,9 +56,24 @@ class HomeController extends AbstractController
     }
 
     #[Route('/ventes-depenses', name: 'app_ventes_depenses')]
-    public function ventesDepenses(UserRepository $userRepository): Response
+    public function ventesDepenses(Request $request, UserRepository $userRepository): Response
     {
-        $users = $userRepository->findAll();
+        $searchTerm = $request->query->get('q');
+        $filterRole = $request->query->get('role');
+        
+        $queryBuilder = $userRepository->createQueryBuilder('u');
+        
+        if ($searchTerm) {
+            $queryBuilder->andWhere('u.nom LIKE :search OR u.prenom LIKE :search OR u.email LIKE :search')
+                ->setParameter('search', '%' . $searchTerm . '%');
+        }
+        
+        if ($filterRole !== null && $filterRole !== '') {
+            $queryBuilder->andWhere('u.role = :role')
+                ->setParameter('role', (int)$filterRole);
+        }
+        
+        $users = $queryBuilder->getQuery()->getResult();
         
         $usersWithStats = [];
         foreach ($users as $user) {
@@ -81,6 +97,8 @@ class HomeController extends AbstractController
 
         return $this->render('front/ventes_depenses/ventes_depenses.html.twig', [
             'usersWithStats' => $usersWithStats,
+            'searchTerm' => $searchTerm,
+            'filterRole' => $filterRole
         ]);
     }
 

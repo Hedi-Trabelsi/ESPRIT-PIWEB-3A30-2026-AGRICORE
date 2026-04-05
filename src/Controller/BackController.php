@@ -48,9 +48,24 @@ class BackController extends AbstractController
     }
 
     #[Route('/back/ventes-depenses', name: 'back_ventes_depenses')]
-    public function ventesDepenses(UserRepository $userRepository, VenteRepository $venteRepository, DepenseRepository $depenseRepository): Response
+    public function ventesDepenses(Request $request, UserRepository $userRepository, VenteRepository $venteRepository, DepenseRepository $depenseRepository): Response
     {
-        $users = $userRepository->findAll();
+        $searchTerm = $request->query->get('q');
+        $filterRole = $request->query->get('role');
+        
+        $queryBuilder = $userRepository->createQueryBuilder('u');
+        
+        if ($searchTerm) {
+            $queryBuilder->andWhere('u.nom LIKE :search OR u.prenom LIKE :search OR u.email LIKE :search')
+                ->setParameter('search', '%' . $searchTerm . '%');
+        }
+        
+        if ($filterRole !== null && $filterRole !== '') {
+            $queryBuilder->andWhere('u.role = :role')
+                ->setParameter('role', (int)$filterRole);
+        }
+        
+        $users = $queryBuilder->getQuery()->getResult();
         
         // Calculate some basic stats for the dashboard
         $totalUsers = count($users);
@@ -82,6 +97,8 @@ class BackController extends AbstractController
             'usersWithStats' => $usersWithStats,
             'totalUsers' => $totalUsers,
             'totalExpenses' => $totalExpensesAll,
+            'searchTerm' => $searchTerm,
+            'filterRole' => $filterRole
         ]);
     }
 

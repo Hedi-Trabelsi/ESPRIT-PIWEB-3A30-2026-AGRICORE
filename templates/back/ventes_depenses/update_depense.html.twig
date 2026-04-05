@@ -65,6 +65,27 @@
         background: #f7fafc;
         color: #2d3748;
     }
+    .form-error {
+        color: #e53e3e;
+        font-size: 0.8rem;
+        margin-top: 5px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 500;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .is-invalid {
+        border-color: #e53e3e !important;
+        background-image: none !important;
+    }
+    .is-invalid:focus {
+        box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1) !important;
+    }
 </style>
 
 <div class="p-0 m-0">
@@ -80,18 +101,33 @@
             <p>Mise à jour des informations pour {{ user.nom }} {{ user.prenom }}</p>
         </div>
 
-        {{ form_start(form) }}
+        {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
             <div class="form-group">
                 {{ form_label(form.type, null, {'label_attr': {'class': 'form-label'}}) }}
-                {{ form_widget(form.type) }}
+                {{ form_widget(form.type, {'attr': {'class': 'form-control' ~ (form.type.vars.valid ? '' : ' is-invalid')}}) }}
+                {% if not form.type.vars.valid %}
+                    <div class="form-error">
+                        <i class="ti ti-alert-circle"></i> {{ form_errors(form.type)|striptags }}
+                    </div>
+                {% endif %}
             </div>
             <div class="form-group">
                 {{ form_label(form.montant, null, {'label_attr': {'class': 'form-label'}}) }}
-                {{ form_widget(form.montant) }}
+                {{ form_widget(form.montant, {'attr': {'class': 'form-control' ~ (form.montant.vars.valid ? '' : ' is-invalid')}}) }}
+                {% if not form.montant.vars.valid %}
+                    <div class="form-error">
+                        <i class="ti ti-alert-circle"></i> {{ form_errors(form.montant)|striptags }}
+                    </div>
+                {% endif %}
             </div>
             <div class="form-group">
                 {{ form_label(form.date, null, {'label_attr': {'class': 'form-label'}}) }}
-                {{ form_widget(form.date) }}
+                {{ form_widget(form.date, {'attr': {'class': 'form-control' ~ (form.date.vars.valid ? '' : ' is-invalid')}}) }}
+                {% if not form.date.vars.valid %}
+                    <div class="form-error">
+                        <i class="ti ti-alert-circle"></i> {{ form_errors(form.date)|striptags }}
+                    </div>
+                {% endif %}
             </div>
             <button type="submit" class="btn-submit">
                 <i class="ti ti-edit"></i> Mettre à jour
