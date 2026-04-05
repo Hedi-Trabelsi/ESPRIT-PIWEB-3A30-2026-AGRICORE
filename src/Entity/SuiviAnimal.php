@@ -71,16 +71,16 @@ class SuiviAnimal
     }
 
     public function getDateSuivi(): ?\DateTimeInterface { return $this->dateSuivi; }
-    public function setDateSuivi(\DateTimeInterface $dateSuivi): self { $this->dateSuivi = $dateSuivi; return $this; }
+    public function setDateSuivi(?\DateTimeInterface $dateSuivi): self { $this->dateSuivi = $dateSuivi; return $this; }
 
     public function getTemperature(): ?float { return $this->temperature; }
-    public function setTemperature(float $temperature): self { $this->temperature = $temperature; return $this; }
+    public function setTemperature(?float $temperature): self { $this->temperature = $temperature; return $this; }
 
     public function getPoids(): ?float { return $this->poids; }
-    public function setPoids(float $poids): self { $this->poids = $poids; return $this; }
+    public function setPoids(?float $poids): self { $this->poids = $poids; return $this; }
 
     public function getRythmeCardiaque(): ?int { return $this->rythmeCardiaque; }
-    public function setRythmeCardiaque(int $rythmeCardiaque): self { $this->rythmeCardiaque = $rythmeCardiaque; return $this; }
+    public function setRythmeCardiaque(?int $rythmeCardiaque): self { $this->rythmeCardiaque = $rythmeCardiaque; return $this; }
 
     public function getNiveauActivite(): ?string { return $this->niveauActivite; }
     public function setNiveauActivite(?string $niveauActivite): self { $this->niveauActivite = $niveauActivite; return $this; }

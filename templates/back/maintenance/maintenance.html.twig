@@ -1,15 +1,289 @@
 {% extends 'back/base_back.html.twig' %}
 
 
-{% block content %}
-<div class="row">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-body">
-        <h4 class="card-title">Maintenance</h4>
-        <p>Contenu de la page Maintenance.</p>
-      </div>
+{% block notifications %}
+    {# Contenu du dropdown #}
+    <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-semibold">Notifications</h6>
+        <span class="badge bg-warning text-dark d-none" id="dropdownBadge"></span>
     </div>
-  </div>
+
+    <div class="message-body" style="max-height: 300px; overflow-y: auto;">
+        {% set hasAlerts = false %}
+        {% for m in maintenances %}
+            {% if m.Statut|lower in ['en attente', 'attente'] %}
+                {% set hasAlerts = true %}
+                <a href="{{ path('app_maintenance_detail_back', {'id_maintenance': m.id_maintenance}) }}" 
+                   class="py-3 px-7 d-flex align-items-center dropdown-item gap-3 border-bottom">
+                    <span class="d-flex align-items-center justify-content-center bg-light-warning text-warning rounded-circle p-2">
+                        <i class="ti ti-alert-triangle fs-6"></i>
+                    </span>
+                    <div class="w-75 d-inline-block v-middle">
+                        <h6 class="mb-1 fw-semibold">Action requise</h6>
+                        <span class="d-block text-muted small">{{ m.nomMaintenance }}</span>
+                    </div>
+                </a>
+            {% endif %}
+        {% endfor %}
+
+        {% if not hasAlerts %}
+            <div class="p-4 text-center">
+                <p class="mb-0 text-muted">Aucune nouvelle demande</p>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
+{% block content %}
+<style>
+    .maintenance-item { margin-bottom: 8px; transition: all 0.2s ease; cursor: pointer; }
+    .maintenance-card { border-radius: 12px !important; border: 1px solid #ebf1f6 !important; box-shadow: 0 2px 4px rgba(0,0,0,0.02); background: #fff; }
+    .maintenance-card:hover { background-color: #fcfdfe; transform: translateX(5px); border-color: #d1dbe5 !important; }
+    .compact-body { padding: 0.75rem 1.25rem !important; }
+    .status-badge { border-radius: 6px; padding: 4px 12px; font-size: 0.75rem; font-weight: 400; display: inline-block; }
+    .bg-status-resolu { background-color: #e6f7ee !important; color: #28a745 !important; }
+    .bg-status-refuse { background-color: #fdeced !important; color: #dc3545 !important; }
+    .bg-status-attente { background-color: #f1f3f5 !important; color: #6c757d !important; }
+    .bg-status-planifie { background-color: #e7f1ff !important; color: #0d6efd !important; }
+    .small-label { font-size: 0.65rem; text-transform: uppercase; color: #94a3b8; display: block; margin-bottom: -2px; }
+    .data-text { font-size: 0.9rem; font-weight: 600; color: #2a3547; }
+    
+    .confirm-bar { border-radius: 10px; margin-top: 5px; animation: fadeIn 0.2s ease-in-out; border: 1px solid; }
+    .confirm-bar-red { background-color: #fff3f3; border-color: #f5c2c7; }
+    .confirm-bar-orange { background-color: #fff8ec; border-color: #ffae1f; }
+    
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+    .btn-light-warning { background-color: #fff8ec !important; color: #ffae1f !important; border: none; }
+    .btn-light-warning:hover { background-color: #ffae1f !important; color: #fff !important; }
+
+    .search-container { background: #fff; border-radius: 12px; border: 1px solid #ebf1f6; padding: 15px; margin-bottom: 20px; }
+</style>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold mb-0">Liste des Maintenances</h4>
+        <div class="d-flex gap-2">
+            <a href="{{ path('app_maintenance_stats_back') }}" class="btn btn-primary d-flex align-items-center gap-2">
+                <i class="ti ti-chart-bar fs-5"></i> 
+                <span>Statistiques</span>
+            </a>
+        </div>
+    </div>
+
+    {# BARRE DE RECHERCHE DYNAMIQUE #}
+    <div class="search-container">
+        <form method="get" action="{{ path('app_maintenance_back_list') }}" id="filterForm" class="row g-2 align-items-center">
+            {# Recherche texte #}
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent border-end-0"><i class="ti ti-search text-muted"></i></span>
+                    <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Nom du maintenance  ou équipement..." value="{{ app.request.query.get('q') }}" oninput="delayedSubmit()">
+                </div>
+            </div>
+            
+            {# Filtre Statut (Sans les ronds) #}
+            <div class="col-md-3">
+                <select name="s" class="form-select" onchange="this.form.submit()">
+                    <option value="">Tous les statuts</option>
+                    <option value="En attente" {{ app.request.query.get('s') == 'En attente' ? 'selected' : '' }}>En attente</option>
+                    <option value="Planifiée" {{ app.request.query.get('s') == 'Planifiée' ? 'selected' : '' }}>Planifiée</option>
+                    <option value="Résolue" {{ app.request.query.get('s') == 'Résolue' ? 'selected' : '' }}>Résolue</option>
+                    <option value="Refusée" {{ app.request.query.get('s') == 'Refusée' ? 'selected' : '' }}>Refusée</option>
+                </select>
+            </div>
+
+            {# Filtre Priorité (Sans les ronds) #}
+            <div class="col-md-3">
+                <select name="p" class="form-select" onchange="this.form.submit()">
+                    <option value="">Toutes les priorités</option>
+                    <option value="Urgente" {{ app.request.query.get('p') == 'Urgente' ? 'selected' : '' }}>Urgente</option>
+                    <option value="Normale" {{ app.request.query.get('p') == 'Normale' ? 'selected' : '' }}>Normale</option>
+                    <option value="Faible" {{ app.request.query.get('p') == 'Faible' ? 'selected' : '' }}>Faible</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <a href="{{ path('app_maintenance_back_list') }}" class="btn btn-light w-100">Effacer</a>
+            </div>
+        </form>
+    </div>
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success border-0 py-2 small mb-3">{{ message }}</div>
+    {% endfor %}
+
+    <div class="row">
+        {% for maintenance in maintenances %}
+            {% set m_id = maintenance.id_maintenance %} 
+            
+            <div class="col-12 maintenance-item" onclick="goToDetail(event, '{{ path('app_maintenance_detail_back', {'id_maintenance': m_id}) }}')">
+                <div class="card maintenance-card mb-0">
+                    <div class="card-body compact-body">
+                         <div class="row align-items-center">
+                            <div class="col-md-2">
+                                <span class="small-label">Nom</span>
+                                <span class="data-text">{{ maintenance.nomMaintenance }}</span>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="small-label">Équipement</span>
+                                <span class="text-secondary" style="font-size: 0.85rem;">{{ maintenance.Equipement }}</span>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="small-label">Date</span>
+                                <span class="text-dark" style="font-size: 0.85rem;">{{ maintenance.dateDeclaration ? maintenance.dateDeclaration|date('d/m/Y') : 'N/A' }}</span>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <span class="small-label">Priorité</span>
+                                {% set prio = maintenance.Priorite|lower %}
+                                {% set badgePrio = 'bg-light-primary text-primary' %}
+                                {% if prio == 'urgente' %}{% set badgePrio = 'bg-light-danger text-danger' %}
+                                {% elseif prio == 'normale' %}{% set badgePrio = 'bg-light-warning text-warning' %}
+                                {% elseif prio == 'faible' %}{% set badgePrio = 'bg-light-success text-success' %}
+                                {% endif %}
+                                <span class="badge {{ badgePrio }}" style="font-size: 0.7rem; font-weight: 600;">{{ maintenance.Priorite }}</span>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                {% set statusClass = 'bg-status-attente' %}
+                                {% if maintenance.Statut in ['Résolu', 'Résolue'] %}{% set statusClass = 'bg-status-resolu' %}
+                                {% elseif maintenance.Statut in ['Refusé', 'Refusée'] %}{% set statusClass = 'bg-status-refuse' %}
+                                {% elseif maintenance.Statut in ['Planifié', 'Planifiée'] %}{% set statusClass = 'bg-status-planifie' %}
+                                {% endif %}
+                                <span class="status-badge {{ statusClass }}">{{ maintenance.Statut }}</span>
+                            </div>
+                            
+                            <div class="col-md-2 text-end d-flex justify-content-end gap-2">
+                                {% if maintenance.Statut|lower in ['en attente', 'attente'] %}
+                                    <button type="button" class="btn btn-sm btn-light-warning rounded-circle shadow-none" 
+                                            onclick="showRefuse(event, '{{ m_id }}')" title="Refuser">
+                                        <i class="ti ti-x fs-4"></i>
+                                    </button>
+                                {% endif %}
+
+                                <button type="button" class="btn btn-sm btn-light-danger rounded-circle shadow-none" 
+                                        onclick="showConfirm(event, '{{ m_id }}')" title="Supprimer">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            </div>
+                         </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Barres de confirmation #}
+            <div id="refuseBar{{ m_id }}" class="confirm-bar confirm-bar-orange d-none">
+                <div class="d-flex justify-content-between align-items-center p-2">
+                    <span class="small" style="color: #ffae1f;">Confirmer le <strong>refus</strong> ?</span>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-light btn-sm" onclick="cancelAction(event, 'refuseBar{{ m_id }}')">Annuler</button>
+                        <form method="post" action="{{ path('app_maintenance_refuse_back', {'id_maintenance': m_id}) }}">
+                            <button type="submit" class="btn btn-warning btn-sm" style="background-color: #ffae1f; border:none;">Refuser</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div id="confirmBar{{ m_id }}" class="confirm-bar confirm-bar-red d-none">
+                <div class="d-flex justify-content-between align-items-center p-2">
+                    <span class="small text-danger">Confirmer la <strong>suppression</strong> ?</span>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-light btn-sm" onclick="cancelAction(event, 'confirmBar{{ m_id }}')">Annuler</button>
+                        <form method="post" action="{{ path('app_maintenance_delete_back', {'id_maintenance': m_id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ m_id) }}">
+                            <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="col-12 text-center py-4 text-muted">
+                <i class="ti ti-info-circle fs-6"></i>
+                <p>Aucun résultat pour cette recherche.</p>
+            </div>
+        {% endfor %}
+    </div>
 </div>
+
+<script>
+    // Soumission automatique lors de la saisie (avec un petit délai pour éviter trop de requêtes)
+    let timeout = null;
+    function delayedSubmit() {
+        clearTimeout(timeout);
+        timeout = setTimeout(function () {
+            document.getElementById('filterForm').submit();
+        }, 500); // 500ms après la fin de la saisie
+    }
+
+    function showConfirm(event, id) {
+        event.stopPropagation();
+        hideAllBars();
+        document.getElementById('confirmBar' + id).classList.remove('d-none');
+    }
+
+    function showRefuse(event, id) {
+        event.stopPropagation();
+        hideAllBars();
+        document.getElementById('refuseBar' + id).classList.remove('d-none');
+    }
+
+    function cancelAction(event, barId) {
+        event.stopPropagation();
+        document.getElementById(barId).classList.add('d-none');
+    }
+
+    function hideAllBars() {
+        document.querySelectorAll('.confirm-bar').forEach(el => el.classList.add('d-none'));
+    }
+
+    function goToDetail(event, url) {
+        if (event.target.closest('button') || event.target.closest('.confirm-bar') || event.target.closest('form')) return;
+        window.location.href = url;
+    }
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // On récupère le nombre de notifications depuis Twig
+    const alertCount = {{ maintenances|filter(m => m.Statut|lower in ['en attente', 'attente'])|length }};
+
+    // Sélectionne l'icône de la cloche
+    const bell = document.getElementById('drop1');
+    if (!bell) return;
+
+    // Crée le badge si besoin
+    let badge = bell.querySelector('.notification');
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'notification';
+        bell.appendChild(badge);
+    }
+
+    if (alertCount > 0) {
+        badge.innerText = alertCount;
+        Object.assign(badge.style, {
+            position: 'absolute',
+            top: '-5px',
+            right: '-5px',
+            width: '18px',
+            height: '18px',
+            backgroundColor: '#fa896b',
+            color: 'white',
+            fontSize: '10px',
+            fontWeight: 'bold',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+        });
+    } else {
+        badge.style.display = 'none';
+    }
+
+    // Clique sur la cloche redirige vers la page notifications
+    bell.style.cursor = 'pointer';
+    bell.addEventListener('click', () => {
+        window.location.href = "{{ path('app_maintenance_notifications_back') }}";
+    });
+});
+</script>
+
+
 {% endblock %}

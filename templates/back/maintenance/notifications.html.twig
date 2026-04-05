@@ -1,0 +1,39 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0">Notifications</h4>
+      
+    </div>
+
+    <div class="card shadow-sm border-0" style="border-radius: 15px;">
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                {% for notif in notifications %}
+                    <div class="list-group-item list-group-item-action p-3 border-bottom">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-light-primary rounded-circle p-2 me-3">
+                                <i class="ti ti-alert-circle text-primary fs-6"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 fw-semibold">Nouvelle demande : {{ notif.nomMaintenance }}</h6>
+                                <p class="mb-0 text-muted small">L'équipement <strong>{{ notif.Equipement }}</strong> nécessite une intervention (Priorité : {{ notif.Priorite }}).</p>
+                                <small class="text-primary">{{ notif.dateDeclaration|date('d/m/Y') }}</small>
+                            </div>
+                            <a href="{{ path('app_maintenance_detail_back', {'id_maintenance': notif.id_maintenance}) }}" class="btn btn-sm btn-light">
+                                Voir
+                            </a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="p-5 text-center">
+                        <i class="ti ti-bell-off fs-9 text-muted d-block mb-2"></i>
+                        <p class="text-muted">Aucune nouvelle notification pour le moment.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

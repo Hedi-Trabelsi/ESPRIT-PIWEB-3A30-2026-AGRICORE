@@ -38,10 +38,11 @@ class EvenementController extends AbstractController
             }
 
             // ================= COUNT PARTICIPANTS =================
-            $places = $em->getRepository(Participants::class)
-                ->count(['evenement' => $ev]);
+            $participants = $em->getRepository(Participants::class)
+                ->findBy(['evenement' => $ev]);
 
-            $placesRestantes = $ev->getCapacite_max() - $places;
+            $placesReservees = array_sum(array_map(fn($p) => (int)$p->getNbr_places(), $participants));
+            $placesRestantes = max(0, $ev->getCapacite_max() - $placesReservees);
 
             $data[] = [
                 'evenement' => $ev,
@@ -64,10 +65,11 @@ class EvenementController extends AbstractController
         EntityManagerInterface $em
     ): Response {
 
-        $places = $em->getRepository(Participants::class)
-            ->count(['evenement' => $ev]);
+        $participants = $em->getRepository(Participants::class)
+            ->findBy(['evenement' => $ev]);
 
-        $placesRestantes = $ev->getCapacite_max() - $places;
+        $placesReservees = array_sum(array_map(fn($p) => (int)$p->getNbr_places(), $participants));
+        $placesRestantes = max(0, $ev->getCapacite_max() - $placesReservees);
 
         return $this->render('front/evenements/show.html.twig', [
             'evenement' => $ev,

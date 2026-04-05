@@ -1,0 +1,58 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block navbar %}
+{% include 'front/partials/_tech_navbar.html.twig' %}
+{% endblock %}
+
+{% block title %}Modifier une Tâche{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="card shadow p-4">
+        <h2 class="mb-4 text-center">Modifier la tâche</h2>
+
+        {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form_label(form.nomTache, 'Nom de la tâche') }}
+                    {{ form_widget(form.nomTache, {'attr': {'class': 'form-control'}}) }}
+                    {# AJOUT DES ERREURS #}
+                    <div class="text-danger small">{{ form_errors(form.nomTache) }}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form_label(form.id_maintenance, 'Maintenance associée') }}
+                    {{ form_widget(form.id_maintenance, {'attr': {'class': 'form-control', 'readonly': 'readonly'}}) }}
+                    <div class="text-danger small">{{ form_errors(form.id_maintenance) }}</div>
+                </div>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-md-6 mb-3">
+                    {{ form_label(form.date_prevue, 'Date prévue') }}
+                    {{ form_widget(form.date_prevue, {'attr': {'class': 'form-control'}}) }}
+                    {# AJOUT DES ERREURS #}
+                    <div class="text-danger small">{{ form_errors(form.date_prevue) }}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form_label(form.cout_estimee, 'Coût estimé') }}
+                    {{ form_widget(form.cout_estimee, {'attr': {'class': 'form-control'}}) }}
+                    {# AJOUT DES ERREURS #}
+                    <div class="text-danger small">{{ form_errors(form.cout_estimee) }}</div>
+                </div>
+            </div>
+
+            <div class="mt-3 mb-3">
+                {{ form_label(form.description, 'Description') }}
+                {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': '4'}}) }}
+                {# AJOUT DES ERREURS #}
+                <div class="text-danger small">{{ form_errors(form.description) }}</div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-dark px-5">Enregistrer les modifications</button>
+                <a href="{{ path('app_maintenance_taches', {'id_maintenance': tache.idMaintenance.id_maintenance}) }}" class="btn btn-light px-5">Annuler</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

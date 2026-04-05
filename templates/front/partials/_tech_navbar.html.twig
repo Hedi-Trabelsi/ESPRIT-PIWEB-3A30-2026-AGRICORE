@@ -1,0 +1,34 @@
+<!-- Navbar Start -->
+<nav class="navbar navbar-expand-lg bg-white navbar-light sticky-top p-0">
+    <a href="{{ path('app_home') }}" class="navbar-brand d-flex align-items-center px-4 px-lg-5">
+        <img src="{{ asset('img/logo.png') }}" alt="Logo" style="height: 40px; width: auto;" />
+    </a>
+    <button type="button" class="navbar-toggler me-4" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarCollapse">
+        <div class="navbar-nav ms-auto p-4 p-lg-0">
+            <a href="{{ path('app_home') }}" class="nav-item nav-link{% if app.request.attributes.get('_route') == 'app_home' %} active{% endif %}">Accueil</a>
+            <a href="{{ path('app_about') }}" class="nav-item nav-link{% if app.request.attributes.get('_route') == 'app_about' %} active{% endif %}">À propos</a>
+          <div class="nav-item dropdown">
+    <a href="#" class="nav-link dropdown-toggle{% if app.request.attributes.get('_route') in ['app_tech_home', 'app_maintenance_traiter', 'app_maintenance_planifiee', 'app_maintenance', 'app_tache_new', 'app_maintenance_taches', 'app_tache_edit'] %} active{% endif %}" data-bs-toggle="dropdown">Maintenances</a>
+    <div class="dropdown-menu bg-light m-0">
+        <a href="{{ path('app_maintenance_traiter') }}" class="dropdown-item">Interventions à traiter</a>
+        <a href="{{ path('app_maintenance_planifiee') }}" class="dropdown-item">Interventions planifiées</a>
+        <a href="{{ path('app_maintenance_historique') }}" class="dropdown-item">Historique des maintenances</a>
+    </div>
+</div>
+            <a href="{{ path('app_contact') }}" class="nav-item nav-link{% if app.request.attributes.get('_route') == 'app_contact' %} active{% endif %}">Contact</a>
+        </div>
+        <a href="{{ path('app_profile') }}" class="d-none d-lg-block me-4">
+            {% if app.session.get('user') and app.session.get('user').image %}
+                <img src="data:image/jpeg;base64,{{ app.session.get('user').image }}" alt="Profile"
+                     style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #198754;">
+            {% else %}
+                <img src="{{ asset('img/profile.webp') }}" alt="Profile"
+                     style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #198754;">
+            {% endif %}
+        </a>
+    </div>
+</nav>
+<!-- Navbar End -->

@@ -156,7 +156,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- MAP SETUP ---
     var map = L.map('map-selector', { zoomControl: false }).setView([36.8065, 10.1815], 11);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(map);
     var marker = L.marker([36.8065, 10.1815]).addTo(map);
 
     // --- VALIDATION ENGINE ---

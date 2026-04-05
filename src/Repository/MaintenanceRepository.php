@@ -16,28 +16,34 @@ class MaintenanceRepository extends ServiceEntityRepository
         parent::__construct($registry, Maintenance::class);
     }
 
-    //    /**
-    //     * @return Maintenance[] Returns an array of Maintenance objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('m')
-    //            ->andWhere('m.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('m.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * Cette méthode doit correspondre exactement au nom appelé dans ton Controller
+     */
+    public function findByFilters(?string $search, ?string $status, ?string $priority): array
+    {
+        $qb = $this->createQueryBuilder('m');
 
-    //    public function findOneBySomeField($value): ?Maintenance
-    //    {
-    //        return $this->createQueryBuilder('m')
-    //            ->andWhere('m.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        // 1. Filtre par texte (nom, équipement ou lieu)
+        if ($search) {
+            $qb->andWhere('m.nom_maintenance LIKE :val OR m.equipement LIKE :val OR m.lieu LIKE :val')
+               ->setParameter('val', '%' . $search . '%');
+        }
+
+        // 2. Filtre par statut
+        if ($status && $status !== 'all') {
+            $qb->andWhere('m.statut = :status')
+               ->setParameter('status', $status);
+        }
+
+        // 3. Filtre par priorité (Ajouté ici !)
+        if ($priority) {
+            $qb->andWhere('m.priorite = :priority')
+               ->setParameter('priority', $priority);
+        }
+
+        // Tri par date la plus récente
+        return $qb->orderBy('m.date_declaration', 'DESC')
+                  ->getQuery()
+                  ->getResult();
+    }
 }

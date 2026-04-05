@@ -31,5 +31,4 @@ class BackController extends AbstractController
     {
         return $this->render('back/ventes_depenses/ventes_depenses.html.twig');
     }
-
 }

@@ -22,7 +22,6 @@ class EvenementBackController extends AbstractController
 
         $qb = $repo->createQueryBuilder('e');
 
-        // SEARCH
         if (!empty($search)) {
             $qb->andWhere('e.titre LIKE :search OR e.lieu LIKE :search')
                ->setParameter('search', '%' . $search . '%');
@@ -30,30 +29,24 @@ class EvenementBackController extends AbstractController
 
         $now = new \DateTime();
 
-        // FILTER
         if ($filter === 'EN_COURS') {
-            $qb->andWhere('e.date_debut <= :now AND e.date_fin >= :now')
-               ->setParameter('now', $now);
-        }
-
-        if ($filter === 'COMING') {
-            $qb->andWhere('e.date_debut > :now')
-               ->setParameter('now', $now);
-        }
-
-        if ($filter === 'HISTORIQUE') {
-            $qb->andWhere('e.date_fin < :now')
-               ->setParameter('now', $now);
+            $qb->andWhere('e.date_debut <= :now AND e.date_fin >= :now')->setParameter('now', $now);
+        } elseif ($filter === 'COMING') {
+            $qb->andWhere('e.date_debut > :now')->setParameter('now', $now);
+        } elseif ($filter === 'HISTORIQUE') {
+            $qb->andWhere('e.date_fin < :now')->setParameter('now', $now);
         }
 
         $events = $qb->getQuery()->getResult();
 
-        // Fetch action logs for events using QueryBuilder
-        $logQb = $logsRepo->createQueryBuilder('al')
-            ->orderBy('al.created_at', 'DESC')
-            ->setMaxResults(10);
-        
-        $logs = $logQb->getQuery()->getResult();
+        try {
+            $logs = $logsRepo->createQueryBuilder('al')
+                ->orderBy('al.created_at', 'DESC')
+                ->setMaxResults(10)
+                ->getQuery()->getResult();
+        } catch (\Exception $e) {
+            $logs = [];
+        }
 
         return $this->render('back/evenements/evenements.html.twig', [
             'evenements' => $events,
@@ -61,27 +54,6 @@ class EvenementBackController extends AbstractController
             'filter' => $filter,
             'action_logs' => $logs
         ]);
-    }
-
-    #[Route('/back/evenements/{id}', name: 'back_evenements_show', requirements: ['id' => '\\d+'])]
-    public function show(Evennementagricole $event, ParticipantsRepository $participantsRepo): Response
-    {
-        // Fetch all participants for this event
-        $participants = $participantsRepo->findBy(['evenement' => $event]);
-
-        return $this->render('back/evenements/show.html.twig', [
-            'evenement' => $event,
-            'participants' => $participants
-        ]);
-    }
-
-    #[Route('/back/evenements/delete/{id}', name: 'back_evenements_delete', requirements: ['id' => '\\d+'])]
-    public function delete(Evennementagricole $event, EntityManagerInterface $em): Response
-    {
-        $em->remove($event);
-        $em->flush();
-
-        return $this->redirectToRoute('back_evenements_list');
     }
 
     #[Route('/back/evenements/add', name: 'back_evenements_add', methods: ['GET', 'POST'])]
@@ -108,9 +80,26 @@ class EvenementBackController extends AbstractController
         return $this->render('back/evenements/add.html.twig');
     }
 
-    #[Route('/back/evenements/edit/{id}', name: 'back_evenements_edit', requirements: ['id' => '\\d+'], methods: ['GET', 'POST'])]
-    public function edit(Evennementagricole $event, Request $request, EntityManagerInterface $em): Response
+    #[Route('/back/evenements/delete/{id}', name: 'back_evenements_delete', requirements: ['id' => '\\d+'])]
+    public function delete(int $id, EntityManagerInterface $em): Response
     {
+        $event = $em->getRepository(Evennementagricole::class)->find($id);
+        if ($event) {
+            $em->remove($event);
+            $em->flush();
+        }
+
+        return $this->redirectToRoute('back_evenements_list');
+    }
+
+    #[Route('/back/evenements/edit/{id}', name: 'back_evenements_edit', requirements: ['id' => '\\d+'], methods: ['GET', 'POST'])]
+    public function edit(int $id, Request $request, EntityManagerInterface $em): Response
+    {
+        $event = $em->getRepository(Evennementagricole::class)->find($id);
+        if (!$event) {
+            throw $this->createNotFoundException('Événement introuvable.');
+        }
+
         if ($request->isMethod('POST')) {
             $event->setTitre($request->request->get('titre'));
             $event->setLieu($request->request->get('lieu'));
@@ -131,4 +120,32 @@ class EvenementBackController extends AbstractController
         ]);
     }
 
+    #[Route('/back/evenements/{id}', name: 'back_evenements_show', requirements: ['id' => '\\d+'])]
+    public function show(int $id, EntityManagerInterface $em, ParticipantsRepository $participantsRepo): Response
+    {
+        $event = $em->getRepository(Evennementagricole::class)->find($id);
+        if (!$event) {
+            throw $this->createNotFoundException('Événement introuvable.');
+        }
+
+        $participants = $participantsRepo->findBy(['evenement' => $event]);
+
+        // Somme réelle des places réservées
+        $placesReservees = 0;
+        foreach ($participants as $p) {
+            $placesReservees += (int) $p->getNbr_places();
+        }
+        $placesRestantes = max(0, $event->getCapacite_max() - $placesReservees);
+        $tauxRemplissage = $event->getCapacite_max() > 0
+            ? round($placesReservees / $event->getCapacite_max() * 100)
+            : 0;
+
+        return $this->render('back/evenements/show.html.twig', [
+            'evenement'       => $event,
+            'participants'    => $participants,
+            'placesReservees' => $placesReservees,
+            'placesRestantes' => $placesRestantes,
+            'tauxRemplissage' => $tauxRemplissage,
+        ]);
+    }
 }

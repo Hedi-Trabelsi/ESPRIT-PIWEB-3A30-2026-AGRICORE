@@ -43,7 +43,7 @@ class Depense
         return $this;
     }
 
-    #[ORM\Column(type: 'decimal', nullable: false)]
+    #[ORM\Column(type: 'float', nullable: false)]
     private ?float $montant = null;
 
     public function getMontant(): ?float

@@ -154,7 +154,7 @@
                             <div class="stat-box">
                                 <span class="stat-icon text-warning"><i class="fas fa-shield-heart"></i></span>
                                 <span class="stat-label">Dispo</span>
-                                <div class="stat-value text-warning">85%</div>
+                                <div class="stat-value text-warning">{{ 100 - tauxRemplissage }}%</div>
                             </div>
                         </div>
                     </div>
@@ -162,16 +162,16 @@
                     <div class="mb-5 bg-white p-4 rounded-4 shadow-sm border border-light">
                         <div class="d-flex justify-content-between align-items-end mb-3">
                             <h6 class="fw-bold mb-0">Remplissage de l'événement</h6>
-                            <span class="text-success fw-bold small">{{ participants|length }} / {{ evenement.capacite_max }} inscrits</span>
+                            <span class="text-success fw-bold small">{{ placesReservees }} / {{ evenement.capacite_max }} inscrits</span>
                         </div>
                         <div class="progress mb-2">
                             {% if evenement.capacite_max > 0 %}
-                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: {{ (participants|length / evenement.capacite_max * 100)|round }}%"></div>
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: {{ tauxRemplissage }}%"></div>
                             {% else %}
                                 <div class="progress-bar progress-bar-striped progress-bar-animated bg-secondary" style="width: 0%"></div>
                             {% endif %}
                         </div>
-                        <p class="text-muted small mb-0">La période d'inscription se termine dans 4 jours.</p>
+                        <p class="text-muted small mb-0">{{ placesRestantes }} place(s) restante(s).</p>
                     </div>
 
                     <div class="mb-5">

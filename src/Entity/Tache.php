@@ -2,182 +2,149 @@
 
 namespace App\Entity;
 
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
+use App\Entity\User;
+use App\Entity\Maintenance;
+// Indispensable pour les contrôles de saisie
+use Symfony\Component\Validator\Constraints as Assert;
 
-use App\Repository\TacheRepository;
-
-#[ORM\Entity(repositoryClass: TacheRepository::class)]
-#[ORM\Table(name: 'tache')]
+#[ORM\Entity]
+#[ORM\Table(name: "tache")] // On s'assure que la table s'appelle bien tache
 class Tache
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id_tache = null;
+    #[ORM\Column(name: "id_tache", type: "integer")]
+    private int $id_tache;
 
-    public function getId_tache(): ?int
+    // Ajout de name: "date_prevue" pour être sûr
+    #[ORM\Column(name: "date_prevue", type: "date")]
+    #[Assert\NotBlank(message: "La date prévue est obligatoire.")]
+    #[Assert\GreaterThanOrEqual("today", message: "La date ne peut pas être antérieure à aujourd'hui.")]
+    private ?\DateTimeInterface $date_prevue = null;
+
+    #[ORM\Column(type: "text")]
+    #[Assert\NotBlank(message: "La description est obligatoire.")]
+    #[Assert\Regex(
+        // Force au moins 7 caractères ET interdit d'avoir UNIQUEMENT des chiffres
+        pattern: "/^(?![0-9]*$)[a-zA-Z0-9\s\.,!?]{7,}$/",
+        message: "La description doit faire au moins 7 caractères et ne pas contenir que des chiffres."
+    )]
+    private ?string $description = null;
+
+    // Ajout de name: "cout_estimee"
+    #[ORM\Column(name: "cout_estimee", type: "string", length: 25)]
+    #[Assert\NotBlank(message: "Le coût estimé est obligatoire.")]
+    #[Assert\Regex(
+        pattern: "/^[0-9]+(\.[0-9]{1,2})?$/",
+        message: "Le coût estimé ne doit contenir que des chiffres et éventuellement un point pour les décimales."
+    )]
+    private string $cout_estimee;
+
+    #[ORM\ManyToOne(targetEntity: Maintenance::class, inversedBy: "taches")]
+    #[ORM\JoinColumn(name: 'id_maintenance', referencedColumnName: 'id_maintenance', onDelete: 'CASCADE')]
+    private Maintenance $id_maintenance;
+
+    // FIX ICI : On force le nom exact de la colonne SQL
+    #[ORM\Column(name: "nomTache", type: "string", length: 50)]
+    #[Assert\NotBlank(message: "Le nom de la tâche est obligatoire.")]
+    #[Assert\Length(min: 3, minMessage: "Le nom de la tâche doit contenir au moins 3 caractères.")]
+    #[Assert\Regex(
+        pattern: "/^[a-zA-Z\s]+$/",
+        message: "Le nom de la tâche ne doit contenir que des lettres."
+    )]
+    private ?string $nomTache = null;
+
+
+#[ORM\Column(type: "integer")]
+#[Assert\NotBlank(message: "L'évaluation est obligatoire.")]
+
+#[Assert\Range(min: -1, max: 1, notInRangeMessage: "L'évaluation doit être -1 (Dislike), 0 (Neutre) ou 1 (Like).")]
+private int $evaluation = 0; 
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: "taches")]
+    #[ORM\JoinColumn(name: 'id_technicien', referencedColumnName: 'id', onDelete: 'CASCADE')]
+    private ?User $id_technicien = null;
+
+    // --- GETTERS & SETTERS ---
+
+    public function getId_tache(): int
     {
         return $this->id_tache;
     }
 
-    public function setId_tache(int $id_tache): self
-    {
-        $this->id_tache = $id_tache;
-        return $this;
-    }
-
-    #[ORM\Column(type: 'date', nullable: false)]
-    private ?\DateTimeInterface $date_prevue = null;
-
-    public function getDate_prevue(): ?\DateTimeInterface
+    public function getDatePrevue(): ?\DateTimeInterface
     {
         return $this->date_prevue;
     }
 
-    public function setDate_prevue(\DateTimeInterface $date_prevue): self
+    public function setDatePrevue(?\DateTimeInterface $date_prevue): self
     {
         $this->date_prevue = $date_prevue;
         return $this;
     }
 
-    #[ORM\Column(type: 'text', nullable: false)]
-    private ?string $description = null;
-
-    public function getDescription(): ?string
+    public function getDescription(): string
     {
         return $this->description;
     }
 
-    public function setDescription(string $description): self
-    {
-        $this->description = $description;
-        return $this;
-    }
-
-    #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $cout_estimee = null;
-
-    public function getCout_estimee(): ?string
-    {
-        return $this->cout_estimee;
-    }
-
-    public function setCout_estimee(string $cout_estimee): self
-    {
-        $this->cout_estimee = $cout_estimee;
-        return $this;
-    }
-
-    #[ORM\Column(type: 'integer', nullable: false)]
-    private ?int $id_maintenance = null;
-
-    public function getId_maintenance(): ?int
-    {
-        return $this->id_maintenance;
-    }
-
-    public function setId_maintenance(int $id_maintenance): self
-    {
-        $this->id_maintenance = $id_maintenance;
-        return $this;
-    }
-
-    #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $nomTache = null;
-
-    public function getNomTache(): ?string
-    {
-        return $this->nomTache;
-    }
-
-    public function setNomTache(string $nomTache): self
-    {
-        $this->nomTache = $nomTache;
-        return $this;
-    }
-
-    #[ORM\Column(type: 'integer', nullable: false)]
-    private ?int $evaluation = null;
-
-    public function getEvaluation(): ?int
-    {
-        return $this->evaluation;
-    }
-
-    public function setEvaluation(int $evaluation): self
-    {
-        $this->evaluation = $evaluation;
-        return $this;
-    }
-
-    #[ORM\Column(type: 'integer', nullable: true)]
-    private ?int $id_technicien = null;
-
-    public function getId_technicien(): ?int
-    {
-        return $this->id_technicien;
-    }
-
-    public function setId_technicien(?int $id_technicien): self
-    {
-        $this->id_technicien = $id_technicien;
-        return $this;
-    }
-
-    public function getIdTache(): ?int
-    {
-        return $this->id_tache;
-    }
-
-    public function getDatePrevue(): ?\DateTime
-    {
-        return $this->date_prevue;
-    }
-
-    public function setDatePrevue(\DateTime $date_prevue): static
-    {
-        $this->date_prevue = $date_prevue;
-
-        return $this;
-    }
+    public function setDescription(?string $value): self // <-- Ajoute le ? ici
+{
+    $this->description = $value;
+    return $this;
+}
 
     public function getCoutEstimee(): ?string
     {
         return $this->cout_estimee;
     }
 
-    public function setCoutEstimee(string $cout_estimee): static
+    public function setCoutEstimee(string $cout_estimee): self
     {
         $this->cout_estimee = $cout_estimee;
-
         return $this;
     }
 
-    public function getIdMaintenance(): ?int
+    public function getIdMaintenance(): ?Maintenance
     {
         return $this->id_maintenance;
     }
 
-    public function setIdMaintenance(int $id_maintenance): static
+    public function setIdMaintenance(?Maintenance $id_maintenance): self
     {
         $this->id_maintenance = $id_maintenance;
-
         return $this;
     }
 
-    public function getIdTechnicien(): ?int
+    public function getNomTache(): string
+    {
+        return $this->nomTache;
+    }
+
+   public function setNomTache(?string $value): self // <-- Ajoute le ? ici
+{
+    $this->nomTache = $value;
+    return $this;
+}
+    public function getEvaluation(): int
+    {
+        return $this->evaluation;
+    }
+
+    public function setEvaluation(int $value): self
+    {
+        $this->evaluation = $value;
+        return $this;
+    }
+
+    public function getIdTechnicien(): ?User
     {
         return $this->id_technicien;
     }
 
-    public function setIdTechnicien(?int $id_technicien): static
+    public function setIdTechnicien(?User $id_technicien): self
     {
         $this->id_technicien = $id_technicien;
-
         return $this;
     }
-
 }

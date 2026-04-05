@@ -288,26 +288,53 @@
         let startLat = 36.8065, startLng = 10.1815;
         if (lieuInput.value && lieuInput.value.includes(',')) {
             const parts = lieuInput.value.replace(/[() ]/g, '').split(',');
-            startLat = parseFloat(parts[0]);
-            startLng = parseFloat(parts[1]);
+            const p0 = parseFloat(parts[0]), p1 = parseFloat(parts[1]);
+            if (!isNaN(p0) && !isNaN(p1)) { startLat = p0; startLng = p1; }
         }
 
         const map = L.map('map', { zoomControl: false }).setView([startLat, startLng], 13);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
         let marker = L.marker([startLat, startLng], { draggable: true }).addTo(map);
 
-        function updateLocation(lat, lng) {
-            const formatted = `(${lat.toFixed(6)}, ${lng.toFixed(6)})`;
-            lieuInput.value = formatted;
-            displayCoords.innerText = formatted;
-            marker.setLatLng([lat, lng]);
+        function reverseGeocode(lat, lng) {
+            displayCoords.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Chargement...';
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=fr`)
+                .then(r => r.json())
+                .then(data => {
+                    const name = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    lieuInput.value = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+                    displayCoords.innerHTML = `<i class="bi bi-geo-alt-fill me-1 text-danger"></i> ${name}`;
+                })
+                .catch(() => {
+                    lieuInput.value = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+                    displayCoords.innerText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                });
         }
 
-        map.on('click', (e) => updateLocation(e.latlng.lat, e.latlng.lng));
-        marker.on('dragend', () => { const p = marker.getLatLng(); updateLocation(p.lat, p.lng); });
-        window.resetMap = () => { map.setView([startLat, startLng], 13); updateLocation(startLat, startLng); };
-        setTimeout(() => map.invalidateSize(), 500);
+        map.on('click', (e) => {
+            marker.setLatLng(e.latlng);
+            reverseGeocode(e.latlng.lat, e.latlng.lng);
+        });
+
+        marker.on('dragend', () => {
+            const p = marker.getLatLng();
+            reverseGeocode(p.lat, p.lng);
+        });
+
+        window.resetMap = () => {
+            map.setView([startLat, startLng], 13);
+            marker.setLatLng([startLat, startLng]);
+            displayCoords.innerText = lieuInput.value || `${startLat}, ${startLng}`;
+        };
+
+        // Force map render after layout is complete
+        setTimeout(() => map.invalidateSize(), 300);
+        window.addEventListener('resize', () => map.invalidateSize());
     });
 </script>
 {% endblock %}
