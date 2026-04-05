@@ -1,15 +1,193 @@
 {% extends 'back/base_back.html.twig' %}
 
-
 {% block content %}
-<div class="row">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-body">
-        <h4 class="card-title">Maintenance</h4>
-        <p>Contenu de la page Maintenance.</p>
-      </div>
+<style>
+    .maintenance-item {
+        margin-bottom: 8px; 
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .maintenance-card {
+        border-radius: 12px !important;
+        border: 1px solid #ebf1f6 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        background: #fff;
+    }
+
+    .maintenance-card:hover {
+        background-color: #fcfdfe;
+        transform: translateX(5px);
+        border-color: #d1dbe5 !important;
+    }
+
+    .compact-body {
+        padding: 0.75rem 1.25rem !important;
+    }
+
+    .status-badge {
+        border-radius: 6px;
+        padding: 4px 12px;
+        font-size: 0.75rem;
+        font-weight: 400;
+        display: inline-block;
+    }
+
+    .bg-status-resolu { background-color: #e6f7ee !important; color: #28a745 !important; }
+    .bg-status-refuse { background-color: #fdeced !important; color: #dc3545 !important; }
+    .bg-status-attente { background-color: #f1f3f5 !important; color: #6c757d !important; }
+    .bg-status-planifie { background-color: #e7f1ff !important; color: #0d6efd !important; }
+
+    .small-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        color: #94a3b8;
+        display: block;
+        margin-bottom: -2px;
+    }
+
+    .data-text {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #2a3547;
+    }
+    
+    /* MODIFICATION ICI : On force l'affichage de la modale au premier plan */
+    .modal {
+        z-index: 2000 !important;
+    }
+    .modal-backdrop {
+        z-index: 1090 !important;
+    }
+    .confirm-bar {
+    background-color: #fff3f3;
+    border: 1px solid #f5c2c7;
+    border-radius: 10px;
+    margin-top: 5px;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
+</style>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold mb-0">Liste des Maintenances</h4>
     </div>
-  </div>
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success border-0 py-2 small mb-3">
+            {{ message }}
+        </div>
+    {% endfor %}
+
+    <div class="row">
+        {% for maintenance in maintenances %}
+            {% set m_id = maintenance.id_maintenance %} 
+
+            <div class="col-12 maintenance-item" onclick="goToDetail(event, '{{ path('app_maintenance_detail_back', {'id_maintenance': m_id}) }}')">
+                <div class="card maintenance-card mb-0">
+                    <div class="card-body compact-body">
+                        <div class="row align-items-center">
+                            
+                            <div class="col-md-2">
+                                <span class="small-label">Nom</span>
+                                <span class="data-text">{{ maintenance.nomMaintenance }}</span>
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <span class="small-label">Équipement</span>
+                                <span class="text-secondary" style="font-size: 0.85rem;">{{ maintenance.Equipement }}</span>
+                            </div>
+
+                            <div class="col-md-2">
+                                <span class="small-label">Date</span>
+                                <span class="text-dark" style="font-size: 0.85rem;">{{ maintenance.dateDeclaration ? maintenance.dateDeclaration|date('d/m/Y') : 'N/A' }}</span>
+                            </div>
+
+                            <div class="col-md-2 text-center">
+                                <span class="small-label">Priorité</span>
+                                <span class="badge bg-light-primary text-primary" style="font-size: 0.7rem; font-weight: 400;">{{ maintenance.Priorite }}</span>
+                            </div>
+
+                            <div class="col-md-2 text-center">
+                                {% set statusClass = 'bg-status-attente' %}
+                                {% if maintenance.Statut in ['Résolu', 'Résolue'] %}
+                                    {% set statusClass = 'bg-status-resolu' %}
+                                {% elseif maintenance.Statut in ['Refusé', 'Refusée'] %}
+                                    {% set statusClass = 'bg-status-refuse' %}
+                                {% elseif maintenance.Statut in ['Planifié', 'Planifiée'] %}
+                                    {% set statusClass = 'bg-status-planifie' %}
+                                {% endif %}
+                                <span class="status-badge {{ statusClass }}">
+                                    {{ maintenance.Statut }}
+                                </span>
+                            </div>
+
+                            <div class="col-md-2 text-end">
+                                {# Utilisation de data-bs-toggle pour Bootstrap 5 #}
+                              <button type="button" 
+        class="btn btn-sm btn-light-danger rounded-circle shadow-none"
+        onclick="showConfirm(event, '{{ m_id }}')">
+    <i class="ti ti-trash"></i>
+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+          <div id="confirmBar{{ m_id }}" class="confirm-bar d-none">
+    <div class="d-flex justify-content-between align-items-center p-2">
+        <span class="small text-danger">
+            Confirmer la suppression ?
+        </span>
+        <div>
+            <button class="btn btn-light btn-sm" onclick="cancelDelete(event, '{{ m_id }}')">
+                Annuler
+            </button>
+            <form method="post" action="{{ path('app_maintenance_delete_back', {'id_maintenance': m_id}) }}">
+    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ m_id) }}">
+    <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
+</form>
+        </div>
+    </div>
 </div>
+        {% endfor %}
+    </div>
+</div>
+
+
+
+<script>
+    function showConfirm(event, id) {
+        event.stopPropagation();
+
+        // cacher toutes les barres ouvertes
+        document.querySelectorAll('.confirm-bar').forEach(el => {
+            el.classList.add('d-none');
+        });
+
+        // afficher celle cliquée
+        document.getElementById('confirmBar' + id).classList.remove('d-none');
+    }
+
+    function cancelDelete(event, id) {
+        event.stopPropagation();
+        document.getElementById('confirmBar' + id).classList.add('d-none');
+    }
+
+    function goToDetail(event, url) {
+        if (event.target.closest('button') || event.target.closest('.confirm-bar')) {
+            return;
+        }
+        window.location.href = url;
+    }
+</script>
+
 {% endblock %}

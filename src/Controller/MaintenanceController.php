@@ -83,9 +83,43 @@ class MaintenanceController extends AbstractController
         if ($this->isCsrfTokenValid('delete'.$maintenance->getId_maintenance(), $request->request->get('_token'))) {
             $em->remove($maintenance);
             $em->flush();
-            $this->addFlash('success', 'Maintenance supprimée avec succès.');
+          
         }
 
         return $this->redirectToRoute('app_maintenance');
     }
+
+#[Route('/back/maintenance/supprimer/{id_maintenance}', name: 'app_maintenance_delete_back', methods: ['POST'])]
+public function deleteBack(Request $request, Maintenance $maintenance, EntityManagerInterface $em): Response
+{
+    if ($this->isCsrfTokenValid('delete'.$maintenance->getId_maintenance(), $request->request->get('_token'))) {
+        $em->remove($maintenance);
+        $em->flush();
+
+        
+    }
+
+    return $this->redirectToRoute('app_maintenance_back_list');
+}
+
+#[Route('/back/maintenance', name: 'app_maintenance_back_list', priority: 2)]
+public function backList(MaintenanceRepository $repo): Response
+{
+    
+    $maintenances = $repo->findAll();
+
+    return $this->render('back/maintenance/maintenance.html.twig', [
+        'maintenances' => $maintenances,
+    ]);
+}
+
+
+#[Route('/back/maintenance/detail/{id_maintenance}', name: 'app_maintenance_detail_back')]
+public function showBack(Maintenance $maintenance): Response 
+{
+   
+    return $this->render('back/maintenance/show.html.twig', [
+        'maintenance' => $maintenance,
+    ]);
+}
 }
