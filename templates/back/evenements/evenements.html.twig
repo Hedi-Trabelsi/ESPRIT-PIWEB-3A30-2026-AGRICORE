@@ -225,20 +225,38 @@
                 <h5 class="modal-title fw-bold"><i class="fas fa-history me-2 text-success"></i> Journal d'activités</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-0" style="max-height: 400px; overflow-y: auto;">
+            <div class="modal-body p-0" style="max-height: 450px; overflow-y: auto;">
+                {% if action_logs is empty %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-history fa-2x mb-3 opacity-25"></i>
+                        <p class="small fw-bold">Aucune activité enregistrée</p>
+                    </div>
+                {% else %}
                 {% for log in action_logs %}
                     {% set act = log.getAction_type()|lower %}
                     <div class="log-item">
                         <div class="log-icon-box {% if 'create' in act %}log-create{% elseif 'update' in act %}log-update{% elseif 'delete' in act %}log-delete{% else %}bg-light{% endif %}">
-                            <i class="fas {% if 'create' in act %}fa-plus{% elseif 'update' in act %}fa-sync{% elseif 'delete' in act %}fa-trash-alt{% else %}fa-info{% endif %}"></i>
+                            <i class="fas {% if 'create' in act %}fa-plus{% elseif 'update' in act %}fa-pen{% elseif 'delete' in act %}fa-trash-alt{% else %}fa-info{% endif %}"></i>
                         </div>
                         <div class="flex-grow-1">
                             <div class="fw-bold small mb-0 text-dark">{{ log.getDescription() }}</div>
+                            {% if 'update' in act %}
+                                {% set old_data = log.getOld_value()|replace({'{"titre":"': '', '"}': ''}) %}
+                                {% set new_data = log.getNew_value()|replace({'{"titre":"': '', '"}': ''}) %}
+                                {% if old_data != new_data %}
+                                <div class="text-muted" style="font-size: 0.65rem;">
+                                    <span class="text-danger text-decoration-line-through">{{ old_data }}</span>
+                                    <i class="fas fa-arrow-right mx-1"></i>
+                                    <span class="text-success">{{ new_data }}</span>
+                                </div>
+                                {% endif %}
+                            {% endif %}
                             <div class="text-muted" style="font-size: 0.65rem;">{{ log.getCreated_at()|date('d/m/Y H:i') }}</div>
                         </div>
                         <span class="badge rounded-pill {% if 'create' in act %}bg-success{% elseif 'update' in act %}bg-warning text-dark{% elseif 'delete' in act %}bg-danger{% else %}bg-secondary{% endif %}" style="font-size: 0.6rem;">{{ act|upper }}</span>
                     </div>
                 {% endfor %}
+                {% endif %}
             </div>
         </div>
     </div>

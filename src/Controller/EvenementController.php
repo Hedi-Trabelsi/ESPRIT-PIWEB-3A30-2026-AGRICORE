@@ -38,11 +38,10 @@ class EvenementController extends AbstractController
             }
 
             // ================= COUNT PARTICIPANTS =================
-            $participants = $em->getRepository(Participants::class)
-                ->findBy(['evenement' => $ev]);
+            $places = $em->getRepository(Participants::class)
+                ->count(['evenement' => $ev]);
 
-            $placesReservees = array_sum(array_map(fn($p) => (int)$p->getNbr_places(), $participants));
-            $placesRestantes = max(0, $ev->getCapacite_max() - $placesReservees);
+            $placesRestantes = $ev->getCapacite_max() - $places;
 
             $data[] = [
                 'evenement' => $ev,
@@ -62,19 +61,58 @@ class EvenementController extends AbstractController
     #[Route('/evenement/{id}', name: 'app_evenement_show')]
     public function show(
         Evennementagricole $ev,
+        Request $request,
         EntityManagerInterface $em
     ): Response {
 
-        $participants = $em->getRepository(Participants::class)
-            ->findBy(['evenement' => $ev]);
+        $places = $em->getRepository(Participants::class)
+            ->count(['evenement' => $ev]);
 
-        $placesReservees = array_sum(array_map(fn($p) => (int)$p->getNbr_places(), $participants));
-        $placesRestantes = max(0, $ev->getCapacite_max() - $placesReservees);
+        $placesRestantes = $ev->getCapacite_max() - $places;
+
+        $dejaInscrit = false;
+        $sessionUser = $request->getSession()->get('user');
+        if ($sessionUser) {
+            $existing = $em->getRepository(Participants::class)->findOneBy([
+                'evenement' => $ev,
+                'id_utilisateur' => $sessionUser->getId()
+            ]);
+            $dejaInscrit = ($existing !== null);
+        }
 
         return $this->render('front/evenements/show.html.twig', [
             'evenement' => $ev,
-            'placesRestantes' => $placesRestantes
+            'placesRestantes' => $placesRestantes,
+            'dejaInscrit' => $dejaInscrit
         ]);
+    }
+
+    // ===========================
+    // 🔴 ANNULER UNE INSCRIPTION
+    // ===========================
+    #[Route('/evenement/{id}/annuler', name: 'app_annuler_inscription', methods: ['POST'])]
+    public function annulerInscription(
+        Evennementagricole $ev,
+        Request $request,
+        EntityManagerInterface $em
+    ): Response {
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        $participant = $em->getRepository(Participants::class)->findOneBy([
+            'evenement' => $ev,
+            'id_utilisateur' => $sessionUser->getId()
+        ]);
+
+        if ($participant) {
+            $em->remove($participant);
+            $em->flush();
+            $this->addFlash('success', 'Votre inscription a été annulée avec succès.');
+        }
+
+        return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getId_ev()]);
     }
 
     // ===========================

@@ -83,7 +83,6 @@
     #map-container {
         position: relative;
         border-radius: 28px;
-        overflow: hidden;
         border: 8px solid white;
         box-shadow: 0 15px 40px rgba(0,0,0,0.08);
     }
@@ -92,6 +91,7 @@
         height: 500px;
         width: 100%;
         cursor: crosshair;
+        border-radius: 22px;
     }
 
     .btn-save {
@@ -129,6 +129,16 @@
         </div>
 
         <form method="post" id="eventForm" class="p-4 p-md-5" novalidate>
+            {% if errors is defined and errors|length > 0 %}
+                <div class="alert alert-danger rounded-4 mb-4" style="border-left:4px solid #dc2626;">
+                    <i class="fas fa-exclamation-triangle me-2"></i><strong>Veuillez corriger les erreurs suivantes :</strong>
+                    <ul class="mb-0 mt-2">
+                        {% for field, msg in errors %}
+                            <li>{{ msg }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
             <div class="row g-5">
 
                 <div class="col-lg-5">
@@ -285,56 +295,67 @@
         });
 
         // ── Map Setup ─────────────────────────────────────────────────
-        let startLat = 36.8065, startLng = 10.1815;
-        if (lieuInput.value && lieuInput.value.includes(',')) {
-            const parts = lieuInput.value.replace(/[() ]/g, '').split(',');
-            const p0 = parseFloat(parts[0]), p1 = parseFloat(parts[1]);
-            if (!isNaN(p0) && !isNaN(p1)) { startLat = p0; startLng = p1; }
-        }
+        const lieuVal = lieuInput.value.trim();
+        const coordRegex = /^\(?\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*\)?$/;
+        const coordMatch = lieuVal.match(coordRegex);
 
-        const map = L.map('map', { zoomControl: false }).setView([startLat, startLng], 13);
+        const map = L.map('map', { zoomControl: false }).setView([36.8065, 10.1815], 6);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19
         }).addTo(map);
+        let marker = L.marker([36.8065, 10.1815], { draggable: true }).addTo(map);
 
-        let marker = L.marker([startLat, startLng], { draggable: true }).addTo(map);
+        function updateLocation(lat, lng) {
+            const formatted = `(${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+            lieuInput.value = formatted;
+            displayCoords.innerText = 'Chargement...';
+            marker.setLatLng([lat, lng]);
 
-        function reverseGeocode(lat, lng) {
-            displayCoords.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Chargement...';
+            // Reverse geocoding pour afficher le nom du lieu
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=fr`)
                 .then(r => r.json())
                 .then(data => {
-                    const name = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                    lieuInput.value = `${lat.toFixed(6)},${lng.toFixed(6)}`;
-                    displayCoords.innerHTML = `<i class="bi bi-geo-alt-fill me-1 text-danger"></i> ${name}`;
+                    const placeName = data.display_name || formatted;
+                    displayCoords.innerText = placeName;
+                    lieuInput.value = placeName;
                 })
-                .catch(() => {
-                    lieuInput.value = `${lat.toFixed(6)},${lng.toFixed(6)}`;
-                    displayCoords.innerText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                });
+                .catch(() => { displayCoords.innerText = formatted; });
         }
 
-        map.on('click', (e) => {
-            marker.setLatLng(e.latlng);
-            reverseGeocode(e.latlng.lat, e.latlng.lng);
-        });
+        function initMapAt(lat, lng) {
+            map.setView([lat, lng], 13);
+            marker.setLatLng([lat, lng]);
+        }
 
-        marker.on('dragend', () => {
-            const p = marker.getLatLng();
-            reverseGeocode(p.lat, p.lng);
-        });
+        // Si coordonnées directes
+        if (coordMatch) {
+            const lat = parseFloat(coordMatch[1]);
+            const lng = parseFloat(coordMatch[2]);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                initMapAt(lat, lng);
+            }
+        } else if (lieuVal.length > 2) {
+            // Géocoder le nom de lieu via Nominatim
+            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(lieuVal) + '&limit=1')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lng = parseFloat(data[0].lon);
+                        initMapAt(lat, lng);
+                        updateLocation(lat, lng);
+                    }
+                })
+                .catch(() => {});
+        }
 
-        window.resetMap = () => {
-            map.setView([startLat, startLng], 13);
-            marker.setLatLng([startLat, startLng]);
-            displayCoords.innerText = lieuInput.value || `${startLat}, ${startLng}`;
-        };
-
-        // Force map render after layout is complete
-        setTimeout(() => map.invalidateSize(), 300);
-        window.addEventListener('resize', () => map.invalidateSize());
+        map.on('click', (e) => updateLocation(e.latlng.lat, e.latlng.lng));
+        marker.on('dragend', () => { const p = marker.getLatLng(); updateLocation(p.lat, p.lng); });
+        window.resetMap = () => { map.setView(marker.getLatLng(), 13); };
+        setTimeout(() => map.invalidateSize(), 200);
+        setTimeout(() => map.invalidateSize(), 800);
     });
 </script>
 {% endblock %}

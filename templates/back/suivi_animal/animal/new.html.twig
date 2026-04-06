@@ -3,11 +3,24 @@
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 <style>
-    :root { --agri-green:#2d6a4f; }
+    :root { --agri-green:#2d6a4f; --error:#dc2626; }
     .form-card { background:#fff; border-radius:16px; border:1px solid #e8f0eb; padding:32px; max-width:600px; }
     .form-label { font-weight:600; font-size:.85rem; color:#374151; }
-    .form-control, .form-select { border-radius:8px; border:1px solid #d1d5db; font-size:.9rem; padding:10px 14px; }
-    .form-control:focus, .form-select:focus { border-color:var(--agri-green); box-shadow:0 0 0 3px rgba(45,106,79,.1); }
+    .form-control, .form-select { border-radius:8px; border:1px solid #d1d5db; font-size:.9rem; padding:10px 14px; transition:.2s; }
+    .form-control:focus, .form-select:focus { border-color:var(--agri-green); box-shadow:0 0 0 3px rgba(45,106,79,.1); outline:none; }
+    .field-error { border-color: var(--error) !important; background:#fff5f5 !important; }
+    .alert-field {
+        display: none;
+        color: var(--error);
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: .8rem;
+        font-weight: 600;
+        margin-top: 5px;
+    }
+    .alert-field.show { display: block; }
     .btn-agri { background:var(--agri-green); color:#fff; border:none; border-radius:8px; padding:10px 24px; font-weight:600; }
     .btn-agri:hover { background:#1e4d38; color:#fff; }
 </style>
@@ -19,35 +32,48 @@
     </div>
 
     <div class="form-card">
-        <form method="post" action="{{ path('back_animal_new') }}">
+        <form method="post" action="{{ path('back_animal_new') }}" id="animalForm" novalidate>
+
             <div class="mb-3">
                 <label class="form-label">Code animal *</label>
-                <input type="text" name="codeAnimal" class="form-control" required placeholder="ex: A001">
+                <input type="text" name="codeAnimal" id="codeAnimal" class="form-control" placeholder="ex: A001">
+                <div class="alert-field" id="err-codeAnimal"><i class="fas fa-exclamation-circle me-1"></i>Le code animal est obligatoire.</div>
             </div>
+
             <div class="mb-3">
                 <label class="form-label">Espèce *</label>
-                <input type="text" name="espece" class="form-control" required placeholder="ex: Bovin">
+                <input type="text" name="espece" id="espece" class="form-control" placeholder="ex: Bovin">
+                <div class="alert-field" id="err-espece"><i class="fas fa-exclamation-circle me-1"></i>L'espèce est obligatoire.</div>
             </div>
+
             <div class="mb-3">
                 <label class="form-label">Race *</label>
-                <input type="text" name="race" class="form-control" required placeholder="ex: Holstein">
+                <input type="text" name="race" id="race" class="form-control" placeholder="ex: Holstein">
+                <div class="alert-field" id="err-race"><i class="fas fa-exclamation-circle me-1"></i>La race est obligatoire.</div>
             </div>
+
             <div class="mb-3">
                 <label class="form-label">Sexe *</label>
-                <select name="sexe" class="form-select" required>
+                <select name="sexe" id="sexe" class="form-select">
                     <option value="">-- Choisir --</option>
                     <option value="Mâle">Mâle</option>
                     <option value="Femelle">Femelle</option>
                 </select>
+                <div class="alert-field" id="err-sexe"><i class="fas fa-exclamation-circle me-1"></i>Veuillez sélectionner le sexe.</div>
             </div>
+
             <div class="mb-3">
                 <label class="form-label">Date de naissance *</label>
-                <input type="date" name="dateNaissance" class="form-control" required max="{{ "now"|date('Y-m-d') }}">
+                <input type="date" name="dateNaissance" id="dateNaissance" class="form-control" max="{{ "now"|date('Y-m-d') }}">
+                <div class="alert-field" id="err-dateNaissance"><i class="fas fa-exclamation-circle me-1"></i>La date de naissance est obligatoire et ne peut pas être dans le futur.</div>
             </div>
+
             <div class="mb-4">
                 <label class="form-label">ID Agriculteur *</label>
-                <input type="number" name="idAgriculteur" class="form-control" required min="1" placeholder="ID de l'agriculteur">
+                <input type="number" name="idAgriculteur" id="idAgriculteur" class="form-control" min="1" placeholder="ID de l'agriculteur">
+                <div class="alert-field" id="err-idAgriculteur"><i class="fas fa-exclamation-circle me-1"></i>L'ID agriculteur doit être un nombre supérieur à 0.</div>
             </div>
+
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-agri"><i class="fas fa-save me-2"></i>Enregistrer</button>
                 <a href="{{ path('back_animaux') }}" class="btn btn-outline-secondary rounded-3">Annuler</a>
@@ -55,4 +81,47 @@
         </form>
     </div>
 </div>
+
+<script>
+document.getElementById('animalForm').addEventListener('submit', function(e) {
+    let valid = true;
+
+    function check(id, condition) {
+        const el = document.getElementById(id);
+        const err = document.getElementById('err-' + id);
+        if (!condition) {
+            el.classList.add('field-error');
+            err.classList.add('show');
+            valid = false;
+        } else {
+            el.classList.remove('field-error');
+            err.classList.remove('show');
+        }
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const dob = document.getElementById('dateNaissance').value;
+
+    check('codeAnimal', document.getElementById('codeAnimal').value.trim() !== '');
+    check('espece',     document.getElementById('espece').value.trim() !== '');
+    check('race',       document.getElementById('race').value.trim() !== '');
+    check('sexe',       document.getElementById('sexe').value !== '');
+    check('dateNaissance', dob !== '' && dob <= today);
+    check('idAgriculteur', parseInt(document.getElementById('idAgriculteur').value) > 0);
+
+    if (!valid) e.preventDefault();
+});
+
+// Clear error on input
+['codeAnimal','espece','race','sexe','dateNaissance','idAgriculteur'].forEach(id => {
+    document.getElementById(id).addEventListener('input', function() {
+        this.classList.remove('field-error');
+        document.getElementById('err-' + id).classList.remove('show');
+    });
+    document.getElementById(id).addEventListener('change', function() {
+        this.classList.remove('field-error');
+        document.getElementById('err-' + id).classList.remove('show');
+    });
+});
+</script>
 {% endblock %}
