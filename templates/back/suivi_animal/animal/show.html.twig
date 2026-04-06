@@ -1,0 +1,89 @@
+{% extends 'back/base_back.html.twig' %}
+{% block title %}Animal – {{ animal.codeAnimal }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+    :root { --agri-green:#2d6a4f; --agri-dark:#061a14; }
+    .detail-card { background:#fff; border-radius:16px; border:1px solid #e8f0eb; padding:32px; }
+    .field-row { display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #f3f4f6; font-size:.9rem; }
+    .field-row:last-child { border-bottom:none; }
+    .field-label { color:#6b7280; font-weight:600; }
+    .badge-sexe { padding:4px 12px; border-radius:50px; font-size:.8rem; font-weight:600; }
+    .badge-male { background:#dbeafe; color:#1d4ed8; }
+    .badge-femelle { background:#fce7f3; color:#be185d; }
+    .suivi-table thead th { background:#f8faf9; font-size:.78rem; text-transform:uppercase; letter-spacing:.05em; padding:10px 14px; }
+    .suivi-table tbody td { padding:10px 14px; font-size:.88rem; vertical-align:middle; }
+    .etat-bon { background:#dcfce7; color:#16a34a; border-radius:50px; padding:3px 10px; font-size:.75rem; font-weight:600; }
+    .etat-moyen { background:#fef9c3; color:#ca8a04; border-radius:50px; padding:3px 10px; font-size:.75rem; font-weight:600; }
+    .etat-mauvais { background:#fee2e2; color:#dc2626; border-radius:50px; padding:3px 10px; font-size:.75rem; font-weight:600; }
+    .action-btn { width:28px; height:28px; border-radius:7px; display:inline-flex; align-items:center; justify-content:center; border:none; cursor:pointer; transition:.2s; text-decoration:none; }
+    .btn-view { background:#eff6ff; color:#2563eb; }
+    .btn-edit { background:#f0fdf4; color:#16a34a; }
+    .btn-del  { background:#fef2f2; color:#dc2626; }
+    .action-btn:hover { filter:brightness(.88); transform:scale(1.1); }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{{ path('back_animaux') }}" class="btn btn-outline-secondary rounded-3" style="font-size:.85rem"><i class="fas fa-arrow-left me-1"></i>Retour</a>
+        <h4 class="fw-bold mb-0" style="color:var(--agri-dark)"><i class="fas fa-paw me-2" style="color:var(--agri-green)"></i>{{ animal.codeAnimal }}</h4>
+        <a href="{{ path('back_animal_edit', {id: animal.idAnimal}) }}" class="btn ms-auto" style="background:var(--agri-green);color:#fff;border-radius:8px;font-size:.85rem;font-weight:600"><i class="fas fa-pen me-1"></i>Modifier</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="detail-card">
+                <h6 class="fw-bold mb-3 text-muted text-uppercase" style="font-size:.75rem;letter-spacing:.08em">Informations</h6>
+                <div class="field-row"><span class="field-label">Code</span><span class="fw-semibold">{{ animal.codeAnimal }}</span></div>
+                <div class="field-row"><span class="field-label">Espèce</span><span>{{ animal.espece }}</span></div>
+                <div class="field-row"><span class="field-label">Race</span><span>{{ animal.race }}</span></div>
+                <div class="field-row"><span class="field-label">Sexe</span>
+                    <span class="badge-sexe {% if animal.sexe == 'Mâle' %}badge-male{% else %}badge-femelle{% endif %}">{{ animal.sexe }}</span>
+                </div>
+                <div class="field-row"><span class="field-label">Naissance</span><span>{{ animal.dateNaissance ? animal.dateNaissance|date('d/m/Y') : '—' }}</span></div>
+                <div class="field-row"><span class="field-label">Agriculteur ID</span><span class="text-muted">#{{ animal.idAgriculteur }}</span></div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="detail-card">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h6 class="fw-bold mb-0 text-muted text-uppercase" style="font-size:.75rem;letter-spacing:.08em">Suivis ({{ suivis|length }})</h6>
+                    <a href="{{ path('back_suivi_new') }}?idAnimal={{ animal.idAnimal }}" class="btn btn-sm" style="background:var(--agri-green);color:#fff;border-radius:8px;font-size:.8rem;font-weight:600">
+                        <i class="fas fa-plus me-1"></i>Ajouter un suivi
+                    </a>
+                </div>
+                {% if suivis is empty %}
+                    <p class="text-muted text-center py-4">Aucun suivi enregistré.</p>
+                {% else %}
+                <table class="table suivi-table mb-0">
+                    <thead><tr>
+                        <th>Date</th><th>Temp.</th><th>Poids</th><th>Rythme</th><th>Activité</th><th>État</th><th class="text-center">Actions</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for s in suivis %}
+                    <tr>
+                        <td>{{ s.dateSuivi|date('d/m/Y') }}</td>
+                        <td>{{ s.temperature }}°C</td>
+                        <td>{{ s.poids }} kg</td>
+                        <td>{{ s.rythmeCardiaque }} bpm</td>
+                        <td>{{ s.niveauActivite }}</td>
+                        <td><span class="etat-{{ s.etatSante|lower }}">{{ s.etatSante }}</span></td>
+                        <td class="text-center">
+                            <a href="{{ path('back_suivi_show', {id: s.idSuivi}) }}" class="action-btn btn-view" title="Voir"><i class="fas fa-eye" style="font-size:.7rem"></i></a>
+                            <a href="{{ path('back_suivi_edit', {id: s.idSuivi}) }}" class="action-btn btn-edit" title="Modifier"><i class="fas fa-pen" style="font-size:.7rem"></i></a>
+                            <form method="post" action="{{ path('back_suivi_delete', {id: s.idSuivi}) }}" style="display:inline">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete'~s.idSuivi) }}">
+                                <button type="submit" class="action-btn btn-del" title="Supprimer"><i class="fas fa-trash" style="font-size:.7rem"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Inventaire du Cheptel{% endblock %}
+{% block body %}
+<style>
+  .ag-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:2px solid #C0DD97;}
+  .ag-title-wrap{display:flex;align-items:center;gap:10px;}
+  .ag-icon-box{width:38px;height:38px;background:#3B6D11;border-radius:9px;display:flex;align-items:center;justify-content:center;}
+  .ag-h1{font-size:21px;font-weight:500;color:#27500A;margin:0;}
+  .ag-subtitle{font-size:13px;color:#6c757d;margin:0;}
+  .ag-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:1.2rem;}
+  .ag-search-wrap{position:relative;flex:1;min-width:200px;}
+  .ag-search-wrap input{width:100%;padding:8px 12px 8px 36px;border:1px solid #C0DD97;border-radius:9px;background:#EAF3DE;font-size:13px;color:#27500A;outline:none;}
+  .ag-search-wrap input:focus{border-color:#3B6D11;background:#fff;}
+  .ag-search-wrap .ag-search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#639922;font-size:13px;}
+  .ag-sort-select{padding:8px 12px;border:1px solid #C0DD97;border-radius:9px;background:#EAF3DE;font-size:13px;color:#27500A;outline:none;cursor:pointer;}
+  .ag-sort-select:focus{border-color:#3B6D11;}
+  .ag-btn-order{padding:8px 13px;border:1px solid #C0DD97;border-radius:9px;background:#EAF3DE;font-size:13px;color:#27500A;cursor:pointer;transition:.15s;}
+  .ag-btn-order:hover{background:#3B6D11;color:white;border-color:#3B6D11;}
+  .ag-btn-pdf{padding:8px 14px;border:none;border-radius:9px;background:#27500A;color:white;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .ag-btn-search-adv{padding:8px 14px;border:1px solid #3B6D11;border-radius:9px;background:transparent;color:#3B6D11;font-size:13px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;}
+  .ag-count{font-size:12px;color:#639922;margin-bottom:.8rem;}
+  .ag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:1rem;}
+  .ag-card{background:#fff;border:.5px solid #C0DD97;border-radius:14px;overflow:hidden;transition:transform .18s,box-shadow .18s;}
+  .ag-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(59,109,17,.10);}
+  .ag-card-top{background:#EAF3DE;padding:13px 16px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:.5px solid #C0DD97;}
+  .ag-code{background:#3B6D11;color:white;font-size:11px;font-weight:500;padding:3px 11px;border-radius:20px;}
+  .ag-card-body{padding:15px 16px 12px;}
+  .ag-animal-icon{width:48px;height:48px;border-radius:50%;background:#EAF3DE;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+  .ag-race{font-size:17px;font-weight:500;color:#27500A;margin:0 0 2px;}
+  .ag-espece{font-size:12px;color:#639922;margin:0 0 14px;}
+  .ag-divider{border:none;border-top:.5px solid #EAF3DE;margin:0 0 12px;}
+  .ag-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .ag-info-label{font-size:11px;color:#639922;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+  .ag-info-value{font-size:14px;font-weight:500;color:#27500A;}
+  .ag-card-footer{padding:10px 16px 13px;background:#EAF3DE;border-top:.5px solid #C0DD97;}
+  .ag-btn-voir{display:block;width:100%;text-align:center;padding:7px;border:1.5px solid #3B6D11;color:#3B6D11;border-radius:8px;font-size:13px;font-weight:500;background:transparent;text-decoration:none;}
+  .ag-btn-voir:hover{background:#3B6D11;color:white;}
+  #ag-spinner{display:none;text-align:center;padding:2rem;color:#639922;}
+</style>
+
+<div class="ag-header">
+  <div class="ag-title-wrap">
+    <div class="ag-icon-box"><i class="fas fa-leaf" style="color:white;font-size:16px;"></i></div>
+    <div>
+      <p class="ag-h1">Mes animaux</p>
+      <p class="ag-subtitle">Inventaire du cheptel</p>
+    </div>
+  </div>
+  <a href="{{ path('app_animal_new') }}" class="btn" style="background:#3B6D11;color:white;border-radius:8px;font-size:13px;font-weight:500;">
+    <i class="fas fa-plus-circle me-1"></i> Nouvel animal
+  </a>
+</div>
+
+{# ── Toolbar ── #}
+<div class="ag-toolbar">
+  <div class="ag-search-wrap">
+    <i class="fas fa-search ag-search-icon"></i>
+    <input type="text" id="ag-search" placeholder="Recherche rapide…" value="{{ q }}" autocomplete="off">
+  </div>
+
+  <select class="ag-sort-select" id="ag-sortBy">
+    <option value="codeAnimal"    {{ sortBy == 'codeAnimal'    ? 'selected' : '' }}>Trier par Code</option>
+    <option value="espece"        {{ sortBy == 'espece'        ? 'selected' : '' }}>Trier par Espèce</option>
+    <option value="race"          {{ sortBy == 'race'          ? 'selected' : '' }}>Trier par Race</option>
+    <option value="sexe"          {{ sortBy == 'sexe'          ? 'selected' : '' }}>Trier par Sexe</option>
+    <option value="dateNaissance" {{ sortBy == 'dateNaissance' ? 'selected' : '' }}>Trier par Date</option>
+  </select>
+
+  <button class="ag-btn-order" id="ag-order" data-order="{{ order }}" title="Inverser l'ordre">
+    <i class="fas fa-sort-amount-{{ order == 'ASC' ? 'up' : 'down' }}" id="ag-order-icon"></i>
+    {{ order == 'ASC' ? 'ASC' : 'DESC' }}
+  </button>
+
+  <a href="{{ path('app_animal_search') }}" class="ag-btn-search-adv">
+    <i class="fas fa-sliders-h"></i> Recherche avancée
+  </a>
+
+  <a href="{{ path('app_animal_stats') }}" class="ag-btn-search-adv" style="border-color:#639922;color:#639922;">
+    <i class="fas fa-chart-bar"></i> Statistiques
+  </a>
+
+  <button class="ag-btn-pdf" id="ag-pdf-btn">
+    <i class="fas fa-file-pdf"></i> Export PDF
+  </button>
+</div>
+
+<div class="ag-count" id="ag-count">{{ animals|length }} animal(aux) trouvé(s)</div>
+
+<div id="ag-spinner"><i class="fas fa-circle-notch fa-spin fa-2x"></i></div>
+<div class="ag-grid" id="ag-grid">
+  {% include 'front/suivi_animal/animal/_cards.html.twig' %}
+</div>
+
+<script>
+(function(){
+  const grid    = document.getElementById('ag-grid');
+  const spinner = document.getElementById('ag-spinner');
+  const count   = document.getElementById('ag-count');
+  const searchI = document.getElementById('ag-search');
+  const sortSel = document.getElementById('ag-sortBy');
+  const orderBtn= document.getElementById('ag-order');
+  const orderIco= document.getElementById('ag-order-icon');
+  const pdfBtn  = document.getElementById('ag-pdf-btn');
+  let order     = orderBtn.dataset.order;
+  let timer;
+
+  function buildUrl(){
+    return '{{ path('app_animal_index') }}?q='+encodeURIComponent(searchI.value)
+      +'&sortBy='+sortSel.value+'&order='+order;
+  }
+
+  function load(){
+    spinner.style.display='block';
+    grid.style.opacity='.4';
+    fetch(buildUrl(), {headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(r=>r.text()).then(html=>{
+        grid.innerHTML=html;
+        const n=grid.querySelectorAll('.ag-card').length;
+        count.textContent=n+' animal(aux) trouvé(s)';
+        spinner.style.display='none';
+        grid.style.opacity='1';
+      });
+  }
+
+  searchI.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(load,300);});
+  sortSel.addEventListener('change', load);
+
+  orderBtn.addEventListener('click',()=>{
+    order = order==='ASC'?'DESC':'ASC';
+    orderBtn.dataset.order=order;
+    orderBtn.innerHTML='<i class="fas fa-sort-amount-'+(order==='ASC'?'up':'down')+'" id="ag-order-icon"></i> '+order;
+    load();
+  });
+
+  pdfBtn.addEventListener('click',()=>{
+    window.open('{{ path('app_animal_pdf') }}?q='+encodeURIComponent(searchI.value)
+      +'&sortBy='+sortSel.value+'&order='+order,'_blank');
+  });
+})();
+</script>
+{% endblock %}

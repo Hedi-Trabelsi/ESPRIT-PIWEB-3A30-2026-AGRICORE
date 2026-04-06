@@ -1,0 +1,351 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+    :root {
+        --agri-dark: #061a14;
+        --agri-green: #10b981;
+        --agri-soft-green: #ecfdf5;
+        --glass-bg: rgba(255, 255, 255, 0.95);
+        --error-red: #ef4444;
+    }
+
+    body {
+        background: linear-gradient(135deg, #f0f9f4 0%, #e8f5e9 100%);
+        background-attachment: fixed;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: var(--agri-dark);
+    }
+
+    .main-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border-radius: 35px;
+        border: 1px solid rgba(255, 255, 255, 1);
+        box-shadow: 0 25px 60px rgba(0,0,0,0.05);
+        overflow: hidden;
+        margin-bottom: 50px;
+    }
+
+    .header-section {
+        background: white;
+        padding: 40px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    /* --- Form Styling --- */
+    .form-label {
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #64748b;
+        margin-bottom: 8px;
+    }
+
+    .custom-input {
+        border-radius: 15px;
+        padding: 12px 18px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        transition: all 0.3s;
+    }
+
+    .custom-input:focus {
+        border-color: var(--agri-green);
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+        background: white;
+    }
+
+    /* --- Validation Styles --- */
+    .was-validated .custom-input:invalid {
+        border-color: var(--error-red) !important;
+        background-image: none; /* Removes default browser icon */
+    }
+
+    .error-text {
+        color: var(--error-red);
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-top: 5px;
+        display: none;
+    }
+
+    .was-validated :invalid ~ .error-text {
+        display: block;
+    }
+
+    /* --- Map Style --- */
+    #map-container {
+        position: relative;
+        border-radius: 28px;
+        border: 8px solid white;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.08);
+    }
+
+    #map {
+        height: 500px;
+        width: 100%;
+        cursor: crosshair;
+        border-radius: 22px;
+    }
+
+    .btn-save {
+        background: var(--agri-green);
+        color: white;
+        border: none;
+        padding: 15px 35px;
+        border-radius: 18px;
+        font-weight: 800;
+        transition: 0.3s;
+    }
+
+    .btn-save:hover {
+        background: #059669;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+    }
+</style>
+
+<div class="container py-5">
+    <div class="main-card animate__animated animate__fadeIn">
+
+        <div class="header-section">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="fw-bold mb-1" style="letter-spacing: -1.5px;">Modifier l'événement</h1>
+                    <p class="text-muted mb-0">Édition des détails pour <strong>{{ event.titre }}</strong></p>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ path('back_evenements_list') }}" class="btn btn-light rounded-pill px-4">
+                        <i class="bi bi-arrow-left me-2"></i>Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" id="eventForm" class="p-4 p-md-5" novalidate>
+            <div class="row g-5">
+
+                <div class="col-lg-5">
+                    <div class="mb-4">
+                        <label class="form-label">Titre de l'événement</label>
+                        <input type="text" name="titre" id="f-titre" class="form-control custom-input" value="{{ event.titre }}">
+                        <div class="error-text" id="e-titre">Titre requis (min. 5 caractères).</div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Statut</label>
+                            <select name="statut" id="f-statut" class="form-select custom-input">
+                                <option value="BROUILLON" {% if event.statut == 'BROUILLON' %}selected{% endif %}>Brouillon</option>
+                                <option value="COMING" {% if event.statut == 'COMING' %}selected{% endif %}>À venir</option>
+                                <option value="EN_COURS" {% if event.statut == 'EN_COURS' %}selected{% endif %}>En cours</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Capacité Max</label>
+                            <input type="number" name="capacite_max" id="f-capacite" class="form-control custom-input" value="{{ event.capacite_max }}" min="1">
+                            <div class="error-text" id="e-capacite">Capacité doit être supérieure à 0.</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" id="f-description" class="form-control custom-input" rows="4">{{ event.description }}</textarea>
+                        <div class="error-text" id="e-description">Description requise (min. 10 caractères).</div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Début</label>
+                            <input type="datetime-local" id="date_debut" name="date_debut" class="form-control custom-input" value="{{ event.date_debut|date('Y-m-d\\TH:i') }}">
+                            <div class="error-text" id="e-debut">Date de début requise.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fin</label>
+                            <input type="datetime-local" id="date_fin" name="date_fin" class="form-control custom-input" value="{{ event.date_fin|date('Y-m-d\\TH:i') }}">
+                            <div class="error-text" id="e-fin">La date de fin doit être après le début.</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Frais (TND)</label>
+                        <input type="number" name="frais_inscription" id="f-frais" class="form-control custom-input" value="{{ event.frais_inscription }}" min="0" step="0.01">
+                        <div class="error-text" id="e-frais">Montant invalide (min 0).</div>
+                    </div>
+
+                    <div class="pt-4 border-top">
+                        <button type="submit" class="btn btn-save w-100 shadow-sm">
+                            <i class="bi bi-check-circle-fill me-2"></i> Mettre à jour l'événement
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <label class="form-label mb-0">Localisation (Tapez sur la carte)</label>
+                    </div>
+
+                    <input type="hidden" name="lieu" id="lieu_input" value="{{ event.lieu }}" required>
+
+                    <div id="map-container">
+                        <div id="map"></div>
+                    </div>
+
+                    <div class="mt-3 p-3 bg-white rounded-4 border d-flex align-items-center justify-content-between shadow-sm">
+                        <div>
+                            <small class="text-muted d-block fw-bold small uppercase">Coordonnées :</small>
+                            <span id="display_coords" class="fw-bold text-primary">{{ event.lieu }}</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-dark rounded-pill" onclick="resetMap()">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const lieuInput = document.getElementById('lieu_input');
+        const displayCoords = document.getElementById('display_coords');
+        const form = document.getElementById('eventForm');
+
+        // ── helpers ──────────────────────────────────────────────────
+        function setValid(input, errId) {
+            input.style.borderColor = '#10b981';
+            input.style.background  = '#f0fdf4';
+            if (errId) document.getElementById(errId).style.display = 'none';
+        }
+        function setInvalid(input, errId) {
+            input.style.borderColor = '#ef4444';
+            input.style.background  = '#fef2f2';
+            if (errId) document.getElementById(errId).style.display = 'block';
+        }
+        function clearState(input, errId) {
+            input.style.borderColor = '';
+            input.style.background  = '';
+            if (errId) document.getElementById(errId).style.display = 'none';
+        }
+
+        function checkTitre() {
+            const v = document.getElementById('f-titre').value.trim();
+            v.length >= 5 ? setValid(document.getElementById('f-titre'), 'e-titre')
+                          : setInvalid(document.getElementById('f-titre'), 'e-titre');
+            return v.length >= 5;
+        }
+        function checkDescription() {
+            const v = document.getElementById('f-description').value.trim();
+            v.length >= 10 ? setValid(document.getElementById('f-description'), 'e-description')
+                           : setInvalid(document.getElementById('f-description'), 'e-description');
+            return v.length >= 10;
+        }
+        function checkCapacite() {
+            const v = parseInt(document.getElementById('f-capacite').value);
+            v > 0 ? setValid(document.getElementById('f-capacite'), 'e-capacite')
+                  : setInvalid(document.getElementById('f-capacite'), 'e-capacite');
+            return v > 0;
+        }
+        function checkFrais() {
+            const v = parseFloat(document.getElementById('f-frais').value);
+            (!isNaN(v) && v >= 0) ? setValid(document.getElementById('f-frais'), 'e-frais')
+                                  : setInvalid(document.getElementById('f-frais'), 'e-frais');
+            return !isNaN(v) && v >= 0;
+        }
+        function checkDates() {
+            const d1 = document.getElementById('date_debut');
+            const d2 = document.getElementById('date_fin');
+            if (!d1.value) { setInvalid(d1, 'e-debut'); return false; }
+            setValid(d1, 'e-debut');
+            if (!d2.value) { setInvalid(d2, 'e-fin'); return false; }
+            if (new Date(d2.value) > new Date(d1.value)) { setValid(d2, 'e-fin'); return true; }
+            setInvalid(d2, 'e-fin'); return false;
+        }
+
+        // ── real-time listeners ───────────────────────────────────────
+        document.getElementById('f-titre').addEventListener('input', checkTitre);
+        document.getElementById('f-description').addEventListener('input', checkDescription);
+        document.getElementById('f-capacite').addEventListener('input', checkCapacite);
+        document.getElementById('f-frais').addEventListener('input', checkFrais);
+        document.getElementById('date_debut').addEventListener('change', checkDates);
+        document.getElementById('date_fin').addEventListener('change', checkDates);
+
+        // ── submit guard ──────────────────────────────────────────────
+        form.addEventListener('submit', function(e) {
+            const ok = [checkTitre(), checkDescription(), checkCapacite(), checkFrais(), checkDates()];
+            if (ok.includes(false)) e.preventDefault();
+        });
+
+        // ── Map Setup ─────────────────────────────────────────────────
+        const lieuVal = lieuInput.value.trim();
+        const coordRegex = /^\(?\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*\)?$/;
+        const coordMatch = lieuVal.match(coordRegex);
+
+        const map = L.map('map', { zoomControl: false }).setView([36.8065, 10.1815], 6);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        let marker = L.marker([36.8065, 10.1815], { draggable: true }).addTo(map);
+
+        function updateLocation(lat, lng) {
+            const formatted = `(${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+            lieuInput.value = formatted;
+            displayCoords.innerText = 'Chargement...';
+            marker.setLatLng([lat, lng]);
+
+            // Reverse geocoding pour afficher le nom du lieu
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=fr`)
+                .then(r => r.json())
+                .then(data => {
+                    const placeName = data.display_name || formatted;
+                    displayCoords.innerText = placeName;
+                    lieuInput.value = placeName;
+                })
+                .catch(() => { displayCoords.innerText = formatted; });
+        }
+
+        function initMapAt(lat, lng) {
+            map.setView([lat, lng], 13);
+            marker.setLatLng([lat, lng]);
+        }
+
+        // Si coordonnées directes
+        if (coordMatch) {
+            const lat = parseFloat(coordMatch[1]);
+            const lng = parseFloat(coordMatch[2]);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                initMapAt(lat, lng);
+            }
+        } else if (lieuVal.length > 2) {
+            // Géocoder le nom de lieu via Nominatim
+            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(lieuVal) + '&limit=1')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lng = parseFloat(data[0].lon);
+                        initMapAt(lat, lng);
+                        updateLocation(lat, lng);
+                    }
+                })
+                .catch(() => {});
+        }
+
+        map.on('click', (e) => updateLocation(e.latlng.lat, e.latlng.lng));
+        marker.on('dragend', () => { const p = marker.getLatLng(); updateLocation(p.lat, p.lng); });
+        window.resetMap = () => { map.setView(marker.getLatLng(), 13); };
+        setTimeout(() => map.invalidateSize(), 200);
+        setTimeout(() => map.invalidateSize(), 800);
+    });
+</script>
+{% endblock %}

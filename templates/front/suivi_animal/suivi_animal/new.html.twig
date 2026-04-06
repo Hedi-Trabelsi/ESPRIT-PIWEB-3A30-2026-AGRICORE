@@ -1,0 +1,10 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Nouveau Suivi{% endblock %}
+
+{% block body %}
+<h1>Créer un suivi</h1>
+
+{{ include('front/suivi_animal/suivi_animal/_form.html.twig') }}
+
+<a href="{{ path('app_suivi_animal_index') }}">← Retour à la liste</a>
+{% endblock %}

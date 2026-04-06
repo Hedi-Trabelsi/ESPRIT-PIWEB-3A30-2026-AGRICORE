@@ -1,0 +1,93 @@
+{{ form_start(form, {'attr': {'novalidate': 'novalidate', 'class': 'sa-form'}}) }}
+
+<style>
+  .sa-form table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+  .sa-form td { padding: 4px 8px; vertical-align: middle; }
+  .sa-form td:first-child { width: 180px; font-size: 13px; font-weight: 600; color: #27500A; }
+  .sa-form td:nth-child(2) { width: 220px; }
+  .sa-form td:nth-child(3) { padding-left: 12px; }
+
+  .sa-form input,
+  .sa-form select,
+  .sa-form textarea {
+    background: #EAF3DE;
+    border: 1px solid #C0DD97;
+    border-radius: 7px;
+    padding: 7px 11px;
+    font-size: 13px;
+    color: #27500A;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .sa-form input:focus,
+  .sa-form select:focus,
+  .sa-form textarea:focus {
+    border-color: #3B6D11;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(59,109,17,.08);
+  }
+
+  /* ── Error badge ── */
+  .sa-error {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #FEE2E2;
+    border: 1.5px solid #F87171;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #B91C1C;
+    white-space: nowrap;
+  }
+  .sa-error::before {
+    content: "⚠";
+    font-size: 13px;
+  }
+
+  /* override Symfony's default ul for errors */
+  .sa-form ul.form-errors,
+  .sa-form .form-error-message {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+</style>
+
+<table>
+  {% set fields = [
+    {f: form.animal,          label: 'Animal'},
+    {f: form.dateSuivi,       label: 'Date du suivi'},
+    {f: form.temperature,     label: 'Température (°C)'},
+    {f: form.poids,           label: 'Poids (kg)'},
+    {f: form.rythmeCardiaque, label: 'Rythme cardiaque (bpm)'},
+    {f: form.niveauActivite,  label: "Niveau d'activité"},
+    {f: form.etatSante,       label: 'État de santé'},
+    {f: form.remarque,        label: 'Remarque'}
+  ] %}
+
+  {% for item in fields %}
+    <tr>
+      <td>{{ form_label(item.f, item.label) }}</td>
+      <td>{{ form_widget(item.f) }}</td>
+      <td>
+        {% if item.f.vars.errors|length > 0 %}
+          {% for error in item.f.vars.errors %}
+            <span class="sa-error">{{ error.message }}</span>
+          {% endfor %}
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+</table>
+
+<div style="margin-top:16px;">
+  <button type="submit" class="btn" style="background:#3B6D11;color:white;border:none;padding:9px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">
+    {{ button_label|default('Enregistrer') }}
+  </button>
+</div>
+
+{{ form_end(form) }}

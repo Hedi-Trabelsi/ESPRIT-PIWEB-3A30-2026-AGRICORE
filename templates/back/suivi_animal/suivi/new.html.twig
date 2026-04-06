@@ -1,0 +1,144 @@
+{% extends 'back/base_back.html.twig' %}
+{% block title %}Ajouter un suivi{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+    :root { --agri-green:#2d6a4f; --error:#dc2626; }
+    .form-card { background:#fff; border-radius:16px; border:1px solid #e8f0eb; padding:32px; max-width:620px; }
+    .form-label { font-weight:600; font-size:.85rem; color:#374151; }
+    .form-control, .form-select { border-radius:8px; border:1px solid #d1d5db; font-size:.9rem; padding:10px 14px; transition:.2s; }
+    .form-control:focus, .form-select:focus { border-color:var(--agri-green); box-shadow:0 0 0 3px rgba(45,106,79,.1); outline:none; }
+    .field-error { border-color:var(--error) !important; background:#fff5f5 !important; }
+    .alert-field { display:none; color:var(--error); background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:6px 12px; font-size:.8rem; font-weight:600; margin-top:5px; }
+    .alert-field.show { display:block; }
+    .btn-agri { background:var(--agri-green); color:#fff; border:none; border-radius:8px; padding:10px 24px; font-weight:600; }
+    .btn-agri:hover { background:#1e4d38; color:#fff; }
+    .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{{ path('back_suivis') }}" class="btn btn-outline-secondary rounded-3" style="font-size:.85rem"><i class="fas fa-arrow-left me-1"></i>Retour</a>
+        <h4 class="fw-bold mb-0"><i class="fas fa-plus-circle me-2" style="color:var(--agri-green)"></i>Ajouter un suivi</h4>
+    </div>
+
+    <div class="form-card">
+        <form method="post" action="{{ path('back_suivi_new') }}" id="suiviForm" novalidate>
+
+            <div class="mb-3">
+                <label class="form-label">Animal *</label>
+                <select name="idAnimal" id="idAnimal" class="form-select">
+                    <option value="">-- Choisir un animal --</option>
+                    {% for animal in animals %}
+                        <option value="{{ animal.idAnimal }}" {% if preselectedAnimal is defined and preselectedAnimal == animal.idAnimal ~ '' %}selected{% endif %}>{{ animal.codeAnimal }} – {{ animal.espece }} ({{ animal.race }})</option>
+                    {% endfor %}
+                </select>
+                <div class="alert-field" id="err-idAnimal"><i class="fas fa-exclamation-circle me-1"></i>Veuillez sélectionner un animal.</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Date du suivi *</label>
+                <input type="datetime-local" name="dateSuivi" id="dateSuivi" class="form-control" max="{{ "now"|date('Y-m-d') }}T23:59">
+                <div class="alert-field" id="err-dateSuivi"><i class="fas fa-exclamation-circle me-1"></i>La date du suivi est obligatoire et ne peut pas être dans le futur.</div>
+            </div>
+
+            <div class="row-2 mb-3">
+                <div>
+                    <label class="form-label">Température (°C) *</label>
+                    <input type="number" step="0.1" name="temperature" id="temperature" class="form-control" placeholder="ex: 38.5">
+                    <div class="alert-field" id="err-temperature"><i class="fas fa-exclamation-circle me-1"></i>Température requise (entre 30 et 45 °C).</div>
+                </div>
+                <div>
+                    <label class="form-label">Poids (kg) *</label>
+                    <input type="number" step="0.1" name="poids" id="poids" class="form-control" placeholder="ex: 450">
+                    <div class="alert-field" id="err-poids"><i class="fas fa-exclamation-circle me-1"></i>Poids requis (supérieur à 0).</div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Rythme cardiaque (bpm) *</label>
+                <input type="number" name="rythmeCardiaque" id="rythmeCardiaque" class="form-control" placeholder="ex: 60">
+                <div class="alert-field" id="err-rythmeCardiaque"><i class="fas fa-exclamation-circle me-1"></i>Rythme cardiaque requis (entre 20 et 300 bpm).</div>
+            </div>
+
+            <div class="row-2 mb-3">
+                <div>
+                    <label class="form-label">Niveau d'activité *</label>
+                    <select name="niveauActivite" id="niveauActivite" class="form-select">
+                        <option value="">-- Choisir --</option>
+                        <option value="Faible">Faible</option>
+                        <option value="Modéré">Modéré</option>
+                        <option value="Élevé">Élevé</option>
+                    </select>
+                    <div class="alert-field" id="err-niveauActivite"><i class="fas fa-exclamation-circle me-1"></i>Veuillez choisir un niveau d'activité.</div>
+                </div>
+                <div>
+                    <label class="form-label">État de santé *</label>
+                    <select name="etatSante" id="etatSante" class="form-select">
+                        <option value="">-- Choisir --</option>
+                        <option value="Bon">Bon</option>
+                        <option value="Moyen">Moyen</option>
+                        <option value="Mauvais">Mauvais</option>
+                    </select>
+                    <div class="alert-field" id="err-etatSante"><i class="fas fa-exclamation-circle me-1"></i>Veuillez choisir un état de santé.</div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Remarque *</label>
+                <textarea name="remarque" id="remarque" class="form-control" rows="3" placeholder="Observations…"></textarea>
+                <div class="alert-field" id="err-remarque"><i class="fas fa-exclamation-circle me-1"></i>La remarque est obligatoire (min. 5 caractères).</div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-agri"><i class="fas fa-save me-2"></i>Enregistrer</button>
+                <a href="{{ path('back_suivis') }}" class="btn btn-outline-secondary rounded-3">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function() {
+    const fields = ['idAnimal','dateSuivi','temperature','poids','rythmeCardiaque','niveauActivite','etatSante','remarque'];
+    const today = new Date().toISOString().slice(0,16);
+
+    function showErr(id) {
+        document.getElementById(id).classList.add('field-error');
+        document.getElementById('err-' + id).classList.add('show');
+    }
+    function clearErr(id) {
+        document.getElementById(id).classList.remove('field-error');
+        document.getElementById('err-' + id).classList.remove('show');
+    }
+
+    function validate() {
+        let ok = true;
+        const v = id => document.getElementById(id).value;
+
+        if (!v('idAnimal'))                                          { showErr('idAnimal');        ok=false; } else clearErr('idAnimal');
+        if (!v('dateSuivi') || v('dateSuivi') > today)               { showErr('dateSuivi');       ok=false; } else clearErr('dateSuivi');
+        const t = parseFloat(v('temperature'));
+        if (isNaN(t) || t < 30 || t > 45)                           { showErr('temperature');     ok=false; } else clearErr('temperature');
+        const p = parseFloat(v('poids'));
+        if (isNaN(p) || p <= 0)                                      { showErr('poids');           ok=false; } else clearErr('poids');
+        const r = parseInt(v('rythmeCardiaque'));
+        if (isNaN(r) || r < 20 || r > 300)                          { showErr('rythmeCardiaque'); ok=false; } else clearErr('rythmeCardiaque');
+        if (!v('niveauActivite'))                                     { showErr('niveauActivite');  ok=false; } else clearErr('niveauActivite');
+        if (!v('etatSante'))                                         { showErr('etatSante');       ok=false; } else clearErr('etatSante');
+        if (v('remarque').trim().length < 5)                         { showErr('remarque');        ok=false; } else clearErr('remarque');
+
+        return ok;
+    }
+
+    document.getElementById('suiviForm').addEventListener('submit', function(e) {
+        if (!validate()) e.preventDefault();
+    });
+
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        ['input','change'].forEach(ev => el.addEventListener(ev, () => clearErr(id)));
+    });
+})();
+</script>
+{% endblock %}

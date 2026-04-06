@@ -1,0 +1,197 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Statistiques du Cheptel{% endblock %}
+{% block body %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{--g:#3B6D11;--gl:#EAF3DE;--gm:#C0DD97;--gd:#27500A;}
+  .st-wrap{max-width:1100px;margin:0 auto;padding:2rem 1rem 4rem;}
+  .st-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;padding-bottom:1rem;border-bottom:2px solid var(--gm);}
+  .st-title{font-size:22px;font-weight:600;color:var(--gd);margin:0;}
+  .st-back{padding:7px 16px;border:1.5px solid var(--g);border-radius:9px;color:var(--g);font-size:13px;font-weight:500;text-decoration:none;display:flex;align-items:center;gap:6px;}
+  .st-back:hover{background:var(--g);color:#fff;}
+
+  /* KPI cards */
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:2rem;}
+  .kpi{background:#fff;border:.5px solid var(--gm);border-radius:14px;padding:18px 20px;text-align:center;}
+  .kpi-val{font-size:32px;font-weight:700;color:var(--g);line-height:1;}
+  .kpi-lbl{font-size:12px;color:#6c757d;margin-top:4px;text-transform:uppercase;letter-spacing:.4px;}
+
+  /* Chart grid */
+  .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;}
+  .chart-card{background:#fff;border:.5px solid var(--gm);border-radius:14px;padding:20px 22px;}
+  .chart-card.full{grid-column:1/-1;}
+  .chart-title{font-size:14px;font-weight:600;color:var(--gd);margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+  .chart-title i{color:var(--g);}
+  canvas{max-height:240px;}
+
+  /* Table top races */
+  .top-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .top-table th{background:var(--gl);color:var(--gd);font-weight:600;padding:8px 12px;text-align:left;}
+  .top-table td{padding:8px 12px;border-bottom:.5px solid var(--gl);}
+  .top-table tr:last-child td{border-bottom:none;}
+  .bar-mini{height:8px;background:var(--gm);border-radius:4px;overflow:hidden;}
+  .bar-mini-fill{height:100%;background:var(--g);border-radius:4px;}
+
+  @media(max-width:640px){.charts-grid{grid-template-columns:1fr;}.chart-card.full{grid-column:1;}}
+</style>
+
+<div class="st-wrap">
+
+  <div class="st-header">
+    <div>
+      <p class="st-title"><i class="fas fa-chart-bar me-2" style="color:var(--g)"></i>Statistiques du Cheptel</p>
+      <p style="font-size:13px;color:#6c757d;margin:0;">Vue d'ensemble de vos animaux et suivis</p>
+    </div>
+    <a href="{{ path('app_animal_index') }}" class="st-back"><i class="fas fa-arrow-left"></i> Retour</a>
+  </div>
+
+  {# ── KPI ── #}
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-val">{{ totalAnimaux }}</div>
+      <div class="kpi-lbl">Animaux</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val">{{ totalSuivis }}</div>
+      <div class="kpi-lbl">Suivis</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val">{{ moyTemp }}°</div>
+      <div class="kpi-lbl">Temp. moy.</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val">{{ moyPoids }}</div>
+      <div class="kpi-lbl">Poids moy. (kg)</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val">{{ moyRythme }}</div>
+      <div class="kpi-lbl">Rythme moy. (bpm)</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val">{{ parEtat['Bon'] }}</div>
+      <div class="kpi-lbl">État Bon</div>
+    </div>
+  </div>
+
+  {# ── Charts ── #}
+  <div class="charts-grid">
+
+    {# Répartition par espèce #}
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-paw"></i> Animaux par espèce</div>
+      <canvas id="chartEspece"></canvas>
+    </div>
+
+    {# Répartition par sexe #}
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-venus-mars"></i> Répartition par sexe</div>
+      <canvas id="chartSexe"></canvas>
+    </div>
+
+    {# État de santé #}
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-heartbeat"></i> État de santé (suivis)</div>
+      <canvas id="chartEtat"></canvas>
+    </div>
+
+    {# Niveau d'activité #}
+    <div class="chart-card">
+      <div class="chart-title"><i class="fas fa-running"></i> Niveau d'activité</div>
+      <canvas id="chartActivite"></canvas>
+    </div>
+
+    {# Évolution mensuelle #}
+    {% if derniersMois is not empty %}
+    <div class="chart-card full">
+      <div class="chart-title"><i class="fas fa-calendar-alt"></i> Suivis par mois (6 derniers)</div>
+      <canvas id="chartMois" style="max-height:200px"></canvas>
+    </div>
+    {% endif %}
+
+    {# Top races #}
+    {% if parRace is not empty %}
+    <div class="chart-card full">
+      <div class="chart-title"><i class="fas fa-list-ol"></i> Top races</div>
+      <table class="top-table">
+        <thead><tr><th>Race</th><th>Nb animaux</th><th style="width:40%">Proportion</th></tr></thead>
+        <tbody>
+        {% for race, nb in parRace %}
+        <tr>
+          <td>{{ race }}</td>
+          <td><strong>{{ nb }}</strong></td>
+          <td>
+            <div class="bar-mini"><div class="bar-mini-fill" style="width:{{ parRaceMax > 0 ? (nb/parRaceMax*100)|round : 0 }}%"></div></div>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+const G = '#3B6D11', GL = '#C0DD97', COLORS = ['#3B6D11','#639922','#C0DD97','#8BC34A','#27500A','#AED581','#558B2F'];
+
+// Espèce
+new Chart(document.getElementById('chartEspece'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ parEspeceLabels|raw }},
+    datasets: [{ data: {{ parEspeceValues|raw }}, backgroundColor: COLORS, borderWidth: 2, borderColor: '#fff' }]
+  },
+  options: { plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } }, cutout: '60%' }
+});
+
+// Sexe
+new Chart(document.getElementById('chartSexe'), {
+  type: 'pie',
+  data: {
+    labels: ['Mâle', 'Femelle'],
+    datasets: [{ data: [{{ parSexe['Mâle'] }}, {{ parSexe['Femelle'] }}], backgroundColor: ['#3B6D11','#C0DD97'], borderWidth: 2, borderColor: '#fff' }]
+  },
+  options: { plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } } }
+});
+
+// État santé
+new Chart(document.getElementById('chartEtat'), {
+  type: 'bar',
+  data: {
+    labels: ['Bon', 'Moyen', 'Mauvais'],
+    datasets: [{ data: [{{ parEtat['Bon'] }}, {{ parEtat['Moyen'] }}, {{ parEtat['Mauvais'] }}],
+      backgroundColor: ['#dcfce7','#fef9c3','#fee2e2'],
+      borderColor: ['#16a34a','#ca8a04','#dc2626'],
+      borderWidth: 2, borderRadius: 8 }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+
+// Activité
+new Chart(document.getElementById('chartActivite'), {
+  type: 'bar',
+  data: {
+    labels: ['Faible', 'Modéré', 'Élevé'],
+    datasets: [{ data: [{{ parActivite['Faible'] }}, {{ parActivite['Modéré'] }}, {{ parActivite['Élevé'] }}],
+      backgroundColor: ['#EAF3DE','#C0DD97','#3B6D11'],
+      borderRadius: 8, borderWidth: 0 }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+
+{% if derniersMois is not empty %}
+// Évolution mensuelle
+new Chart(document.getElementById('chartMois'), {
+  type: 'line',
+  data: {
+    labels: {{ derniersMoisLabels|raw }},
+    datasets: [{ label: 'Suivis', data: {{ derniersMoisValues|raw }},
+      borderColor: G, backgroundColor: 'rgba(59,109,17,.1)',
+      fill: true, tension: 0.4, pointBackgroundColor: G, pointRadius: 5 }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+{% endif %}
+</script>
+{% endblock %}

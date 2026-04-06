@@ -1,0 +1,125 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block title %}Modifier mon profil - Agricore{% endblock %}
+
+{% block body %}
+
+<link href="{{ asset('css/utilisateur/utilisateur.css') }}" rel="stylesheet">
+
+{# Page Header #}
+<div class="container-fluid page-header py-5 mb-5 wow fadeIn" data-wow-delay="0.1s">
+    <div class="container text-center py-5">
+        <h1 class="display-3 text-white mb-4 animated slideInDown">Modifier mon profil</h1>
+        <nav aria-label="breadcrumb animated slideInDown">
+            <ol class="breadcrumb justify-content-center mb-0">
+                <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_profile') }}">Profil</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Modifier</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container-xxl py-5">
+    <div class="container">
+        <div class="row g-5">
+
+            {# --- Form --- #}
+            <div class="col-lg-8 wow fadeIn" data-wow-delay="0.1s">
+                <h2 class="mb-4" style="color:#0F4229;font-weight:700;">Modifier mes informations</h2>
+
+                {% for msg in app.flashes('error') %}
+                    <div class="auth-alert auth-alert-error mb-3">
+                        <i class="fas fa-exclamation-circle"></i> {{ msg }}
+                    </div>
+                {% endfor %}
+
+                <form method="post" action="{{ path('app_profile_edit') }}" enctype="multipart/form-data">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="nom" name="nom" placeholder="Nom" value="{{ user.nom }}" required>
+                                <label for="nom">Nom</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="prenom" name="prenom" placeholder="Prenom" value="{{ user.prenom }}" required>
+                                <label for="prenom">Prenom</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="email" class="form-control" id="email" name="email" placeholder="Email" value="{{ user.email }}" required>
+                                <label for="email">Email</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="numeroT" name="numeroT" placeholder="Telephone" value="{{ user.numeroT }}" required>
+                                <label for="numeroT">Telephone</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="adresse" name="adresse" placeholder="Adresse" value="{{ user.adresse }}" required>
+                                <label for="adresse">Adresse</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="date" class="form-control" id="date" name="date" placeholder="Date" value="{{ user.date ? user.date|date('Y-m-d') : '' }}">
+                                <label for="date">Date de naissance</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="genre" name="genre" required>
+                                    <option value="Homme" {% if user.genre == 'Homme' %}selected{% endif %}>Homme</option>
+                                    <option value="Femme" {% if user.genre == 'Femme' %}selected{% endif %}>Femme</option>
+                                </select>
+                                <label for="genre">Genre</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-floating">
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Nouveau mot de passe">
+                                <label for="password">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="image" class="form-label" style="font-weight:600;color:#0F4229;">Changer la photo de profil</label>
+                            <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                        </div>
+                        <div class="col-12 d-flex gap-3 mt-4">
+                            <button class="btn btn-primary py-3 px-4" type="submit">
+                                <i class="fas fa-save me-2"></i>Enregistrer les modifications
+                            </button>
+                            <a href="{{ path('app_profile') }}" class="btn btn-outline-secondary py-3 px-4">
+                                Annuler
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            {# --- Current photo sidebar --- #}
+            <div class="col-lg-4 wow fadeIn" data-wow-delay="0.3s">
+                <div class="text-center p-4" style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.06);">
+                    {% if user.image %}
+                        <img src="data:image/jpeg;base64,{{ user.image }}" alt="Photo actuelle"
+                             style="width:150px;height:150px;border-radius:50%;object-fit:cover;border:4px solid #348E38;margin-bottom:20px;">
+                    {% else %}
+                        <img src="{{ asset('img/profile.webp') }}" alt="Photo par defaut"
+                             style="width:150px;height:150px;border-radius:50%;object-fit:cover;border:4px solid #348E38;margin-bottom:20px;">
+                    {% endif %}
+                    <h5 style="font-weight:700;color:#0F4229;">{{ user.prenom }} {{ user.nom }}</h5>
+                    <p class="text-muted mb-0" style="font-size:14px;">{{ user.email }}</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

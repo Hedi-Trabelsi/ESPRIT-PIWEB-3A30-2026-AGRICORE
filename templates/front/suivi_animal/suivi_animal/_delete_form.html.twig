@@ -1,0 +1,6 @@
+<form method="post" action="{{ path('app_suivi_animal_delete', {'idSuivi': suivi_animal.idSuivi}) }}">
+  <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ suivi_animal.idSuivi) }}">
+  <button type="submit" class="ag-btn-danger">
+    <i class="fas fa-trash-alt me-1"></i> Supprimer
+  </button>
+</form>
