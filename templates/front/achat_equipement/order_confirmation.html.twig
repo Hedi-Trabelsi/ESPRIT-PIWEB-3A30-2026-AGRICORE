@@ -1,0 +1,20 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        <h2>Commande confirmee !</h2>
+        <p>Commande n°{{ commande.id }} du {{ commande.dateCommande|date('d/m/Y H:i') }}</p>
+        <p>Total : {{ commande.total }} TND</p>
+        <hr>
+        <h5>Detail :</h5>
+        <ul>
+            {% for ligne in commande.lignes %}
+                <li>{{ ligne.quantite }} x {{ ligne.equipement.nom }} -> {{ ligne.totalLigne }} TND</li>
+            {% endfor %}
+        </ul>
+        <a href="{{ path('app_equipement_catalogue') }}" class="btn btn-primary">Retour au catalogue</a>
+    </div>
+</div>
+{% endblock %}

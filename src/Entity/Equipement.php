@@ -84,6 +84,34 @@ class Equipement
         return $this;
     }
 
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $imageFilename = null;
+
+    public function getImageFilename(): ?string
+    {
+        return $this->imageFilename;
+    }
+
+    public function setImageFilename(?string $imageFilename): self
+    {
+        $this->imageFilename = $imageFilename;
+        return $this;
+    }
+
+    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    private bool $isActive = true;
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function setIsActive(bool $isActive): self
+    {
+        $this->isActive = $isActive;
+        return $this;
+    }
+
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'equipements')]
     #[ORM\JoinColumn(name: 'id_fournisseur', referencedColumnName: 'id')]
     private ?User $user = null;
@@ -133,6 +161,11 @@ class Equipement
     }
 
     public function getIdEquipement(): ?int
+    {
+        return $this->id_equipement;
+    }
+
+    public function getId(): ?int
     {
         return $this->id_equipement;
     }

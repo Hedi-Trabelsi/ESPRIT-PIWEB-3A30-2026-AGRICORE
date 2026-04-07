@@ -1,0 +1,46 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block body %}
+<div class="container mt-4">
+    <h1>Mon panier</h1>
+    {% if items is empty %}
+        <p>Panier vide. <a href="{{ path('app_equipement_catalogue') }}">Continuer les achats</a></p>
+    {% else %}
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Produit</th>
+                    <th>Prix unitaire</th>
+                    <th>Quantite</th>
+                    <th>Sous-total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for item in items %}
+                <tr>
+                    <td>{{ item.equipement.nom }}</td>
+                    <td>{{ item.prix_unitaire }} TND</td>
+                    <td>
+                        <a href="{{ path('app_cart_update', {id: item.equipement.id, quantite: item.quantite - 1}) }}" class="btn btn-sm btn-outline-secondary">-</a>
+                        {{ item.quantite }}
+                        <a href="{{ path('app_cart_update', {id: item.equipement.id, quantite: item.quantite + 1}) }}" class="btn btn-sm btn-outline-secondary">+</a>
+                    </td>
+                    <td>{{ item.sous_total }} TND</td>
+                    <td><a href="{{ path('app_cart_remove', {id: item.equipement.id}) }}" class="btn btn-danger btn-sm">Retirer</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="3">Total</th>
+                    <th>{{ total }} TND</th>
+                    <th></th>
+                </tr>
+            </tfoot>
+        </table>
+        <a href="{{ path('app_equipement_catalogue') }}" class="btn btn-secondary">Continuer</a>
+        <a href="{{ path('app_order_confirm') }}" class="btn btn-primary">Confirmer la commande</a>
+    {% endif %}
+</div>
+{% endblock %}

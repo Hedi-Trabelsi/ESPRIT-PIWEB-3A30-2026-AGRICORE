@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -21,9 +22,14 @@ class BackController extends AbstractController
     }
 
     #[Route('/back/equipements', name: 'back_equipements')]
-    public function equipements(): Response
+    public function equipements(Request $request): Response
     {
-        return $this->render('back/achat_equipement/equipement.html.twig');
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser || $sessionUser->getRole() !== 0) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        return $this->redirectToRoute('back_equipement_index');
     }
 
     #[Route('/back/ventes-depenses', name: 'back_ventes_depenses')]

@@ -1,8 +1,10 @@
 {% extends 'front/base_front.html.twig' %}
 
-
-
 {% block body %}
-<h1>Achat d'équipement</h1>
-<p>Contenu spécifique à l'achat d'équipement.</p>
+<div class="container py-5">
+    <div class="alert alert-info mb-0">
+        Le module achat d'equipements a ete integre. Vous allez etre redirige vers le catalogue.
+        <a href="{{ path('app_equipement_catalogue') }}" class="alert-link">Ouvrir le catalogue maintenant</a>
+    </div>
+</div>
 {% endblock %}

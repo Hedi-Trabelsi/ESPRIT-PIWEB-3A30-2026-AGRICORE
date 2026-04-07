@@ -1,0 +1,43 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block body %}
+<div class="container mt-4">
+    <h1>Mes commandes</h1>
+
+    {% if commandes is empty %}
+        <p>Vous n'avez encore passe aucune commande.</p>
+        <a href="{{ path('app_equipement_catalogue') }}" class="btn btn-primary">Decouvrir le catalogue</a>
+    {% else %}
+        {% for commande in commandes %}
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <strong>Commande n°{{ commande.id }}</strong> - {{ commande.dateCommande|date('d/m/Y H:i') }}
+                </div>
+                <div class="card-body">
+                    <p>Total : <strong>{{ commande.total }} TND</strong></p>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th>Quantite</th>
+                                <th>Prix unitaire</th>
+                                <th>Sous-total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for ligne in commande.lignes %}
+                            <tr>
+                                <td>{{ ligne.equipement.nom }}</td>
+                                <td>{{ ligne.quantite }}</td>
+                                <td>{{ ligne.prixUnitaire }} TND</td>
+                                <td>{{ ligne.totalLigne }} TND</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h4>{{ equipement.id ? 'Modifier' : 'Ajouter' }} un equipement</h4>
+        {{ form_start(form) }}
+        {{ form_row(form.nom) }}
+        {{ form_row(form.type) }}
+        {{ form_row(form.prix) }}
+        {{ form_row(form.quantite) }}
+        {{ form_row(form.imageFile) }}
+        {% if equipement.imageFilename %}
+            <img src="{{ asset('uploads/equipements/' ~ equipement.imageFilename) }}" width="100" alt="{{ equipement.nom }}">
+        {% endif %}
+        <button class="btn btn-primary mt-3">{{ equipement.id ? 'Enregistrer' : 'Ajouter' }}</button>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
