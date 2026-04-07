@@ -11,6 +11,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class EvenementBackController extends AbstractController
 {
@@ -107,60 +108,42 @@ class EvenementBackController extends AbstractController
     }
 
     #[Route('/back/evenements/add', name: 'back_evenements_add', methods: ['GET', 'POST'])]
-    public function add(Request $request, EntityManagerInterface $em): Response
+    public function add(Request $request, EntityManagerInterface $em, ValidatorInterface $validator): Response
     {
         $event = new Evennementagricole();
 
         if ($request->isMethod('POST')) {
-            $titre = trim($request->request->get('titre', ''));
-            $description = trim($request->request->get('description', ''));
-            $lieu = trim($request->request->get('lieu', ''));
             $dateDebutStr = $request->request->get('date_debut', '');
             $dateFinStr = $request->request->get('date_fin', '');
-            $frais = (int) $request->request->get('frais_inscription', 0);
-            $capacite = (int) $request->request->get('capacite_max', 0);
 
-            $errors = [];
-            if (strlen($titre) < 5) {
-                $errors[] = 'Le titre doit contenir au moins 5 caractères.';
+            $event->setTitre(trim($request->request->get('titre', '')));
+            $event->setLieu(trim($request->request->get('lieu', '')));
+            $event->setDescription(trim($request->request->get('description', '')));
+            $event->setStatut($request->request->get('statut', 'BROUILLON'));
+            $event->setFraisInscription((int) $request->request->get('frais_inscription', 0));
+            $event->setCapaciteMax((int) $request->request->get('capacite_max', 0));
+
+            if (!empty($dateDebutStr)) {
+                $event->setDateDebut(new \DateTime($dateDebutStr));
             }
-            if (strlen($description) < 10) {
-                $errors[] = 'La description doit contenir au moins 10 caractères.';
-            }
-            if (empty($lieu)) {
-                $errors[] = 'Le lieu est requis.';
-            }
-            if (empty($dateDebutStr) || empty($dateFinStr)) {
-                $errors[] = 'Les dates de début et de fin sont requises.';
-            } else {
-                $dateDebut = new \DateTime($dateDebutStr);
-                $dateFin = new \DateTime($dateFinStr);
-                if ($dateFin <= $dateDebut) {
-                    $errors[] = 'La date de fin doit être après la date de début.';
-                }
-            }
-            if ($frais < 0) {
-                $errors[] = 'Les frais d\'inscription ne peuvent pas être négatifs.';
-            }
-            if ($capacite < 1) {
-                $errors[] = 'La capacité doit être supérieure à 0.';
+            if (!empty($dateFinStr)) {
+                $event->setDateFin(new \DateTime($dateFinStr));
             }
 
-            if (!empty($errors)) {
-                foreach ($errors as $error) {
-                    $this->addFlash('error', $error);
+            // Validate using entity Assert constraints
+            $violations = $validator->validate($event);
+
+            // Extra check: date_fin must be after date_debut
+            if ($event->getDateDebut() && $event->getDateFin() && $event->getDateFin() <= $event->getDateDebut()) {
+                $this->addFlash('error', 'La date de fin doit être après la date de début.');
+            }
+
+            if (count($violations) > 0 || count($this->container->get('request_stack')->getSession()->getFlashBag()->peekAll())) {
+                foreach ($violations as $violation) {
+                    $this->addFlash('error', $violation->getMessage());
                 }
                 return $this->render('back/evenements/add.html.twig');
             }
-
-            $event->setTitre($titre);
-            $event->setLieu($lieu);
-            $event->setDescription($description);
-            $event->setStatut($request->request->get('statut', 'BROUILLON'));
-            $event->setDateDebut($dateDebut);
-            $event->setDateFin($dateFin);
-            $event->setFraisInscription($frais);
-            $event->setCapaciteMax($capacite);
 
             $em->persist($event);
             $em->flush();
@@ -186,19 +169,35 @@ class EvenementBackController extends AbstractController
     }
 
     #[Route('/back/evenements/edit/{id}', name: 'back_evenements_edit', requirements: ['id' => '\\d+'], methods: ['GET', 'POST'])]
-    public function edit(Evennementagricole $event, Request $request, EntityManagerInterface $em): Response
+    public function edit(Evennementagricole $event, Request $request, EntityManagerInterface $em, ValidatorInterface $validator): Response
     {
         if ($request->isMethod('POST')) {
             $oldTitle = $event->getTitre();
 
-            $event->setTitre($request->request->get('titre'));
-            $event->setLieu($request->request->get('lieu'));
-            $event->setDescription($request->request->get('description', ''));
+            $event->setTitre(trim($request->request->get('titre', '')));
+            $event->setLieu(trim($request->request->get('lieu', '')));
+            $event->setDescription(trim($request->request->get('description', '')));
             $event->setStatut($request->request->get('statut', 'BROUILLON'));
             $event->setDateDebut(new \DateTime($request->request->get('date_debut')));
             $event->setDateFin(new \DateTime($request->request->get('date_fin')));
             $event->setFraisInscription((int) $request->request->get('frais_inscription'));
             $event->setCapaciteMax((int) $request->request->get('capacite_max'));
+
+            // Validate using entity Assert constraints
+            $violations = $validator->validate($event);
+
+            if ($event->getDateFin() <= $event->getDateDebut()) {
+                $this->addFlash('error', 'La date de fin doit être après la date de début.');
+            }
+
+            if (count($violations) > 0 || count($this->container->get('request_stack')->getSession()->getFlashBag()->peekAll())) {
+                foreach ($violations as $violation) {
+                    $this->addFlash('error', $violation->getMessage());
+                }
+                return $this->render('back/evenements/edit.html.twig', [
+                    'event' => $event
+                ]);
+            }
 
             // Log the update
             $sessionUser = $request->getSession()->get('user');

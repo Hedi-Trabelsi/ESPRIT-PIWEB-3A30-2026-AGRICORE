@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 
 use App\Repository\EvennementagricoleRepository;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: EvennementagricoleRepository::class)]
 #[ORM\Table(name: 'evennementagricole')]
@@ -30,6 +31,13 @@ class Evennementagricole
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: 'Le titre est obligatoire.')]
+    #[Assert\Length(
+        min: 5,
+        max: 255,
+        minMessage: 'Le titre doit contenir au moins {{ limit }} caractères.',
+        maxMessage: 'Le titre ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $titre = null;
 
     public function getTitre(): ?string
@@ -44,6 +52,11 @@ class Evennementagricole
     }
 
     #[ORM\Column(type: 'text', nullable: false)]
+    #[Assert\NotBlank(message: 'La description est obligatoire.')]
+    #[Assert\Length(
+        min: 10,
+        minMessage: 'La description doit contenir au moins {{ limit }} caractères.'
+    )]
     private ?string $description = null;
 
     public function getDescription(): ?string
@@ -58,6 +71,7 @@ class Evennementagricole
     }
 
     #[ORM\Column(type: 'datetime', nullable: false)]
+    #[Assert\NotBlank(message: 'La date de début est obligatoire.')]
     private ?\DateTimeInterface $date_debut = null;
 
     public function getDate_debut(): ?\DateTimeInterface
@@ -72,6 +86,7 @@ class Evennementagricole
     }
 
     #[ORM\Column(type: 'datetime', nullable: false)]
+    #[Assert\NotBlank(message: 'La date de fin est obligatoire.')]
     private ?\DateTimeInterface $date_fin = null;
 
     public function getDate_fin(): ?\DateTimeInterface
@@ -86,6 +101,7 @@ class Evennementagricole
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: 'Le lieu est obligatoire.')]
     private ?string $lieu = null;
 
     public function getLieu(): ?string
@@ -100,6 +116,8 @@ class Evennementagricole
     }
 
     #[ORM\Column(type: 'integer', nullable: false)]
+    #[Assert\NotNull(message: 'La capacité maximale est obligatoire.')]
+    #[Assert\GreaterThan(value: 0, message: 'La capacité doit être supérieure à 0.')]
     private ?int $capacite_max = null;
 
     public function getCapacite_max(): ?int
@@ -114,6 +132,8 @@ class Evennementagricole
     }
 
     #[ORM\Column(type: 'integer', nullable: false)]
+    #[Assert\NotNull(message: "Les frais d'inscription sont obligatoires.")]
+    #[Assert\GreaterThanOrEqual(value: 0, message: "Les frais ne peuvent pas être négatifs.")]
     private ?int $frais_inscription = null;
 
     public function getFrais_inscription(): ?int
@@ -128,6 +148,7 @@ class Evennementagricole
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
+    #[Assert\NotBlank(message: 'Le statut est obligatoire.')]
     private ?string $statut = null;
 
     public function getStatut(): ?string

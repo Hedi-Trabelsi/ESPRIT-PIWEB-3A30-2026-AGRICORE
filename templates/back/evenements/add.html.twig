@@ -71,18 +71,14 @@
 </style>
 
 <div class="container py-5">
+    {% for msg in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-3" role="alert" style="border-left:4px solid #dc2626;">
+            <i class="fas fa-exclamation-circle me-2"></i> {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
     <div class="main-card animate__animated animate__fadeInUp">
         <form method="post" id="eventForm" novalidate>
-            {% if errors is defined and errors|length > 0 %}
-                <div class="alert alert-danger mx-4 mt-4 rounded-4" style="border-left:4px solid #dc2626;">
-                    <i class="fas fa-exclamation-triangle me-2"></i><strong>Veuillez corriger les erreurs suivantes :</strong>
-                    <ul class="mb-0 mt-2">
-                        {% for field, msg in errors %}
-                            <li>{{ msg }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
             <div class="row g-5">
                 <div class="col-lg-6">
                     <h5 class="mb-4 fw-bold">Configuration de l'événement</h5>
@@ -137,7 +133,7 @@
                         <div class="col-6">
                             <div class="form-group">
                                 <label class="form-label fw-bold small text-uppercase">Capacité</label>
-                                <input type="number" name="capacite" id="capacite" class="form-control">
+                                <input type="number" name="capacite_max" id="capacite" class="form-control">
                                 <i class="fas fa-check-circle text-success validation-icon" id="capacite-check"></i>
                                 <div class="error-msg" id="capacite-error">La capacité doit être supérieure à 1.</div>
                             </div>
@@ -184,6 +180,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const chk = document.getElementById(el.id + '-check');
         if (chk) chk.style.display = 'none';
         if (errId) document.getElementById(errId).style.display = 'block';
+    };
+
+    const validate = (elId, condition, errId) => {
+        const el = document.getElementById(elId);
+        condition ? setValid(el, errId) : setInvalid(el, errId);
+        return condition;
     };
 
     const checkTitre = () => {

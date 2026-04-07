@@ -21,7 +21,7 @@ class EvennementagricoleType extends AbstractType
             ->add('titre', TextType::class, [
                 'label' => 'Titre',
                 'constraints' => [
-                    new Assert\NotBlank(['message' => 'Le titre est obligatoire.']),
+                    new Assert\NotBlank(['message' => 'Le titre est obligatoireoooooo.']),
                     new Assert\Length([
                         'min' => 5,
                         'minMessage' => 'Le titre doit contenir au moins {{ limit }} caractères.',
