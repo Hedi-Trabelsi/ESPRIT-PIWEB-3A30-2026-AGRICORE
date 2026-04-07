@@ -128,61 +128,53 @@
             </div>
         </div>
 
-        <form method="post" id="eventForm" class="p-4 p-md-5" novalidate>
-            {% for msg in app.flashes('error') %}
-                <div class="alert alert-danger alert-dismissible fade show rounded-4 mb-3" role="alert" style="border-left:4px solid #dc2626;">
-                    <i class="fas fa-exclamation-circle me-2"></i> {{ msg }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
+        {{ form_start(form, {'attr': {'class': 'p-4 p-md-5', 'novalidate': 'novalidate', 'id': 'eventForm'}}) }}
+
             <div class="row g-5">
 
                 <div class="col-lg-5">
                     <div class="mb-4">
-                        <label class="form-label">Titre de l'événement</label>
-                        <input type="text" name="titre" id="f-titre" class="form-control custom-input" value="{{ event.titre }}">
-                        <div class="error-text" id="e-titre">Titre requis (min. 5 caractères).</div>
+                        {{ form_label(form.titre, 'Titre de l\'événement') }}
+                        {{ form_widget(form.titre, {'attr': {'class': 'form-control custom-input'}}) }}
+                        <div class="text-danger small">{{ form_errors(form.titre) }}</div>
                     </div>
 
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <label class="form-label">Statut</label>
-                            <select name="statut" id="f-statut" class="form-select custom-input">
-                                <option value="BROUILLON" {% if event.statut == 'BROUILLON' %}selected{% endif %}>Brouillon</option>
-                                <option value="COMING" {% if event.statut == 'COMING' %}selected{% endif %}>À venir</option>
-                                <option value="EN_COURS" {% if event.statut == 'EN_COURS' %}selected{% endif %}>En cours</option>
-                            </select>
+                            {{ form_label(form.statut) }}
+                            {{ form_widget(form.statut, {'attr': {'class': 'form-select custom-input'}}) }}
+                            <div class="text-danger small">{{ form_errors(form.statut) }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Capacité Max</label>
-                            <input type="number" name="capacite_max" id="f-capacite" class="form-control custom-input" value="{{ event.capacite_max }}" min="1">
-                            <div class="error-text" id="e-capacite">Capacité doit être supérieure à 0.</div>
+                            {{ form_label(form.capacite_max, 'Capacité Max') }}
+                            {{ form_widget(form.capacite_max, {'attr': {'class': 'form-control custom-input', 'min': '1'}}) }}
+                            <div class="text-danger small">{{ form_errors(form.capacite_max) }}</div>
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" id="f-description" class="form-control custom-input" rows="4">{{ event.description }}</textarea>
-                        <div class="error-text" id="e-description">Description requise (min. 10 caractères).</div>
+                        {{ form_label(form.description) }}
+                        {{ form_widget(form.description, {'attr': {'class': 'form-control custom-input', 'rows': '4'}}) }}
+                        <div class="text-danger small">{{ form_errors(form.description) }}</div>
                     </div>
 
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <label class="form-label">Début</label>
-                            <input type="datetime-local" id="date_debut" name="date_debut" class="form-control custom-input" value="{{ event.date_debut|date('Y-m-d\\TH:i') }}">
-                            <div class="error-text" id="e-debut">Date de début requise.</div>
+                            {{ form_label(form.date_debut, 'Début') }}
+                            {{ form_widget(form.date_debut, {'attr': {'class': 'form-control custom-input'}}) }}
+                            <div class="text-danger small">{{ form_errors(form.date_debut) }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Fin</label>
-                            <input type="datetime-local" id="date_fin" name="date_fin" class="form-control custom-input" value="{{ event.date_fin|date('Y-m-d\\TH:i') }}">
-                            <div class="error-text" id="e-fin">La date de fin doit être après le début.</div>
+                            {{ form_label(form.date_fin, 'Fin') }}
+                            {{ form_widget(form.date_fin, {'attr': {'class': 'form-control custom-input'}}) }}
+                            <div class="text-danger small">{{ form_errors(form.date_fin) }}</div>
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label">Frais (TND)</label>
-                        <input type="number" name="frais_inscription" id="f-frais" class="form-control custom-input" value="{{ event.frais_inscription }}" min="0" step="0.01">
-                        <div class="error-text" id="e-frais">Montant invalide (min 0).</div>
+                        {{ form_label(form.frais_inscription, 'Frais (TND)') }}
+                        {{ form_widget(form.frais_inscription, {'attr': {'class': 'form-control custom-input', 'min': '0', 'step': '0.01'}}) }}
+                        <div class="text-danger small">{{ form_errors(form.frais_inscription) }}</div>
                     </div>
 
                     <div class="pt-4 border-top">
@@ -194,10 +186,10 @@
 
                 <div class="col-lg-7">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <label class="form-label mb-0">Localisation (Tapez sur la carte)</label>
+                        {{ form_label(form.lieu, 'Localisation (Tapez sur la carte)') }}
                     </div>
 
-                    <input type="hidden" name="lieu" id="lieu_input" value="{{ event.lieu }}" required>
+                    {{ form_widget(form.lieu, {'attr': {'id': 'lieu_input', 'style': 'display: none;'}}) }}
 
                     <div id="map-container">
                         <div id="map"></div>
@@ -212,83 +204,19 @@
                             <i class="bi bi-arrow-counterclockwise"></i> Reset
                         </button>
                     </div>
+                    <div class="text-danger small mt-2">{{ form_errors(form.lieu) }}</div>
                 </div>
             </div>
-        </form>
+
+        {{ form_end(form) }}
     </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const lieuInput = document.getElementById('lieu_input');
+        const lieuInput = document.getElementById('{{ form.lieu.vars.id }}');
         const displayCoords = document.getElementById('display_coords');
-        const form = document.getElementById('eventForm');
-
-        // ── helpers ──────────────────────────────────────────────────
-        function setValid(input, errId) {
-            input.style.borderColor = '#10b981';
-            input.style.background  = '#f0fdf4';
-            if (errId) document.getElementById(errId).style.display = 'none';
-        }
-        function setInvalid(input, errId) {
-            input.style.borderColor = '#ef4444';
-            input.style.background  = '#fef2f2';
-            if (errId) document.getElementById(errId).style.display = 'block';
-        }
-        function clearState(input, errId) {
-            input.style.borderColor = '';
-            input.style.background  = '';
-            if (errId) document.getElementById(errId).style.display = 'none';
-        }
-
-        function checkTitre() {
-            const v = document.getElementById('f-titre').value.trim();
-            v.length >= 5 ? setValid(document.getElementById('f-titre'), 'e-titre')
-                          : setInvalid(document.getElementById('f-titre'), 'e-titre');
-            return v.length >= 5;
-        }
-        function checkDescription() {
-            const v = document.getElementById('f-description').value.trim();
-            v.length >= 10 ? setValid(document.getElementById('f-description'), 'e-description')
-                           : setInvalid(document.getElementById('f-description'), 'e-description');
-            return v.length >= 10;
-        }
-        function checkCapacite() {
-            const v = parseInt(document.getElementById('f-capacite').value);
-            v > 0 ? setValid(document.getElementById('f-capacite'), 'e-capacite')
-                  : setInvalid(document.getElementById('f-capacite'), 'e-capacite');
-            return v > 0;
-        }
-        function checkFrais() {
-            const v = parseFloat(document.getElementById('f-frais').value);
-            (!isNaN(v) && v >= 0) ? setValid(document.getElementById('f-frais'), 'e-frais')
-                                  : setInvalid(document.getElementById('f-frais'), 'e-frais');
-            return !isNaN(v) && v >= 0;
-        }
-        function checkDates() {
-            const d1 = document.getElementById('date_debut');
-            const d2 = document.getElementById('date_fin');
-            if (!d1.value) { setInvalid(d1, 'e-debut'); return false; }
-            setValid(d1, 'e-debut');
-            if (!d2.value) { setInvalid(d2, 'e-fin'); return false; }
-            if (new Date(d2.value) > new Date(d1.value)) { setValid(d2, 'e-fin'); return true; }
-            setInvalid(d2, 'e-fin'); return false;
-        }
-
-        // ── real-time listeners ───────────────────────────────────────
-        document.getElementById('f-titre').addEventListener('input', checkTitre);
-        document.getElementById('f-description').addEventListener('input', checkDescription);
-        document.getElementById('f-capacite').addEventListener('input', checkCapacite);
-        document.getElementById('f-frais').addEventListener('input', checkFrais);
-        document.getElementById('date_debut').addEventListener('change', checkDates);
-        document.getElementById('date_fin').addEventListener('change', checkDates);
-
-        // ── submit guard ──────────────────────────────────────────────
-        form.addEventListener('submit', function(e) {
-            const ok = [checkTitre(), checkDescription(), checkCapacite(), checkFrais(), checkDates()];
-            if (ok.includes(false)) e.preventDefault();
-        });
 
         // ── Map Setup ─────────────────────────────────────────────────
         const lieuVal = lieuInput.value.trim();

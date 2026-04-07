@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Evennementagricole;
 use App\Entity\Participants;
+use App\Form\ParticipantsType;
 use App\Repository\EvennementagricoleRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -13,40 +14,41 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class EvenementController extends AbstractController
 {
-    // ===========================
-    // 🔵 LISTE DES ÉVÉNEMENTS
-    // ===========================
-    #[Route('/evenements', name: 'app_evenement')]
-    public function index(
-        EvennementagricoleRepository $repo,
-        EntityManagerInterface $em
-    ): Response {
+    private function getTotalReservedPlaces(Evennementagricole $ev, EntityManagerInterface $em): int
+    {
+        return (int) $em->getRepository(Participants::class)
+            ->createQueryBuilder('p')
+            ->select('SUM(p.nbr_places)')
+            ->where('p.evenement = :ev')
+            ->setParameter('ev', $ev)
+            ->getQuery()
+            ->getSingleScalarResult() ?: 0;
+    }
 
+    #[Route('/evenements', name: 'app_evenement')]
+    public function index(EvennementagricoleRepository $repo, EntityManagerInterface $em): Response
+    {
         $evenements = $repo->findAll();
         $data = [];
         $now = new \DateTime();
 
         foreach ($evenements as $ev) {
 
-            // ================= STATUS =================
-            if ($ev->getDate_fin() < $now) {
+            if ($ev->getDateFin() < $now) {
                 $status = 'HISTORIQUE';
-            } elseif ($ev->getDate_debut() > $now) {
+            } elseif ($ev->getDateDebut() > $now) {
                 $status = 'COMING';
             } else {
                 $status = 'EN_COURS';
             }
 
-            // ================= COUNT PARTICIPANTS =================
-            $places = $em->getRepository(Participants::class)
-                ->count(['evenement' => $ev]);
-
-            $placesRestantes = $ev->getCapacite_max() - $places;
+            $totalReserved = $this->getTotalReservedPlaces($ev, $em);
+            $placesRestantes = $ev->getCapaciteMax() - $totalReserved;
 
             $data[] = [
                 'evenement' => $ev,
                 'status' => $status,
-                'placesRestantes' => $placesRestantes
+                'placesRestantes' => max(0, $placesRestantes),
             ];
         }
 
@@ -55,124 +57,145 @@ class EvenementController extends AbstractController
         ]);
     }
 
-    // ===========================
-    // 🟢 DÉTAIL ÉVÉNEMENT
-    // ===========================
     #[Route('/evenement/{id}', name: 'app_evenement_show')]
-    public function show(
-        Evennementagricole $ev,
-        Request $request,
-        EntityManagerInterface $em
-    ): Response {
+    public function show(Evennementagricole $ev, Request $request, EntityManagerInterface $em): Response
+    {
+        $totalReserved = $this->getTotalReservedPlaces($ev, $em);
+        $placesRestantes = $ev->getCapaciteMax() - $totalReserved;
 
-        $places = $em->getRepository(Participants::class)
-            ->count(['evenement' => $ev]);
+        $participant = new Participants();
+        $form = $this->createForm(ParticipantsType::class, $participant);
+        $form->handleRequest($request);
 
-        $placesRestantes = $ev->getCapacite_max() - $places;
-
-        $dejaInscrit = false;
         $sessionUser = $request->getSession()->get('user');
+        $dejaInscrit = false;
+
         if ($sessionUser) {
             $existing = $em->getRepository(Participants::class)->findOneBy([
                 'evenement' => $ev,
                 'id_utilisateur' => $sessionUser->getId()
             ]);
-            $dejaInscrit = ($existing !== null);
+
+            $dejaInscrit = $existing !== null;
+        }
+
+        if ($form->isSubmitted() && $form->isValid()) {
+
+            if (!$sessionUser) {
+                $this->addFlash('error', 'Vous devez être connecté.');
+                return $this->redirectToRoute('front_login');
+            }
+
+            $nbrPlaces = $participant->getNbrPlaces();
+            if ($nbrPlaces < 1) {
+                $nbrPlaces = 1;
+            }
+
+            $dispo = $ev->getCapaciteMax() - $totalReserved;
+
+            if ($nbrPlaces > $dispo) {
+                $this->addFlash('error', "Seulement $dispo places disponibles.");
+            } else {
+
+                if (!$participant->getNomParticipant()) {
+                    $participant->setNomParticipant(
+                        $sessionUser->getPrenom() . ' ' . $sessionUser->getNom()
+                    );
+                }
+
+                $participant->setEvenement($ev);
+                $participant->setIdUtilisateur($sessionUser->getId());
+                $participant->setDateInscription(new \DateTime());
+                $participant->setStatutParticipation("En attente");
+                $participant->setEntryCode(random_int(100000, 999999));
+
+                $montant = $nbrPlaces * (float) $ev->getFraisInscription();
+                $participant->setMontantPayee((string) $montant);
+                $participant->setConfirmation("pending");
+
+                $em->persist($participant);
+                $em->flush();
+
+                $this->addFlash('success', "Inscription réussie !");
+                return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
+            }
+        } elseif ($form->isSubmitted() && !$form->isValid()) {
+            $this->addFlash('error', 'Veuillez corriger les erreurs du formulaire.');
         }
 
         return $this->render('front/evenements/show.html.twig', [
             'evenement' => $ev,
-            'placesRestantes' => $placesRestantes,
-            'dejaInscrit' => $dejaInscrit
+            'placesRestantes' => max(0, $placesRestantes),
+            'dejaInscrit' => $dejaInscrit,
+            'form' => $form->createView(),
+            'showParticipationModal' => $form->isSubmitted(),
         ]);
     }
+#[Route('/evenement/{id}/participer', name: 'app_participer', methods: ['POST'])]
+public function participer(Evennementagricole $ev, Request $request, EntityManagerInterface $em): Response
+{
+    $sessionUser = $request->getSession()->get('user');
+    if (!$sessionUser) {
+        $this->addFlash('error', 'Vous devez être connecté.');
+        return $this->redirectToRoute('front_login');
+    }
 
-    // ===========================
-    // 🔴 ANNULER UNE INSCRIPTION
-    // ===========================
+    // Récupération et nettoyage des données
+    $nbrPlaces = (int)$request->request->get('nbr_places', 1);
+    $nomParticipant = trim($request->request->get('nom_participant'));
+    $montantPayee = $request->request->get('montant_payee', 0);
+
+    // --- VÉRIFICATION CRUCIALE ---
+    if (empty($nomParticipant)) {
+        $this->addFlash('error', 'Le nom du participant est obligatoire pour valider l\'inscription.');
+        return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
+    }
+
+    // Vérification de la capacité restante (sécurité côté serveur)
+    $totalReserved = $this->getTotalReservedPlaces($ev, $em);
+    $dispo = $ev->getCapaciteMax() - $totalReserved;
+    if ($nbrPlaces > $dispo) {
+        $this->addFlash('error', "Désolé, il ne reste que $dispo places.");
+        return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
+    }
+
+    $participant = new Participants();
+    $participant->setEvenement($ev);
+    $participant->setIdUtilisateur($sessionUser->getId());
+    $participant->setNomParticipant($nomParticipant);
+    $participant->setNbrPlaces($nbrPlaces);
+    $participant->setMontantPayee((string)$montantPayee);
+    $participant->setDateInscription(new \DateTime());
+    $participant->setStatutParticipation("En attente");
+    $participant->setEntryCode(random_int(100000, 999999));
+    $participant->setConfirmation("pending");
+
+    $em->persist($participant);
+    $em->flush();
+
+    $this->addFlash('success', "Inscription réussie pour " . $ev->getTitre() . " !");
+    return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
+}
     #[Route('/evenement/{id}/annuler', name: 'app_annuler_inscription', methods: ['POST'])]
-    public function annulerInscription(
-        Evennementagricole $ev,
-        Request $request,
-        EntityManagerInterface $em
-    ): Response {
-        $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+    public function annulerInscription(Evennementagricole $ev, Request $request, EntityManagerInterface $em): Response
+    {
+        $user = $request->getSession()->get('user');
+
+        if (!$user) {
             return $this->redirectToRoute('front_login');
         }
 
         $participant = $em->getRepository(Participants::class)->findOneBy([
             'evenement' => $ev,
-            'id_utilisateur' => $sessionUser->getId()
+            'id_utilisateur' => $user->getId()
         ]);
 
         if ($participant) {
             $em->remove($participant);
             $em->flush();
-            $this->addFlash('success', 'Votre inscription a été annulée avec succès.');
+            $this->addFlash('success', 'Inscription annulée.');
         }
 
-        return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getId_ev()]);
-    }
-
-    // ===========================
-    // 🟣 PARTICIPER À UN ÉVÉNEMENT
-    // ===========================
-    #[Route('/evenement/{id}/participer', name: 'app_participer', methods: ['POST'])]
-    public function participer(
-        Evennementagricole $ev,
-        Request $request,
-        EntityManagerInterface $em
-    ): Response {
-
-        // 1. Vérification de la session
-        $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
-            $this->addFlash('error', 'Vous devez être connecté pour participer.');
-            return $this->redirectToRoute('front_login');
-        }
-
-        // 2. Récupération des données du formulaire
-        $nom = trim($request->request->get('nom_participant', ''));
-        $nbrPlaces = (int) $request->request->get('nbr_places', 1);
-
-        // 3. Logique de secours pour le nom
-        if (empty($nom)) {
-            // On suppose que l'objet user en session possède getPrenom() et getNom()
-            $nom = $sessionUser->getPrenom() . ' ' . $sessionUser->getNom();
-        }
-
-        // 4. Validation du nombre de places
-        if ($nbrPlaces < 1) {
-            $nbrPlaces = 1;
-        }
-
-        // 5. CALCUL DU MONTANT PAYÉ (Côté Serveur pour la sécurité)
-        $prixUnitaire = (float) $ev->getFrais_inscription();
-        $montantTotal = $nbrPlaces * $prixUnitaire;
-
-        // 6. Création de l'entité Participant
-        $participant = new Participants();
-        $participant->setEvenement($ev);
-        $participant->setId_utilisateur($sessionUser->getId());
-        $participant->setNom_participant($nom);
-        $participant->setNbr_places($nbrPlaces);
-        $participant->setStatut_participation("En attente");
-        $participant->setEntry_code(random_int(100000, 999999));
-        $participant->setDate_inscription(new \DateTime());
-        
-        // FIX : On enregistre le montant calculé et non "0"
-        $participant->setMontant_payee((string)$montantTotal); 
-        
-        $participant->setConfirmation("pending");
-
-        // 7. Persistance
-        $em->persist($participant);
-        $em->flush();
-
-        $this->addFlash('success', 'Inscription réussie ! Total : ' . $montantTotal . ' DT. Code d\'entrée : ' . $participant->getEntry_code());
-
-        // Assurez-vous que le getter de l'ID correspond à votre entité (getId_ev ou getIdEv)
-        return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getId_ev()]);
+        return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
     }
 }

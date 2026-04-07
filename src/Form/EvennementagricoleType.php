@@ -18,77 +18,108 @@ class EvennementagricoleType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
+            // TITRE
             ->add('titre', TextType::class, [
                 'label' => 'Titre',
                 'constraints' => [
-                    new Assert\NotBlank(['message' => 'Le titre est obligatoireoooooo.']),
+                    new Assert\NotBlank([
+                        'message' => 'ya shii Le titre est obligatoire.'
+                    ]),
                     new Assert\Length([
                         'min' => 5,
-                        'minMessage' => 'Le titre doit contenir au moins {{ limit }} caractères.',
+                        'minMessage' => 'ya shii Le titre doit contenir au moins {{ limit }} caractères.',
                         'max' => 255,
-                        'maxMessage' => 'Le titre ne peut pas dépasser {{ limit }} caractères.',
-                    ]),
+                        'maxMessage' => 'Le titre ne peut pas dépasser {{ limit }} caractères.'
+                    ])
                 ],
             ])
+
+            // DESCRIPTION
             ->add('description', TextareaType::class, [
                 'label' => 'Description',
                 'constraints' => [
-                    new Assert\NotBlank(['message' => 'La description est obligatoire.']),
+                    new Assert\NotBlank([
+                        'message' => 'ya shii La description est obligatoire.'
+                    ]),
                     new Assert\Length([
                         'min' => 10,
-                        'minMessage' => 'La description doit contenir au moins {{ limit }} caractères.',
-                    ]),
+                        'minMessage' => 'ya shii La description doit contenir au moins {{ limit }} caractères.'
+                    ])
                 ],
             ])
+
+            // LIEU
             ->add('lieu', TextType::class, [
                 'label' => 'Lieu',
                 'constraints' => [
-                    new Assert\NotBlank(['message' => 'Le lieu est obligatoire.']),
+                    new Assert\NotBlank([
+                        'message' => 'Le lieu est obligatoire.'
+                    ])
                 ],
             ])
+
+            // DATE DEBUT
             ->add('date_debut', DateTimeType::class, [
-                'label'  => 'Date de début',
+                'label' => 'Date de début',
                 'widget' => 'single_text',
                 'constraints' => [
-                    new Assert\NotBlank(['message' => 'La date de début est obligatoire.']),
+                    new Assert\NotBlank([
+                        'message' => 'La date de début est obligatoire.'
+                    ])
                 ],
             ])
+
+            // DATE FIN
             ->add('date_fin', DateTimeType::class, [
-                'label'  => 'Date de fin',
+                'label' => 'Date de fin',
                 'widget' => 'single_text',
                 'constraints' => [
-                    new Assert\NotBlank(['message' => 'La date de fin est obligatoire.']),
+                    new Assert\NotBlank([
+                        'message' => 'La date de fin est obligatoire.'
+                    ])
                 ],
             ])
+
+            // FRAIS INSCRIPTION
             ->add('frais_inscription', IntegerType::class, [
                 'label' => 'Frais d\'inscription (DT)',
                 'constraints' => [
-                    new Assert\NotNull(['message' => 'Les frais d\'inscription sont obligatoires.']),
+                    new Assert\NotNull([
+                        'message' => 'Les frais sont obligatoires.'
+                    ]),
                     new Assert\GreaterThanOrEqual([
                         'value' => 0,
-                        'message' => 'Les frais ne peuvent pas être négatifs.',
-                    ]),
+                        'message' => 'Les frais ne peuvent pas être négatifs.'
+                    ])
                 ],
             ])
+
+            // CAPACITE MAX
             ->add('capacite_max', IntegerType::class, [
                 'label' => 'Capacité maximale',
                 'constraints' => [
-                    new Assert\NotNull(['message' => 'La capacité maximale est obligatoire.']),
+                    new Assert\NotNull([
+                        'message' => 'La capacité est obligatoire.'
+                    ]),
                     new Assert\GreaterThan([
                         'value' => 0,
-                        'message' => 'La capacité doit être supérieure à 0.',
-                    ]),
+                        'message' => 'La capacité doit être supérieure à 0.'
+                    ])
                 ],
             ])
+
+            // STATUT
             ->add('statut', ChoiceType::class, [
                 'label' => 'Statut',
                 'choices' => [
                     'Brouillon' => 'BROUILLON',
-                    'À venir'   => 'COMING',
-                    'En cours'  => 'EN_COURS',
+                    'À venir' => 'COMING',
+                    'En cours' => 'EN_COURS',
                 ],
                 'constraints' => [
-                    new Assert\NotBlank(['message' => 'Le statut est obligatoire.']),
+                    new Assert\NotBlank([
+                        'message' => 'Le statut est obligatoire.'
+                    ])
                 ],
             ])
         ;
@@ -98,6 +129,7 @@ class EvennementagricoleType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Evennementagricole::class,
+            'csrf_protection' => true,
         ]);
     }
 }
