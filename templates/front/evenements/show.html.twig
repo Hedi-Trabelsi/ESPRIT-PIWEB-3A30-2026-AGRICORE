@@ -411,17 +411,6 @@
         }
 
         // --- LOGIQUE DE LA CARTE ---
-                    let qty = parseInt(nbrPlacesInput.value) || 0;
-                    let total = (qty * prixUnitaire).toFixed(2);
-                    if (displayTotal) displayTotal.innerText = total + " DT";
-                }
-            }
-
-            if (nbrPlacesInput) {
-                nbrPlacesInput.addEventListener('input', updatePrice);
-                nbrPlacesInput.addEventListener('change', updatePrice);
-
-        // --- LOGIQUE DE LA CARTE ---
         var lieu = "{{ evenement.lieu|e('js') }}";
         var coordRegex = /^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/;
         var match = lieu.match(coordRegex);
