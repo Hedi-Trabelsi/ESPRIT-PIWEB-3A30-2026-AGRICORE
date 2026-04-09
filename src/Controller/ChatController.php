@@ -5,7 +5,7 @@ namespace App\Controller;
 use App\Entity\Messages;
 use App\Entity\Participants;
 use App\Entity\Evennementagricole;
-use App\Repository\EvennementagricoleRepository;
+use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -15,48 +15,65 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class ChatController extends AbstractController
 {
-    // Sender ID used for all admin messages
     const ADMIN_SENDER_ID = 0;
+
+    private function buildAvatarMap(array $participants, EntityManagerInterface $em): array
+    {
+        $avatars = [];
+        foreach ($participants as $p) {
+            $uid = $p->getIdUtilisateur();
+            if (isset($avatars[$uid])) continue;
+            $user = $em->getRepository(User::class)->find($uid);
+            if ($user && $user->getImage()) {
+                $raw = $user->getImage();
+                if (is_resource($raw)) $raw = stream_get_contents($raw);
+                $avatars[$uid] = 'data:image/jpeg;base64,' . base64_encode($raw);
+            } else {
+                $avatars[$uid] = null;
+            }
+        }
+        return $avatars;
+    }
+
+    private function userAvatar(mixed $user): ?string
+    {
+        if (!$user) return null;
+        $raw = $user->getImage();
+        if (is_resource($raw)) $raw = stream_get_contents($raw);
+        return $raw ? 'data:image/jpeg;base64,' . base64_encode($raw) : null;
+    }
 
     #[Route('/evenement/{id}/chat', name: 'app_event_chat')]
     public function chat(Evennementagricole $ev, Request $request, EntityManagerInterface $em): Response
     {
         $user = $request->getSession()->get('user');
-
-        if (!$user) {
-            return $this->redirectToRoute('front_login');
-        }
+        if (!$user) return $this->redirectToRoute('front_login');
 
         $participant = $em->getRepository(Participants::class)->findOneBy([
-            'evenement' => $ev,
-            'id_utilisateur' => $user->getId()
+            'evenement' => $ev, 'id_utilisateur' => $user->getId()
         ]);
-
         if (!$participant) {
             $this->addFlash('error', 'Vous devez être inscrit à cet événement pour accéder au chat.');
             return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
         }
 
-        $messages = $em->getRepository(Messages::class)
+        $messages     = $em->getRepository(Messages::class)
             ->createQueryBuilder('m')
-            ->where('m.event_id = :eid')
-            ->setParameter('eid', $ev->getIdEv())
-            ->orderBy('m.timestamp', 'ASC')
-            ->getQuery()
-            ->getResult();
+            ->where('m.event_id = :eid')->setParameter('eid', $ev->getIdEv())
+            ->orderBy('m.timestamp', 'ASC')->getQuery()->getResult();
 
         $participants = $em->getRepository(Participants::class)->findBy(['evenement' => $ev]);
         $names = [];
-        foreach ($participants as $p) {
-            $names[$p->getIdUtilisateur()] = $p->getNomParticipant();
-        }
+        foreach ($participants as $p) $names[$p->getIdUtilisateur()] = $p->getNomParticipant();
 
         return $this->render('front/evenements/chat.html.twig', [
-            'evenement' => $ev,
-            'messages' => $messages,
+            'evenement'   => $ev,
+            'messages'    => $messages,
             'currentUser' => $user,
-            'names' => $names,
-            'isAdmin' => false,
+            'names'       => $names,
+            'avatars'     => $this->buildAvatarMap($participants, $em),
+            'myAvatar'    => $this->userAvatar($user),
+            'isAdmin'     => false,
         ]);
     }
 
@@ -64,30 +81,25 @@ class ChatController extends AbstractController
     public function adminChat(Evennementagricole $ev, Request $request, EntityManagerInterface $em): Response
     {
         $admin = $request->getSession()->get('user');
-        if (!$admin) {
-            return $this->redirectToRoute('back_login');
-        }
+        if (!$admin) return $this->redirectToRoute('back_login');
 
-        $messages = $em->getRepository(Messages::class)
+        $messages     = $em->getRepository(Messages::class)
             ->createQueryBuilder('m')
-            ->where('m.event_id = :eid')
-            ->setParameter('eid', $ev->getIdEv())
-            ->orderBy('m.timestamp', 'ASC')
-            ->getQuery()
-            ->getResult();
+            ->where('m.event_id = :eid')->setParameter('eid', $ev->getIdEv())
+            ->orderBy('m.timestamp', 'ASC')->getQuery()->getResult();
 
         $participants = $em->getRepository(Participants::class)->findBy(['evenement' => $ev]);
         $names = [];
-        foreach ($participants as $p) {
-            $names[$p->getIdUtilisateur()] = $p->getNomParticipant();
-        }
+        foreach ($participants as $p) $names[$p->getIdUtilisateur()] = $p->getNomParticipant();
 
         return $this->render('front/evenements/chat.html.twig', [
-            'evenement' => $ev,
-            'messages' => $messages,
+            'evenement'   => $ev,
+            'messages'    => $messages,
             'currentUser' => $admin,
-            'names' => $names,
-            'isAdmin' => true,
+            'names'       => $names,
+            'avatars'     => $this->buildAvatarMap($participants, $em),
+            'myAvatar'    => $this->userAvatar($admin),
+            'isAdmin'     => true,
         ]);
     }
 
@@ -95,40 +107,29 @@ class ChatController extends AbstractController
     public function send(Evennementagricole $ev, Request $request, EntityManagerInterface $em): JsonResponse
     {
         $user = $request->getSession()->get('user');
-        if (!$user) {
-            return new JsonResponse(['error' => 'Non connecté'], 401);
-        }
+        if (!$user) return new JsonResponse(['error' => 'Non connecté'], 401);
 
         $isAdmin = (bool) $request->request->get('is_admin', false);
 
-        // Non-admin must be registered
         if (!$isAdmin) {
             $participant = $em->getRepository(Participants::class)->findOneBy([
-                'evenement' => $ev,
-                'id_utilisateur' => $user->getId()
+                'evenement' => $ev, 'id_utilisateur' => $user->getId()
             ]);
-            if (!$participant) {
-                return new JsonResponse(['error' => 'Non inscrit'], 403);
-            }
+            if (!$participant) return new JsonResponse(['error' => 'Non inscrit'], 403);
         }
 
         $audioFile = $request->files->get('audio');
         if ($audioFile) {
             $audioData = base64_encode(file_get_contents($audioFile->getPathname()));
-            $mimeType = $audioFile->getMimeType() ?: 'audio/webm';
-            $content = '[AUDIO_B64]:data:' . $mimeType . ';base64,' . $audioData;
+            $mimeType  = $audioFile->getMimeType() ?: 'audio/webm';
+            $content   = '[AUDIO_B64]:data:' . $mimeType . ';base64,' . $audioData;
         } else {
             $content = trim($request->request->get('content', ''));
-            if (empty($content)) {
-                return new JsonResponse(['error' => 'Message vide'], 400);
-            }
+            if (empty($content)) return new JsonResponse(['error' => 'Message vide'], 400);
         }
 
-        $senderId = $isAdmin ? self::ADMIN_SENDER_ID : $user->getId();
-        $senderName = $isAdmin ? '👑 Admin' : $user->getPrenom() . ' ' . $user->getNom();
-
         $msg = new Messages();
-        $msg->setSender_id($senderId);
+        $msg->setSender_id($isAdmin ? self::ADMIN_SENDER_ID : $user->getId());
         $msg->setReceiver_id(0);
         $msg->setContent($content);
         $msg->setTimestamp(new \DateTime());
@@ -138,12 +139,13 @@ class ChatController extends AbstractController
         $em->flush();
 
         return new JsonResponse([
-            'id'          => $msg->getId(),
-            'sender_id'   => $msg->getSender_id(),
-            'sender_name' => $senderName,
-            'content'     => $msg->getContent(),
-            'timestamp'   => $msg->getTimestamp()->format('H:i'),
-            'is_admin'    => $isAdmin,
+            'id'            => $msg->getId(),
+            'sender_id'     => $msg->getSender_id(),
+            'sender_name'   => $isAdmin ? '👑 Admin' : $user->getPrenom() . ' ' . $user->getNom(),
+            'sender_avatar' => $isAdmin ? null : $this->userAvatar($user),
+            'content'       => $msg->getContent(),
+            'timestamp'     => $msg->getTimestamp()->format('H:i'),
+            'is_admin'      => $isAdmin,
         ]);
     }
 
@@ -151,42 +153,35 @@ class ChatController extends AbstractController
     public function poll(Evennementagricole $ev, Request $request, EntityManagerInterface $em): JsonResponse
     {
         $user = $request->getSession()->get('user');
-        if (!$user) {
-            return new JsonResponse(['error' => 'Non connecté'], 401);
-        }
+        if (!$user) return new JsonResponse(['error' => 'Non connecté'], 401);
 
         $since = (int) $request->query->get('since', 0);
 
         $qb = $em->getRepository(Messages::class)
             ->createQueryBuilder('m')
-            ->where('m.event_id = :eid')
-            ->setParameter('eid', $ev->getIdEv())
+            ->where('m.event_id = :eid')->setParameter('eid', $ev->getIdEv())
             ->orderBy('m.timestamp', 'ASC');
+        if ($since > 0) $qb->andWhere('m.id > :since')->setParameter('since', $since);
 
-        if ($since > 0) {
-            $qb->andWhere('m.id > :since')->setParameter('since', $since);
-        }
-
-        $messages = $qb->getQuery()->getResult();
-
-        // Récupérer les noms des participants pour affichage
+        $messages     = $qb->getQuery()->getResult();
         $participants = $em->getRepository(Participants::class)->findBy(['evenement' => $ev]);
-        $names = [];
-        foreach ($participants as $p) {
-            $names[$p->getIdUtilisateur()] = $p->getNomParticipant();
-        }
+
+        $names   = [];
+        foreach ($participants as $p) $names[$p->getIdUtilisateur()] = $p->getNomParticipant();
+        $avatars = $this->buildAvatarMap($participants, $em);
 
         $data = [];
         foreach ($messages as $msg) {
             $isAdminMsg = $msg->getSender_id() === self::ADMIN_SENDER_ID;
             $data[] = [
-                'id'          => $msg->getId(),
-                'sender_id'   => $msg->getSender_id(),
-                'sender_name' => $isAdminMsg ? '👑 Admin' : ($names[$msg->getSender_id()] ?? 'Participant'),
-                'content'     => $msg->getContent(),
-                'timestamp'   => $msg->getTimestamp()->format('H:i'),
-                'is_mine'     => $isAdminMsg ? $user->getId() === -1 : $msg->getSender_id() === $user->getId(),
-                'is_admin'    => $isAdminMsg,
+                'id'            => $msg->getId(),
+                'sender_id'     => $msg->getSender_id(),
+                'sender_name'   => $isAdminMsg ? '👑 Admin' : ($names[$msg->getSender_id()] ?? 'Participant'),
+                'sender_avatar' => $isAdminMsg ? null : ($avatars[$msg->getSender_id()] ?? null),
+                'content'       => $msg->getContent(),
+                'timestamp'     => $msg->getTimestamp()->format('H:i'),
+                'is_mine'       => !$isAdminMsg && $msg->getSender_id() === $user->getId(),
+                'is_admin'      => $isAdminMsg,
             ];
         }
 

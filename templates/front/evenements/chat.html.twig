@@ -165,6 +165,13 @@
         flex-shrink: 0;
         color: white;
         box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        overflow: hidden;
+        background: #e2e8f0;
+    }
+    .bubble-avatar img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
     }
     .bubble-group.mine .bubble-avatar {
         background: linear-gradient(135deg, var(--green), var(--green-light));
@@ -479,13 +486,20 @@
                 {% set isMine = (not isAdminMsg and msg.sender_id == currentUser.id) or (isAdmin and isAdminMsg) %}
                 {% set senderName = isAdminMsg ? '👑 Admin' : (names[msg.sender_id] ?? 'Participant') %}
                 {% set initials = isAdminMsg ? '👑' : (senderName|slice(0,1)|upper) %}
+                {% set avatarSrc = isAdminMsg ? null : (isMine ? myAvatar : (avatars[msg.sender_id] ?? null)) %}
                 <div class="bubble-group {{ isMine ? 'mine' : 'other' }} {{ isAdminMsg ? 'admin-msg' : '' }}" data-id="{{ msg.id }}">
                     <span class="bubble-sender">
                         {{ (isMine and not isAdminMsg) ? 'Vous' : senderName }}
                         {% if isAdminMsg %}<span class="admin-badge">Admin</span>{% endif %}
                     </span>
                     <div class="bubble-row">
-                        <div class="bubble-avatar">{{ initials }}</div>
+                        <div class="bubble-avatar">
+                            {% if avatarSrc %}
+                                <img src="{{ avatarSrc }}" alt="{{ senderName }}">
+                            {% else %}
+                                {{ initials }}
+                            {% endif %}
+                        </div>
                         <div>
                             {% if msg.content starts with '[AUDIO_B64]:' %}
                                 <div class="msg-audio">
@@ -537,9 +551,13 @@
     </div>
 </div>
 
+<img id="myAvatarImg" src="{{ myAvatar ?? '' }}" style="display:none" alt="">
+
 <script>
     const currentUserId = {{ currentUser.id }};
     const isAdmin = {{ isAdmin ? 'true' : 'false' }};
+    const myAvatarEl = document.getElementById('myAvatarImg');
+    const myAvatar = myAvatarEl && myAvatarEl.src && !myAvatarEl.src.endsWith('/') ? myAvatarEl.src : null;
     const sendUrl = "{{ path('app_event_chat_send', {'id': evenement.id_ev}) }}";
     const pollUrl = "{{ path('app_event_chat_poll', {'id': evenement.id_ev}) }}";
 
@@ -577,10 +595,21 @@
         group.dataset.id = msg.id;
 
         const initials = isAdminMsg ? '👑' : (msg.sender_name || 'P').charAt(0).toUpperCase();
-        const avatarStyle = (isAdminMsg || isMine) ? '' : `style="background:${avatarColor(msg.sender_name || '')}"`;
         const senderLabel = isAdminMsg
             ? '👑 Admin <span class="admin-badge">Admin</span>'
             : (isMine ? 'Vous' : escapeHtml(msg.sender_name));
+
+        // Avatar: use profile picture if available, else initials
+        let avatarHtml;
+        const avatarSrc = msg.sender_avatar;
+        if (isAdminMsg) {
+            avatarHtml = `<div class="bubble-avatar">${initials}</div>`;
+        } else if (avatarSrc) {
+            avatarHtml = `<div class="bubble-avatar"><img src="${avatarSrc}" alt="${escapeHtml(msg.sender_name)}"></div>`;
+        } else {
+            const bgStyle = isMine ? '' : `style="background:${avatarColor(msg.sender_name || '')}"`;
+            avatarHtml = `<div class="bubble-avatar" ${bgStyle}>${initials}</div>`;
+        }
 
         let body;
         if (msg.content.startsWith('[AUDIO_B64]:')) {
@@ -596,7 +625,7 @@
         group.innerHTML = `
             <span class="bubble-sender">${senderLabel}</span>
             <div class="bubble-row">
-                <div class="bubble-avatar" ${avatarStyle}>${initials}</div>
+                ${avatarHtml}
                 <div>${body}</div>
             </div>
             <span class="msg-time">${msg.timestamp}</span>`;
@@ -634,7 +663,11 @@
         try {
             const res = await fetch(sendUrl, { method: 'POST', body: form });
             const msg = await res.json();
-            if (msg.id) { msg.is_mine = true; buildBubble(msg); lastId = msg.id; }
+            if (msg.id) {
+                msg.is_mine = true;
+                msg.sender_avatar = myAvatar;
+                buildBubble(msg); lastId = msg.id;
+            }
         } catch (e) { console.error(e); }
         sendBtn.disabled = false;
         input.focus();
@@ -647,7 +680,11 @@
         try {
             const res = await fetch(sendUrl, { method: 'POST', body: form });
             const msg = await res.json();
-            if (msg.id) { msg.is_mine = true; buildBubble(msg); lastId = msg.id; }
+            if (msg.id) {
+                msg.is_mine = true;
+                msg.sender_avatar = myAvatar;
+                buildBubble(msg); lastId = msg.id;
+            }
         } catch (e) { console.error(e); }
     }
 
