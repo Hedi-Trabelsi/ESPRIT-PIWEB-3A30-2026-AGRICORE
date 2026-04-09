@@ -25,34 +25,75 @@ class EvenementController extends AbstractController
             ->getSingleScalarResult() ?: 0;
     }
 
-    #[Route('/evenements', name: 'app_evenement')]    public function index(EvennementagricoleRepository $repo, EntityManagerInterface $em): Response
+    #[Route('/evenements', name: 'app_evenement')]
+    public function index(Request $request, EvennementagricoleRepository $repo, EntityManagerInterface $em): Response
     {
-        $evenements = $repo->findAll();
+        $filter   = $request->query->get('filter', 'TOUT');
+        $search   = trim($request->query->get('search', ''));
+        $dateFrom = $request->query->get('date_from', '');
+        $sortPrice= $request->query->get('sort_price', 'none');
+        $budgetMax= $request->query->get('budget_max', 500);
+        $now      = new \DateTime();
+
+        $qb = $repo->createQueryBuilder('e');
+
+        // Status filter
+        match($filter) {
+            'EN_COURS'   => $qb->andWhere('e.date_debut <= :now AND e.date_fin >= :now')->setParameter('now', $now),
+            'COMING'     => $qb->andWhere('e.date_debut > :now')->setParameter('now', $now),
+            'HISTORIQUE' => $qb->andWhere('e.date_fin < :now')->setParameter('now', $now),
+            default      => null,
+        };
+
+        // Search
+        if ($search !== '') {
+            $qb->andWhere('e.titre LIKE :search OR e.lieu LIKE :search')
+               ->setParameter('search', '%' . $search . '%');
+        }
+
+        // Date from
+        if ($dateFrom !== '') {
+            try {
+                $qb->andWhere('e.date_debut >= :dateFrom')
+                   ->setParameter('dateFrom', new \DateTime($dateFrom));
+            } catch (\Exception) {}
+        }
+
+        // Budget max
+        if ((int)$budgetMax < 500) {
+            $qb->andWhere('e.frais_inscription <= :budget')
+               ->setParameter('budget', (int)$budgetMax);
+        }
+
+        // Sort by price
+        if ($sortPrice === 'asc')  $qb->orderBy('e.frais_inscription', 'ASC');
+        if ($sortPrice === 'desc') $qb->orderBy('e.frais_inscription', 'DESC');
+
+        $evenements = $qb->getQuery()->getResult();
         $data = [];
-        $now = new \DateTime();
 
         foreach ($evenements as $ev) {
+            if ($ev->getDateFin() < $now)       $status = 'HISTORIQUE';
+            elseif ($ev->getDateDebut() > $now) $status = 'COMING';
+            else                                $status = 'EN_COURS';
 
-            if ($ev->getDateFin() < $now) {
-                $status = 'HISTORIQUE';
-            } elseif ($ev->getDateDebut() > $now) {
-                $status = 'COMING';
-            } else {
-                $status = 'EN_COURS';
-            }
-
-            $totalReserved = $this->getTotalReservedPlaces($ev, $em);
+            $totalReserved   = $this->getTotalReservedPlaces($ev, $em);
             $placesRestantes = $ev->getCapaciteMax() - $totalReserved;
 
             $data[] = [
-                'evenement' => $ev,
-                'status' => $status,
+                'evenement'       => $ev,
+                'status'          => $status,
                 'placesRestantes' => max(0, $placesRestantes),
             ];
         }
 
         return $this->render('front/evenements/evenements.html.twig', [
-            'evenements' => $data
+            'evenements' => $data,
+            'filter'     => $filter,
+            'search'     => $search,
+            'dateFrom'   => $dateFrom,
+            'sortPrice'  => $sortPrice,
+            'budgetMax'  => (int)$budgetMax,
         ]);
     }
 
@@ -78,11 +119,19 @@ class EvenementController extends AbstractController
             $dejaInscrit = $existing !== null;
         }
 
+        $now = new \DateTime();
+        $isPast = $ev->getDateFin() < $now;
+
         if ($form->isSubmitted() && $form->isValid()) {
 
             if (!$sessionUser) {
                 $this->addFlash('error', 'Vous devez être connecté.');
                 return $this->redirectToRoute('front_login');
+            }
+
+            if ($isPast) {
+                $this->addFlash('error', 'Cet événement est terminé, inscription impossible.');
+                return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
             }
 
             $nbrPlaces = $participant->getNbrPlaces();
@@ -123,10 +172,11 @@ class EvenementController extends AbstractController
         }
 
         return $this->render('front/evenements/show.html.twig', [
-            'evenement' => $ev,
-            'placesRestantes' => max(0, $placesRestantes),
-            'dejaInscrit' => $dejaInscrit,
-            'form' => $form->createView(),
+            'evenement'              => $ev,
+            'placesRestantes'        => max(0, $placesRestantes),
+            'dejaInscrit'            => $dejaInscrit,
+            'isPast'                 => $isPast,
+            'form'                   => $form->createView(),
             'showParticipationModal' => $form->isSubmitted(),
         ]);
     }
@@ -137,6 +187,11 @@ public function participer(Evennementagricole $ev, Request $request, EntityManag
     if (!$sessionUser) {
         $this->addFlash('error', 'Vous devez être connecté.');
         return $this->redirectToRoute('front_login');
+    }
+
+    if ($ev->getDateFin() < new \DateTime()) {
+        $this->addFlash('error', 'Cet événement est terminé, inscription impossible.');
+        return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
     }
 
     // Récupération et nettoyage des données

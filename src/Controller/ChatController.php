@@ -66,12 +66,16 @@ class ChatController extends AbstractController
         $names = [];
         foreach ($participants as $p) $names[$p->getIdUtilisateur()] = $p->getNomParticipant();
 
+        $avatars = $this->buildAvatarMap($participants, $em);
+        // Also include current user in the map
+        $avatars[$user->getId()] = $this->userAvatar($user);
+
         return $this->render('front/evenements/chat.html.twig', [
             'evenement'   => $ev,
             'messages'    => $messages,
             'currentUser' => $user,
             'names'       => $names,
-            'avatars'     => $this->buildAvatarMap($participants, $em),
+            'avatars'     => $avatars,
             'myAvatar'    => $this->userAvatar($user),
             'isAdmin'     => false,
         ]);
@@ -92,12 +96,16 @@ class ChatController extends AbstractController
         $names = [];
         foreach ($participants as $p) $names[$p->getIdUtilisateur()] = $p->getNomParticipant();
 
+        $avatars = $this->buildAvatarMap($participants, $em);
+        // Also include admin in the map
+        $avatars[$admin->getId()] = $this->userAvatar($admin);
+
         return $this->render('front/evenements/chat.html.twig', [
             'evenement'   => $ev,
             'messages'    => $messages,
             'currentUser' => $admin,
             'names'       => $names,
-            'avatars'     => $this->buildAvatarMap($participants, $em),
+            'avatars'     => $avatars,
             'myAvatar'    => $this->userAvatar($admin),
             'isAdmin'     => true,
         ]);
@@ -169,6 +177,7 @@ class ChatController extends AbstractController
         $names   = [];
         foreach ($participants as $p) $names[$p->getIdUtilisateur()] = $p->getNomParticipant();
         $avatars = $this->buildAvatarMap($participants, $em);
+        $avatars[$user->getId()] = $this->userAvatar($user);
 
         $data = [];
         foreach ($messages as $msg) {

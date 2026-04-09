@@ -283,6 +283,14 @@
                                 onclick="openCancelModal()">
                                 <i class="fas fa-times-circle me-2"></i> Annuler mon inscription
                             </button>
+                        {% elseif isPast %}
+                            <div class="alert alert-secondary border-0 rounded-4 py-3 mb-4">
+                                <i class="fas fa-calendar-times me-2"></i>
+                                Cet événement est <strong>terminé</strong>.
+                            </div>
+                            <button class="cta-btn btn w-100" disabled>
+                                <i class="fas fa-lock me-2"></i> Inscription fermée
+                            </button>
                         {% elseif placesRestantes > 0 %}
                             <div class="alert alert-light border-0 shadow-sm rounded-4 py-3 mb-4">
                                 <i class="fas fa-bolt text-warning me-2"></i>

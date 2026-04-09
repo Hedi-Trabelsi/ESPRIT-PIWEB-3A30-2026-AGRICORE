@@ -551,13 +551,13 @@
     </div>
 </div>
 
-<img id="myAvatarImg" src="{{ myAvatar ?? '' }}" style="display:none" alt="">
+<img id="myAvatarImg" data-src="{{ myAvatar ?? '' }}" style="display:none" alt="">
 
 <script>
     const currentUserId = {{ currentUser.id }};
     const isAdmin = {{ isAdmin ? 'true' : 'false' }};
     const myAvatarEl = document.getElementById('myAvatarImg');
-    const myAvatar = myAvatarEl && myAvatarEl.src && !myAvatarEl.src.endsWith('/') ? myAvatarEl.src : null;
+    const myAvatar = (myAvatarEl && myAvatarEl.getAttribute('data-src')) ? myAvatarEl.getAttribute('data-src') : null;
     const sendUrl = "{{ path('app_event_chat_send', {'id': evenement.id_ev}) }}";
     const pollUrl = "{{ path('app_event_chat_poll', {'id': evenement.id_ev}) }}";
 
