@@ -67,7 +67,6 @@ class ChatController extends AbstractController
             return new JsonResponse(['error' => 'Non connecté'], 401);
         }
 
-        // Vérifier inscription
         $participant = $em->getRepository(Participants::class)->findOneBy([
             'evenement' => $ev,
             'id_utilisateur' => $user->getId()
@@ -77,14 +76,26 @@ class ChatController extends AbstractController
             return new JsonResponse(['error' => 'Non inscrit'], 403);
         }
 
-        $content = trim($request->request->get('content', ''));
-        if (empty($content)) {
-            return new JsonResponse(['error' => 'Message vide'], 400);
+        // Handle voice message
+        $audioFile = $request->files->get('audio');
+        if ($audioFile) {
+            $filename = uniqid('voice_') . '.webm';
+            $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/voice';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0775, true);
+            }
+            $audioFile->move($uploadDir, $filename);
+            $content = '[AUDIO]:uploads/voice/' . $filename;
+        } else {
+            $content = trim($request->request->get('content', ''));
+            if (empty($content)) {
+                return new JsonResponse(['error' => 'Message vide'], 400);
+            }
         }
 
         $msg = new Messages();
         $msg->setSender_id($user->getId());
-        $msg->setReceiver_id(0); // 0 = message de groupe
+        $msg->setReceiver_id(0);
         $msg->setContent($content);
         $msg->setTimestamp(new \DateTime());
         $msg->setEventId($ev->getIdEv());

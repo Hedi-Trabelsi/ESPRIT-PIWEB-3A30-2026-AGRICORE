@@ -144,6 +144,98 @@
 
     .btn-send:hover { background: #157347; transform: scale(1.05); }
 
+    .btn-mic {
+        width: 48px; height: 48px;
+        background: #f1f5f9;
+        color: #64748b; border: none;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: 0.2s;
+        flex-shrink: 0;
+    }
+    .btn-mic:hover { background: #fee2e2; color: #dc2626; }
+    .btn-mic.recording {
+        background: #dc2626; color: white;
+        animation: pulse-rec 1s infinite;
+    }
+    @keyframes pulse-rec {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.4); }
+        50% { box-shadow: 0 0 0 8px rgba(220,38,38,0); }
+    }
+
+    .recording-bar {
+        display: none;
+        flex: 1;
+        align-items: center;
+        gap: 10px;
+        background: #fef2f2;
+        border: 2px solid #fca5a5;
+        border-radius: 16px;
+        padding: 10px 16px;
+        font-size: 0.85rem;
+        color: #dc2626;
+        font-weight: 600;
+    }
+    .recording-bar.active { display: flex; }
+    .rec-dot {
+        width: 10px; height: 10px;
+        background: #dc2626; border-radius: 50%;
+        animation: pulse-rec 1s infinite;
+        flex-shrink: 0;
+    }
+
+    /* Preview bar after recording stops */
+    .preview-bar {
+        display: none;
+        flex: 1;
+        align-items: center;
+        gap: 10px;
+        background: #f0fdf4;
+        border: 2px solid #86efac;
+        border-radius: 16px;
+        padding: 8px 14px;
+    }
+    .preview-bar.active { display: flex; }
+    .preview-bar audio {
+        flex: 1;
+        height: 34px;
+        min-width: 0;
+    }
+    .btn-preview-send {
+        width: 38px; height: 38px;
+        background: var(--agri-green); color: white;
+        border: none; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: 0.2s; flex-shrink: 0;
+        font-size: 1rem;
+    }
+    .btn-preview-send:hover { background: #157347; }
+    .btn-preview-delete {
+        width: 38px; height: 38px;
+        background: #fee2e2; color: #dc2626;
+        border: none; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: 0.2s; flex-shrink: 0;
+        font-size: 1rem;
+    }
+    .btn-preview-delete:hover { background: #fca5a5; }
+
+    /* Audio player inside bubble */
+    .msg-audio {
+        padding: 8px 12px;
+        border-radius: 18px;
+    }
+    .msg-bubble.mine .msg-audio { background: var(--agri-green); border-bottom-right-radius: 4px; }
+    .msg-bubble.other .msg-audio { background: #f1f5f9; border-bottom-left-radius: 4px; }
+    .msg-audio audio {
+        height: 36px;
+        max-width: 240px;
+        border-radius: 8px;
+        outline: none;
+    }
+
     .back-link {
         display: inline-flex; align-items: center; gap: 8px;
         color: #64748b; text-decoration: none;
@@ -193,7 +285,13 @@
                         {% else %}
                             <span class="msg-sender" style="color: #86efac;">Vous</span>
                         {% endif %}
-                        <div class="msg-text">{{ msg.content }}</div>
+                        {% if msg.content starts with '[AUDIO]:' %}
+                            <div class="msg-audio">
+                                <audio controls src="/{{ msg.content|slice(8) }}"></audio>
+                            </div>
+                        {% else %}
+                            <div class="msg-text">{{ msg.content }}</div>
+                        {% endif %}
                         <span class="msg-time">{{ msg.timestamp|date('H:i') }}</span>
                     </div>
                 {% endfor %}
@@ -201,6 +299,23 @@
         </div>
 
         <div class="chat-input-area">
+            <button class="btn-mic" id="micBtn" title="Message vocal">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <div class="recording-bar" id="recordingBar">
+                <span class="rec-dot"></span>
+                <span id="recTimer">0:00</span>
+                <span>Enregistrement en cours...</span>
+            </div>
+            <div class="preview-bar" id="previewBar">
+                <audio id="previewAudio" controls></audio>
+                <button class="btn-preview-send" id="previewSend" title="Envoyer">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+                <button class="btn-preview-delete" id="previewDelete" title="Supprimer">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
             <input type="text" id="msgInput" placeholder="Écrire un message..." autocomplete="off" maxlength="500" />
             <button class="btn-send" id="sendBtn" title="Envoyer">
                 <i class="fas fa-paper-plane"></i>
@@ -210,7 +325,6 @@
 </div>
 
 <script>
-    const eventId = {{ evenement.id_ev }};
     const currentUserId = {{ currentUser.id }};
     const sendUrl = "{{ path('app_event_chat_send', {'id': evenement.id_ev}) }}";
     const pollUrl = "{{ path('app_event_chat_poll', {'id': evenement.id_ev}) }}";
@@ -218,23 +332,42 @@
     const messagesDiv = document.getElementById('chatMessages');
     const input = document.getElementById('msgInput');
     const sendBtn = document.getElementById('sendBtn');
+    const micBtn = document.getElementById('micBtn');
+    const recordingBar = document.getElementById('recordingBar');
+    const recTimer = document.getElementById('recTimer');
+    const previewBar = document.getElementById('previewBar');
+    const previewAudio = document.getElementById('previewAudio');
+    const previewSend = document.getElementById('previewSend');
+    const previewDelete = document.getElementById('previewDelete');
 
     let lastId = {{ messages|length > 0 ? messages|last.id : 0 }};
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recInterval = null;
+    let recSeconds = 0;
+    let pendingBlob = null;
 
     function scrollBottom() {
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    function appendMessage(msg) {
+    function buildBubble(msg) {
         const empty = document.getElementById('emptyState');
         if (empty) empty.remove();
-
         const bubble = document.createElement('div');
         bubble.className = 'msg-bubble ' + (msg.is_mine ? 'mine' : 'other');
         bubble.dataset.id = msg.id;
-
-        const label = msg.is_mine ? '<span class="msg-sender" style="color:#86efac;">Vous</span>' : `<span class="msg-sender">${escapeHtml(msg.sender_name)}</span>`;
-        bubble.innerHTML = `${label}<div class="msg-text">${escapeHtml(msg.content)}</div><span class="msg-time">${msg.timestamp}</span>`;
+        const label = msg.is_mine
+            ? '<span class="msg-sender" style="color:#86efac;">Vous</span>'
+            : `<span class="msg-sender">${escapeHtml(msg.sender_name)}</span>`;
+        let body;
+        if (msg.content.startsWith('[AUDIO]:')) {
+            const src = '/' + msg.content.slice(8);
+            body = `<div class="msg-audio"><audio controls src="${src}"></audio></div>`;
+        } else {
+            body = `<div class="msg-text">${escapeHtml(msg.content)}</div>`;
+        }
+        bubble.innerHTML = `${label}${body}<span class="msg-time">${msg.timestamp}</span>`;
         messagesDiv.appendChild(bubble);
         scrollBottom();
     }
@@ -245,31 +378,90 @@
         return d.innerHTML;
     }
 
+    function resetToNormal() {
+        recordingBar.classList.remove('active');
+        previewBar.classList.remove('active');
+        previewAudio.src = '';
+        input.style.display = '';
+        sendBtn.style.display = '';
+        micBtn.style.display = '';
+        micBtn.classList.remove('recording');
+        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+        pendingBlob = null;
+    }
+
     async function sendMessage() {
         const content = input.value.trim();
         if (!content) return;
-
         input.value = '';
         sendBtn.disabled = true;
-
         const form = new FormData();
         form.append('content', content);
-
         try {
             const res = await fetch(sendUrl, { method: 'POST', body: form });
             const msg = await res.json();
-            if (msg.id) {
-                msg.is_mine = true;
-                appendMessage(msg);
-                lastId = msg.id;
-            }
-        } catch (e) {
-            console.error(e);
-        }
-
+            if (msg.id) { msg.is_mine = true; buildBubble(msg); lastId = msg.id; }
+        } catch (e) { console.error(e); }
         sendBtn.disabled = false;
         input.focus();
     }
+
+    async function sendAudio(blob) {
+        const form = new FormData();
+        form.append('audio', blob, 'voice.webm');
+        try {
+            const res = await fetch(sendUrl, { method: 'POST', body: form });
+            const msg = await res.json();
+            if (msg.id) { msg.is_mine = true; buildBubble(msg); lastId = msg.id; }
+        } catch (e) { console.error(e); }
+    }
+
+    micBtn.addEventListener('click', async () => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            return;
+        }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioChunks = [];
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                stream.getTracks().forEach(t => t.stop());
+                clearInterval(recInterval);
+                recSeconds = 0;
+                recTimer.textContent = '0:00';
+                pendingBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                previewAudio.src = URL.createObjectURL(pendingBlob);
+                recordingBar.classList.remove('active');
+                previewBar.classList.add('active');
+                micBtn.style.display = 'none';
+            };
+            mediaRecorder.start();
+            input.style.display = 'none';
+            sendBtn.style.display = 'none';
+            recordingBar.classList.add('active');
+            micBtn.classList.add('recording');
+            micBtn.innerHTML = '<i class="fas fa-stop"></i>';
+            recInterval = setInterval(() => {
+                recSeconds++;
+                const m = Math.floor(recSeconds / 60);
+                const s = String(recSeconds % 60).padStart(2, '0');
+                recTimer.textContent = `${m}:${s}`;
+            }, 1000);
+        } catch (err) {
+            alert('Microphone non accessible. Vérifiez les permissions.');
+        }
+    });
+
+    previewSend.addEventListener('click', async () => {
+        if (!pendingBlob) return;
+        const blob = pendingBlob;
+        resetToNormal();
+        await sendAudio(blob);
+    });
+
+    previewDelete.addEventListener('click', () => resetToNormal());
 
     async function pollMessages() {
         try {
@@ -277,7 +469,7 @@
             const msgs = await res.json();
             msgs.forEach(msg => {
                 if (!document.querySelector('[data-id="' + msg.id + '"]')) {
-                    appendMessage(msg);
+                    buildBubble(msg);
                     lastId = Math.max(lastId, msg.id);
                 }
             });
