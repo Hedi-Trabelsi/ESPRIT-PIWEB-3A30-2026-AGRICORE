@@ -119,6 +119,75 @@
     .btn-discover:hover { background: var(--agri-orange); color: white; }
 
     .info-row { font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 8px; }
+
+    /* ── View toggle ── */
+    .view-toggle-group {
+        display: flex; gap: 6px;
+        background: white; border-radius: 16px;
+        padding: 5px; border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .view-btn {
+        width: 40px; height: 40px;
+        border: none; border-radius: 12px;
+        background: transparent; color: #94a3b8;
+        font-size: 1rem; cursor: pointer; transition: 0.2s;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .view-btn.active { background: var(--agri-green); color: white; box-shadow: 0 4px 12px rgba(25,135,84,0.3); }
+    .view-btn:hover:not(.active) { background: #f1f5f9; color: var(--agri-dark); }
+
+    /* ── FullCalendar overrides ── */
+    #fullcalendar {
+        background: white;
+        border-radius: 28px;
+        padding: 28px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+        border: 1px solid #f1f5f9;
+    }
+    .fc .fc-toolbar-title { font-weight: 800; font-size: 1.2rem; color: #1e293b; }
+    .fc .fc-button-primary {
+        background: var(--agri-green) !important;
+        border-color: var(--agri-green) !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        box-shadow: none !important;
+    }
+    .fc .fc-button-primary:hover { background: #157347 !important; border-color: #157347 !important; }
+    .fc .fc-button-primary:not(:disabled).fc-button-active { background: #0f5132 !important; border-color: #0f5132 !important; }
+    .fc-daygrid-day-number, .fc-col-header-cell-cushion { color: #1e293b; font-weight: 700; text-decoration: none; }
+    .fc-day-today { background: rgba(25,135,84,0.06) !important; }
+    .fc-event {
+        border-radius: 8px !important;
+        border: none !important;
+        padding: 3px 8px !important;
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        cursor: pointer;
+    }
+    .fc-event:hover { opacity: 0.85; transform: scale(1.02); }
+    .fc-daygrid-event-dot { display: none; }
+
+    /* Event tooltip */
+    .cal-tooltip {
+        position: fixed;
+        background: white;
+        border-radius: 18px;
+        padding: 16px 20px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        border: 1px solid #e2e8f0;
+        z-index: 9999;
+        min-width: 220px;
+        pointer-events: none;
+        animation: tooltipIn 0.2s ease;
+    }
+    @keyframes tooltipIn {
+        from { opacity: 0; transform: translateY(6px) scale(0.97); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .cal-tooltip h6 { font-weight: 800; color: #1e293b; margin: 0 0 8px; font-size: 0.9rem; }
+    .cal-tooltip .tip-row { font-size: 0.78rem; color: #64748b; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .cal-tooltip .tip-row i { color: var(--agri-green); width: 14px; }
 </style>
 
 <div class="hero-visual animate__animated animate__fadeIn">
@@ -166,7 +235,23 @@
 </div>
 
 <div class="container mb-5">
-    <div class="row g-4" id="eventContainer">
+
+    {# ── View toggle ── #}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="fw-bold text-dark mb-0" id="viewLabel">Tous les événements</h5>
+        <div class="view-toggle-group">
+            <button class="view-btn active" id="btnGrid" title="Vue grille">
+                <i class="fas fa-th-large"></i>
+            </button>
+            <button class="view-btn" id="btnCal" title="Vue calendrier">
+                <i class="fas fa-calendar-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    {# ── Cards grid ── #}
+    <div id="gridView">
+        <div class="row g-4" id="eventContainer">
         {% for ev in evenements %}
             <div class="col-xl-4 col-md-6 event-item"
                  data-title="{{ ev.evenement.titre|lower }}"
@@ -219,10 +304,21 @@
             </div>
         {% endfor %}
     </div>
+    </div>{# end gridView #}
+
+    {# ── Calendar view ── #}
+    <div id="calView" style="display:none;">
+        <div id="fullcalendar"></div>
+    </div>
+
 </div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // ── Grid filters ──
         const sInp = document.getElementById('search');
         const dInp = document.getElementById('filterDate');
         const bInp = document.getElementById('filterBudget');
@@ -241,7 +337,6 @@
             document.getElementById('resetDate').style.display = d ? 'inline' : 'none';
 
             let items = Array.from(document.querySelectorAll('.event-item'));
-
             items.forEach(c => {
                 const matchS = c.dataset.title.includes(s);
                 const matchSt = (st === 'TOUT' || c.dataset.status === st);
@@ -267,6 +362,109 @@
             update();
         }));
         document.getElementById('resetDate').addEventListener('click', () => { dInp.value = ''; update(); });
+
+        // ── View toggle ──
+        const btnGrid = document.getElementById('btnGrid');
+        const btnCal  = document.getElementById('btnCal');
+        const gridView = document.getElementById('gridView');
+        const calView  = document.getElementById('calView');
+        const viewLabel = document.getElementById('viewLabel');
+
+        let calInitialized = false;
+        let calendar;
+
+        btnGrid.addEventListener('click', () => {
+            btnGrid.classList.add('active');
+            btnCal.classList.remove('active');
+            gridView.style.display = '';
+            calView.style.display = 'none';
+            viewLabel.textContent = 'Tous les événements';
+        });
+
+        btnCal.addEventListener('click', () => {
+            btnCal.classList.add('active');
+            btnGrid.classList.remove('active');
+            gridView.style.display = 'none';
+            calView.style.display = '';
+            viewLabel.textContent = 'Calendrier des événements';
+            if (!calInitialized) {
+                initCalendar();
+                calInitialized = true;
+            }
+        });
+
+        // ── FullCalendar ──
+        function initCalendar() {
+            const el = document.getElementById('fullcalendar');
+            let tooltip = null;
+
+            calendar = new FullCalendar.Calendar(el, {
+                initialView: 'dayGridMonth',
+                locale: 'fr',
+                height: 'auto',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listMonth'
+                },
+                buttonText: {
+                    today: "Aujourd'hui",
+                    month: 'Mois',
+                    week: 'Semaine',
+                    list: 'Liste'
+                },
+                events: {
+                    url: '/fc-load-events',
+                    method: 'POST',
+                    extraParams: { filters: JSON.stringify({}) },
+                    failure: function() { console.error('Erreur chargement événements'); }
+                },
+                eventClick: function(info) {
+                    info.jsEvent.preventDefault();
+                    window.location.href = info.event.url;
+                },
+                eventMouseEnter: function(info) {
+                    removeTooltip();
+                    const p = info.event.extendedProps;
+                    tooltip = document.createElement('div');
+                    tooltip.className = 'cal-tooltip';
+                    tooltip.innerHTML = `
+                        <h6>${info.event.title}</h6>
+                        <div class="tip-row"><i class="fas fa-map-marker-alt"></i> ${p.lieu || 'N/A'}</div>
+                        <div class="tip-row"><i class="fas fa-tag"></i> ${p.prix} DT</div>
+                        <div class="tip-row"><i class="fas fa-users"></i> ${p.places} places restantes</div>
+                        <div class="tip-row" style="margin-top:8px;color:#198754;font-weight:700;font-size:0.75rem;">
+                            <i class="fas fa-arrow-right"></i> Cliquer pour voir les détails
+                        </div>`;
+                    document.body.appendChild(tooltip);
+                    positionTooltip(info.jsEvent);
+                },
+                eventMouseLeave: removeTooltip,
+                eventDidMount: function(info) {
+                    info.el.style.transition = 'transform 0.15s, opacity 0.15s';
+                }
+            });
+
+            calendar.render();
+
+            document.addEventListener('mousemove', function(e) {
+                if (tooltip) positionTooltip(e);
+            });
+
+            function positionTooltip(e) {
+                if (!tooltip) return;
+                const x = e.clientX + 16;
+                const y = e.clientY + 16;
+                const tw = tooltip.offsetWidth;
+                const th = tooltip.offsetHeight;
+                tooltip.style.left = (x + tw > window.innerWidth ? x - tw - 32 : x) + 'px';
+                tooltip.style.top  = (y + th > window.innerHeight ? y - th - 32 : y) + 'px';
+            }
+
+            function removeTooltip() {
+                if (tooltip) { tooltip.remove(); tooltip = null; }
+            }
+        }
     });
 </script>
 {% endblock %}

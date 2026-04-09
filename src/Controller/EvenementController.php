@@ -25,8 +25,7 @@ class EvenementController extends AbstractController
             ->getSingleScalarResult() ?: 0;
     }
 
-    #[Route('/evenements', name: 'app_evenement')]
-    public function index(EvennementagricoleRepository $repo, EntityManagerInterface $em): Response
+    #[Route('/evenements', name: 'app_evenement')]    public function index(EvennementagricoleRepository $repo, EntityManagerInterface $em): Response
     {
         $evenements = $repo->findAll();
         $data = [];
