@@ -119,6 +119,10 @@
                 </div>
                 <div class="col-md-auto text-md-end">
                     <div class="d-flex gap-2">
+                        <a href="{{ path('back_event_chat', {id: evenement.id_ev}) }}" class="btn btn-action-pro"
+                           style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;">
+                            <i class="fas fa-comments me-2"></i>Chat
+                        </a>
                         <a href="{{ path('back_evenements_edit', {id: evenement.id_ev}) }}" class="btn btn-success btn-action-pro">
                             <i class="fas fa-edit me-2"></i>Modifier
                         </a>
