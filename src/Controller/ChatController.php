@@ -23,24 +23,31 @@ class ChatController extends AbstractController
         foreach ($participants as $p) {
             $uid = $p->getIdUtilisateur();
             if (isset($avatars[$uid])) continue;
-            $user = $em->getRepository(User::class)->find($uid);
-            if ($user && $user->getImage()) {
-                $raw = $user->getImage();
-                if (is_resource($raw)) $raw = stream_get_contents($raw);
-                $avatars[$uid] = 'data:image/jpeg;base64,' . base64_encode($raw);
-            } else {
-                $avatars[$uid] = null;
-            }
+            $avatars[$uid] = $this->avatarFromDb($uid, $em);
         }
         return $avatars;
     }
 
-    private function userAvatar(mixed $user): ?string
+    private function avatarFromDb(int $userId, EntityManagerInterface $em): ?string
     {
+        $user = $em->getRepository(User::class)->find($userId);
         if (!$user) return null;
         $raw = $user->getImage();
         if (is_resource($raw)) $raw = stream_get_contents($raw);
         return $raw ? 'data:image/jpeg;base64,' . base64_encode($raw) : null;
+    }
+
+    private function userAvatar(mixed $sessionUser, EntityManagerInterface $em): ?string
+    {
+        if (!$sessionUser) return null;
+        return $this->avatarFromDb($sessionUser->getId(), $em);
+    }
+
+    private function formatTime(\DateTimeInterface $dt): string
+    {
+        $clone = \DateTime::createFromInterface($dt);
+        $clone->setTimezone(new \DateTimeZone('Africa/Tunis'));
+        return $clone->format('H:i');
     }
 
     #[Route('/evenement/{id}/chat', name: 'app_event_chat')]
@@ -68,7 +75,7 @@ class ChatController extends AbstractController
 
         $avatars = $this->buildAvatarMap($participants, $em);
         // Also include current user in the map
-        $avatars[$user->getId()] = $this->userAvatar($user);
+        $avatars[$user->getId()] = $this->userAvatar($user, $em);
 
         return $this->render('front/evenements/chat.html.twig', [
             'evenement'   => $ev,
@@ -76,7 +83,7 @@ class ChatController extends AbstractController
             'currentUser' => $user,
             'names'       => $names,
             'avatars'     => $avatars,
-            'myAvatar'    => $this->userAvatar($user),
+            'myAvatar'    => $this->userAvatar($user, $em),
             'isAdmin'     => false,
         ]);
     }
@@ -98,7 +105,7 @@ class ChatController extends AbstractController
 
         $avatars = $this->buildAvatarMap($participants, $em);
         // Also include admin in the map
-        $avatars[$admin->getId()] = $this->userAvatar($admin);
+        $avatars[$admin->getId()] = $this->userAvatar($admin, $em);
 
         return $this->render('front/evenements/chat.html.twig', [
             'evenement'   => $ev,
@@ -106,7 +113,7 @@ class ChatController extends AbstractController
             'currentUser' => $admin,
             'names'       => $names,
             'avatars'     => $avatars,
-            'myAvatar'    => $this->userAvatar($admin),
+            'myAvatar'    => $this->userAvatar($admin, $em),
             'isAdmin'     => true,
         ]);
     }
@@ -140,7 +147,8 @@ class ChatController extends AbstractController
         $msg->setSender_id($isAdmin ? self::ADMIN_SENDER_ID : $user->getId());
         $msg->setReceiver_id(0);
         $msg->setContent($content);
-        $msg->setTimestamp(new \DateTime());
+        $tz = new \DateTimeZone('Africa/Tunis');
+        $msg->setTimestamp(new \DateTime('now', $tz));
         $msg->setEventId($ev->getIdEv());
 
         $em->persist($msg);
@@ -150,9 +158,9 @@ class ChatController extends AbstractController
             'id'            => $msg->getId(),
             'sender_id'     => $msg->getSender_id(),
             'sender_name'   => $isAdmin ? '👑 Admin' : $user->getPrenom() . ' ' . $user->getNom(),
-            'sender_avatar' => $isAdmin ? null : $this->userAvatar($user),
+            'sender_avatar' => $isAdmin ? null : $this->userAvatar($user, $em),
             'content'       => $msg->getContent(),
-            'timestamp'     => $msg->getTimestamp()->format('H:i'),
+            'timestamp'     => $this->formatTime($msg->getTimestamp()),
             'is_admin'      => $isAdmin,
         ]);
     }
@@ -177,7 +185,7 @@ class ChatController extends AbstractController
         $names   = [];
         foreach ($participants as $p) $names[$p->getIdUtilisateur()] = $p->getNomParticipant();
         $avatars = $this->buildAvatarMap($participants, $em);
-        $avatars[$user->getId()] = $this->userAvatar($user);
+        $avatars[$user->getId()] = $this->userAvatar($user, $em);
 
         $data = [];
         foreach ($messages as $msg) {
@@ -188,7 +196,7 @@ class ChatController extends AbstractController
                 'sender_name'   => $isAdminMsg ? '👑 Admin' : ($names[$msg->getSender_id()] ?? 'Participant'),
                 'sender_avatar' => $isAdminMsg ? null : ($avatars[$msg->getSender_id()] ?? null),
                 'content'       => $msg->getContent(),
-                'timestamp'     => $msg->getTimestamp()->format('H:i'),
+                'timestamp'     => $this->formatTime($msg->getTimestamp()),
                 'is_mine'       => !$isAdminMsg && $msg->getSender_id() === $user->getId(),
                 'is_admin'      => $isAdminMsg,
             ];

@@ -442,8 +442,18 @@
     }
     /* Date separator */
     .date-sep {
+        display: flex; align-items: center; gap: 10px;
+        margin: 8px 0 16px; font-size: 0;
+    }
+    .date-sep::before, .date-sep::after {
         content: ''; flex: 1;
         height: 1px; background: #e2e8f0;
+    }
+    .date-sep span {
+        background: #f0fdf4; color: var(--green);
+        border: 1px solid #bbf7d0; border-radius: 20px;
+        padding: 3px 12px; font-size: 0.68rem; font-weight: 700;
+        white-space: nowrap;
     }
 
     @keyframes fadeIn {
@@ -480,7 +490,7 @@
                 <p>Soyez le premier à écrire un message !</p>
             </div>
         {% else %}
-            <div class="date-sep">Aujourd'hui</div>
+            <div class="date-sep"><span>Aujourd'hui</span></div>
             {% for msg in messages %}
                 {% set isAdminMsg = msg.sender_id == 0 %}
                 {% set isMine = (not isAdminMsg and msg.sender_id == currentUser.id) or (isAdmin and isAdminMsg) %}
@@ -516,7 +526,7 @@
                             {% endif %}
                         </div>
                     </div>
-                    <span class="msg-time">{{ msg.timestamp|date('H:i') }}</span>
+                    <span class="msg-time">{{ msg.timestamp|date('H:i', 'Africa/Tunis') }}</span>
                 </div>
             {% endfor %}
         {% endif %}

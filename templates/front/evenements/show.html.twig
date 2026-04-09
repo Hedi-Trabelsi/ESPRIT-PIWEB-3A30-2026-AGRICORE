@@ -350,13 +350,19 @@
         {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
             <div class="particip-field">
                 {{ form_label(form.nom_participant, 'Votre nom complet') }}
-                {{ form_widget(form.nom_participant, {
-                    'attr': {
-                        'class': 'particip-field-input',
-                        'placeholder': 'Entrez votre nom',
-                        'value': app.session.get('user').prenom ~ ' ' ~ app.session.get('user').nom
-                    }
-                }) }}
+                <div style="display:flex;gap:8px;align-items:center;">
+                    {{ form_widget(form.nom_participant, {
+                        'attr': {
+                            'class': 'particip-field-input',
+                            'placeholder': 'Entrez votre nom ou dictez-le',
+                            'value': app.session.get('user').prenom ~ ' ' ~ app.session.get('user').nom
+                        }
+                    }) }}
+                    <button type="button" id="sttBtn" title="Dicter votre nom"
+                        style="width:42px;height:42px;flex-shrink:0;border:none;border-radius:12px;background:#f0fdf4;color:#16a34a;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:.2s;">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                </div>
                 <div class="text-danger small">{{ form_errors(form.nom_participant) }}</div>
             </div>
             <div class="particip-field">
@@ -459,5 +465,74 @@
                 .openPopup();
         }
     });
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('sttBtn');
+    if (!btn) return;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { btn.style.display = 'none'; return; }
+
+    const inputId = '{{ form.nom_participant.vars.id }}';
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    // Build confirm bar and insert right after the input wrapper div
+    const wrapper = btn.parentElement; // the flex div containing input + btn
+    const confirmBar = document.createElement('div');
+    confirmBar.style.cssText = 'display:none;align-items:center;gap:8px;margin-top:8px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;font-size:.85rem;';
+    confirmBar.innerHTML =
+        '<i class="fas fa-check-circle" style="color:#16a34a;"></i>' +
+        '<span id="sttPreviewText" style="flex:1;font-weight:600;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>' +
+        '<button type="button" id="sttKeep" style="background:#16a34a;color:#fff;border:none;border-radius:10px;padding:5px 14px;font-weight:700;cursor:pointer;font-size:.8rem;white-space:nowrap;">Garder</button>' +
+        '<button type="button" id="sttDiscard" style="background:#fee2e2;color:#dc2626;border:none;border-radius:10px;padding:5px 14px;font-weight:700;cursor:pointer;font-size:.8rem;white-space:nowrap;">Annuler</button>';
+    wrapper.parentElement.insertBefore(confirmBar, wrapper.nextSibling);
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'fr-FR';
+
+    let listening = false;
+    let savedValue = '';
+
+    function setListening(on) {
+        listening = on;
+        btn.style.background = on ? '#dc2626' : '#f0fdf4';
+        btn.style.color = on ? '#fff' : '#16a34a';
+        btn.innerHTML = on ? '<i class="fas fa-stop"></i>' : '<i class="fas fa-microphone"></i>';
+    }
+
+    btn.addEventListener('click', function() {
+        if (listening) { recognition.stop(); return; }
+        savedValue = input.value;
+        confirmBar.style.display = 'none';
+        try { recognition.start(); } catch(e) {}
+    });
+
+    recognition.onstart = function() { setListening(true); };
+    recognition.onend   = function() { setListening(false); };
+    recognition.onerror = function(e) { console.warn('STT:', e.error); setListening(false); };
+
+    recognition.onresult = function(e) {
+        const text = Array.from(e.results)
+            .map(r => r[0].transcript).join(' ').trim();
+        if (!text) return;
+        document.getElementById('sttPreviewText').textContent = text;
+        confirmBar.style.display = 'flex';
+    };
+
+    document.getElementById('sttKeep').addEventListener('click', function() {
+        input.value = document.getElementById('sttPreviewText').textContent;
+        confirmBar.style.display = 'none';
+    });
+
+    document.getElementById('sttDiscard').addEventListener('click', function() {
+        input.value = savedValue;
+        confirmBar.style.display = 'none';
+    });
+});
 </script>
 {% endblock %}
