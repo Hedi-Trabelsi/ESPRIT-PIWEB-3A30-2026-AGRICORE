@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Evennementagricole;
 use App\Entity\Participants;
+use App\Entity\User;
 use App\Form\ParticipantsType;
 use App\Repository\EvennementagricoleRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,6 +24,27 @@ class EvenementController extends AbstractController
             ->setParameter('ev', $ev)
             ->getQuery()
             ->getSingleScalarResult() ?: 0;
+    }
+
+    private function buildParticipantList(Evennementagricole $ev, EntityManagerInterface $em): array
+    {
+        $participants = $em->getRepository(Participants::class)->findBy(['evenement' => $ev]);
+        $result = [];
+        foreach ($participants as $p) {
+            $user = $em->getRepository(User::class)->find($p->getIdUtilisateur());
+            $avatar = null;
+            if ($user && $user->getImage()) {
+                $raw = $user->getImage();
+                if (is_resource($raw)) $raw = stream_get_contents($raw);
+                $avatar = 'data:image/jpeg;base64,' . base64_encode($raw);
+            }
+            $result[] = [
+                'nom_participant' => $p->getNomParticipant(),
+                'nbr_places'      => $p->getNbrPlaces(),
+                'avatar'          => $avatar,
+            ];
+        }
+        return $result;
     }
 
     #[Route('/evenements', name: 'app_evenement')]
@@ -80,10 +102,34 @@ class EvenementController extends AbstractController
             $totalReserved   = $this->getTotalReservedPlaces($ev, $em);
             $placesRestantes = $ev->getCapaciteMax() - $totalReserved;
 
+            // Fetch up to 4 participant avatars
+            $participants = $em->getRepository(Participants::class)->findBy(['evenement' => $ev], null, 4);
+            $avatarPreviews = [];
+            foreach ($participants as $p) {
+                $user = $em->getRepository(User::class)->find($p->getIdUtilisateur());
+                if ($user && $user->getImage()) {
+                    $raw = $user->getImage();
+                    if (is_resource($raw)) $raw = stream_get_contents($raw);
+                    $avatarPreviews[] = 'data:image/jpeg;base64,' . base64_encode($raw);
+                } else {
+                    $avatarPreviews[] = null; // will show initials fallback
+                }
+            }
+
+            // Total participant count
+            $totalParticipants = $em->getRepository(Participants::class)
+                ->createQueryBuilder('p')
+                ->select('COUNT(p.id_participant)')
+                ->where('p.evenement = :ev')
+                ->setParameter('ev', $ev)
+                ->getQuery()->getSingleScalarResult();
+
             $data[] = [
-                'evenement'       => $ev,
-                'status'          => $status,
-                'placesRestantes' => max(0, $placesRestantes),
+                'evenement'        => $ev,
+                'status'           => $status,
+                'placesRestantes'  => max(0, $placesRestantes),
+                'avatarPreviews'   => $avatarPreviews,
+                'totalParticipants'=> (int) $totalParticipants,
             ];
         }
 
@@ -178,6 +224,7 @@ class EvenementController extends AbstractController
             'isPast'                 => $isPast,
             'form'                   => $form->createView(),
             'showParticipationModal' => $form->isSubmitted(),
+            'participants'           => $this->buildParticipantList($ev, $em),
         ]);
     }
 #[Route('/evenement/{id}/participer', name: 'app_participer', methods: ['POST'])]

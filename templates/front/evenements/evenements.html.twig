@@ -139,16 +139,145 @@ body { background: #f8fafc; }
 }
 .btn-ev:hover { background: var(--g); color: #fff; box-shadow: 0 6px 20px rgba(22,163,74,.3); }
 
+/* ── Participant avatar stack ── */
+.avatar-stack {
+    display: flex; align-items: center; margin-bottom: 14px;
+}
+.avatar-stack .av {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    margin-left: -8px;
+    object-fit: cover;
+    box-shadow: 0 2px 6px rgba(0,0,0,.12);
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .65rem; font-weight: 800; color: #fff;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.avatar-stack .av:first-child { margin-left: 0; }
+.avatar-stack .av img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-stack .av-more {
+    background: #f1f5f9; color: var(--muted);
+    font-size: .65rem; font-weight: 800;
+    border: 2px solid #fff;
+}
+.avatar-stack .av-label {
+    margin-left: 10px; font-size: .75rem;
+    color: var(--muted); font-weight: 600;
+    white-space: nowrap;
+}
+
 /* ── Calendar ── */
-#fullcalendar { background: #fff; border-radius: 24px; padding: 28px; box-shadow: 0 8px 40px rgba(0,0,0,.07); }
-.fc .fc-toolbar-title { font-weight: 800; font-size: 1.15rem; color: var(--dark); }
-.fc .fc-button-primary { background: var(--g) !important; border-color: var(--g) !important; border-radius: 10px !important; font-weight: 700 !important; box-shadow: none !important; }
-.fc .fc-button-primary:hover { background: #15803d !important; }
-.fc .fc-button-primary:not(:disabled).fc-button-active { background: #14532d !important; }
-.fc-day-today { background: rgba(22,163,74,.05) !important; }
-.fc-event { border-radius: 8px !important; border: none !important; padding: 3px 8px !important; font-size: .76rem !important; font-weight: 700 !important; cursor: pointer; }
+#fullcalendar {
+    background: #fff;
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 8px 40px rgba(0,0,0,.07);
+}
+.fc .fc-toolbar {
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.fc .fc-toolbar-title {
+    font-weight: 900;
+    font-size: 1.4rem;
+    color: var(--dark);
+    letter-spacing: -0.5px;
+}
+.fc .fc-button {
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    font-size: .82rem !important;
+    padding: 8px 16px !important;
+    box-shadow: none !important;
+    border: none !important;
+    transition: .2s !important;
+}
+.fc .fc-button-primary {
+    background: var(--g) !important;
+    border-color: var(--g) !important;
+}
+.fc .fc-button-primary:hover {
+    background: #15803d !important;
+    transform: translateY(-1px);
+}
+.fc .fc-button-primary:not(:disabled).fc-button-active {
+    background: var(--dark) !important;
+    border-color: var(--dark) !important;
+}
+.fc .fc-button-group {
+    gap: 4px;
+}
+.fc-theme-standard td, .fc-theme-standard th {
+    border-color: #f1f5f9 !important;
+}
+.fc-theme-standard .fc-scrollgrid {
+    border-color: #f1f5f9 !important;
+    border-radius: 16px;
+    overflow: hidden;
+}
+.fc .fc-col-header-cell {
+    background: #f8fafc;
+    padding: 12px 0 !important;
+}
+.fc-col-header-cell-cushion {
+    color: var(--muted) !important;
+    font-weight: 800 !important;
+    font-size: .78rem !important;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    text-decoration: none !important;
+}
+.fc-daygrid-day-number {
+    color: var(--dark) !important;
+    font-weight: 700 !important;
+    font-size: .85rem !important;
+    text-decoration: none !important;
+    padding: 8px 10px !important;
+}
+.fc-day-today {
+    background: rgba(22,163,74,.04) !important;
+}
+.fc-day-today .fc-daygrid-day-number {
+    background: var(--g);
+    color: #fff !important;
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 6px;
+    padding: 0 !important;
+}
+.fc-event {
+    border-radius: 8px !important;
+    border: none !important;
+    padding: 3px 8px !important;
+    font-size: .75rem !important;
+    font-weight: 700 !important;
+    cursor: pointer;
+    transition: transform .15s, opacity .15s !important;
+    margin-bottom: 2px !important;
+}
+.fc-event:hover {
+    opacity: .88;
+    transform: translateY(-1px);
+}
 .fc-daygrid-event-dot { display: none; }
-.fc-daygrid-day-number, .fc-col-header-cell-cushion { color: var(--dark); font-weight: 700; text-decoration: none; }
+.fc-event-title { font-weight: 700 !important; }
+.fc-daygrid-day-frame { min-height: 90px !important; }
+
+/* List view */
+.fc-list-event:hover td { background: #f0fdf4 !important; }
+.fc-list-event-title a { color: var(--dark) !important; font-weight: 700 !important; text-decoration: none !important; }
+.fc-list-day-cushion { background: #f8fafc !important; }
+.fc-list-day-text, .fc-list-day-side-text { color: var(--dark) !important; font-weight: 800 !important; }
+
+/* Week view time */
+.fc-timegrid-slot-label-cushion { color: var(--muted) !important; font-size: .75rem !important; font-weight: 600 !important; }
+.fc-timegrid-now-indicator-line { border-color: var(--orange) !important; border-width: 2px !important; }
+.fc-timegrid-now-indicator-arrow { border-top-color: var(--orange) !important; border-bottom-color: var(--orange) !important; }
 
 .cal-tooltip {
     position: fixed; background: #fff; border-radius: 16px;
@@ -288,10 +417,28 @@ body { background: #f8fafc; }
                             <span class="small text-muted">{{ restantes }} places libres</span>
                             <span class="small fw-bold" style="color:var(--g);">{{ total }} max</span>
                         </div>
+                        {% if ev.totalParticipants > 0 %}
+                        <div class="avatar-stack">
+                            {% for avatar in ev.avatarPreviews %}
+                                <div class="av">
+                                    {% if avatar %}
+                                        <img src="{{ avatar }}" alt="participant">
+                                    {% else %}
+                                        {{ loop.index }}
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                            {% if ev.totalParticipants > ev.avatarPreviews|length %}
+                                <div class="av av-more">+{{ ev.totalParticipants - ev.avatarPreviews|length }}</div>
+                            {% endif %}
+                            <span class="av-label">
+                                {{ ev.totalParticipants }} participant{{ ev.totalParticipants > 1 ? 's' : '' }}
+                            </span>
+                        </div>
+                        {% endif %}
                         <a href="{{ path('app_evenement_show', {'id': ev.evenement.id_ev}) }}" class="btn-ev">
                             Voir les détails <i class="fas fa-arrow-right ms-1" style="font-size:.75rem;"></i>
-                        </a>
-                    </div>
+                        </a>                    </div>
                 </div>
             </div>
             {% endfor %}

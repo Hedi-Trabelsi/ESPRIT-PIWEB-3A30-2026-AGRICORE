@@ -188,6 +188,29 @@
         transition: .3s; width: 100%;
     }
     .btn-cancel-back:hover { background: #e2e8f0; }
+
+    /* Participant chips */
+    .participant-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: #f8fafc; border: 1px solid #e2e8f0;
+        border-radius: 50px; padding: 4px 12px 4px 4px;
+        transition: .2s; cursor: default;
+    }
+    .participant-chip:hover { background: #f0fdf4; border-color: #bbf7d0; }
+    .chip-avatar {
+        width: 26px; height: 26px; border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white; font-size: .65rem; font-weight: 800;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden; flex-shrink: 0;
+    }
+    .chip-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .chip-name { font-size: .78rem; font-weight: 700; color: #1e293b; }
+    .chip-places {
+        font-size: .68rem; font-weight: 800;
+        background: #16a34a; color: white;
+        border-radius: 50px; padding: 1px 6px;
+    }
 </style>
 
 {% for msg in app.flashes('success') %}
@@ -251,6 +274,32 @@
                             </div>
                         </div>
                     </div>
+
+                    {% if participants|length > 0 %}
+                    <div class="mt-4 pt-4 border-top">
+                        <h6 class="fw-bold mb-3 text-muted" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;">
+                            <i class="fas fa-users me-1 text-success"></i> Participants inscrits
+                        </h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for p in participants %}
+                                {% set initials = p.nom_participant|slice(0,1)|upper %}
+                                <div class="participant-chip" title="{{ p.nom_participant }} — {{ p.nbr_places }} place{{ p.nbr_places > 1 ? 's' : '' }}">
+                                    <div class="chip-avatar">
+                                        {% if p.avatar %}
+                                            <img src="{{ p.avatar }}" alt="{{ p.nom_participant }}">
+                                        {% else %}
+                                            {{ initials }}
+                                        {% endif %}
+                                    </div>
+                                    <span class="chip-name">{{ p.nom_participant|split(' ')|first }}</span>
+                                    {% if p.nbr_places > 1 %}
+                                        <span class="chip-places">×{{ p.nbr_places }}</span>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="animate__animated animate__fadeInUp animate__delay-1s">
