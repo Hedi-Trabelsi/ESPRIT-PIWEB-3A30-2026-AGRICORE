@@ -1,0 +1,293 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block title %}Chat - {{ evenement.titre }}{% endblock %}
+
+{% block body %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+    :root {
+        --agri-green: #198754;
+        --agri-dark: #1e293b;
+    }
+    body { background: #f0f4f8; }
+
+    .chat-wrapper {
+        max-width: 800px;
+        margin: 40px auto;
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 120px);
+    }
+
+    .chat-header {
+        background: white;
+        border-radius: 24px 24px 0 0;
+        padding: 20px 28px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+
+    .chat-header .event-icon {
+        width: 48px; height: 48px;
+        background: rgba(25,135,84,0.1);
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--agri-green); font-size: 1.3rem;
+    }
+
+    .chat-header h5 { margin: 0; font-weight: 800; color: var(--agri-dark); }
+    .chat-header small { color: #94a3b8; font-size: 0.8rem; }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        background: white;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+
+    .msg-bubble {
+        max-width: 70%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .msg-bubble.mine { align-self: flex-end; align-items: flex-end; }
+    .msg-bubble.other { align-self: flex-start; align-items: flex-start; }
+
+    .msg-sender {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #94a3b8;
+        margin-bottom: 4px;
+        padding: 0 4px;
+    }
+
+    .msg-bubble.mine .msg-sender {
+        text-align: right;
+    }
+
+    .msg-text {
+        padding: 12px 16px;
+        border-radius: 18px;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        word-break: break-word;
+    }
+
+    .msg-bubble.mine .msg-text {
+        background: var(--agri-green);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .msg-bubble.other .msg-text {
+        background: #f1f5f9;
+        color: var(--agri-dark);
+        border-bottom-left-radius: 4px;
+    }
+
+    .msg-time {
+        font-size: 0.68rem;
+        color: #cbd5e1;
+        margin-top: 4px;
+        padding: 0 4px;
+    }
+
+    .chat-input-area {
+        background: white;
+        border-radius: 0 0 24px 24px;
+        padding: 16px 20px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.04);
+    }
+
+    .chat-input-area input {
+        flex: 1;
+        border: 2px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 12px 18px;
+        font-size: 0.92rem;
+        outline: none;
+        transition: 0.2s;
+        background: #f8fafc;
+    }
+
+    .chat-input-area input:focus {
+        border-color: var(--agri-green);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(25,135,84,0.08);
+    }
+
+    .btn-send {
+        width: 48px; height: 48px;
+        background: var(--agri-green);
+        color: white; border: none;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: 0.2s;
+        flex-shrink: 0;
+    }
+
+    .btn-send:hover { background: #157347; transform: scale(1.05); }
+
+    .back-link {
+        display: inline-flex; align-items: center; gap: 8px;
+        color: #64748b; text-decoration: none;
+        font-size: 0.85rem; font-weight: 600;
+        margin-bottom: 12px;
+        transition: 0.2s;
+    }
+    .back-link:hover { color: var(--agri-green); }
+
+    .empty-chat {
+        flex: 1;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        color: #cbd5e1; gap: 12px;
+    }
+    .empty-chat i { font-size: 3rem; }
+    .empty-chat p { font-size: 0.9rem; }
+</style>
+
+<div class="container">
+    <div class="chat-wrapper">
+        <a href="{{ path('app_evenement_show', {'id': evenement.id_ev}) }}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Retour à l'événement
+        </a>
+
+        <div class="chat-header">
+            <div class="event-icon"><i class="fas fa-comments"></i></div>
+            <div>
+                <h5>{{ evenement.titre }}</h5>
+                <small><i class="fas fa-users me-1"></i> Chat des participants</small>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            {% if messages|length == 0 %}
+                <div class="empty-chat" id="emptyState">
+                    <i class="fas fa-comment-dots"></i>
+                    <p>Soyez le premier à écrire un message !</p>
+                </div>
+            {% else %}
+                {% for msg in messages %}
+                    {% set isMine = msg.sender_id == currentUser.id %}
+                    {% set senderName = names[msg.sender_id] ?? 'Participant' %}
+                    <div class="msg-bubble {{ isMine ? 'mine' : 'other' }}" data-id="{{ msg.id }}">
+                        {% if not isMine %}
+                            <span class="msg-sender">{{ senderName }}</span>
+                        {% else %}
+                            <span class="msg-sender" style="color: #86efac;">Vous</span>
+                        {% endif %}
+                        <div class="msg-text">{{ msg.content }}</div>
+                        <span class="msg-time">{{ msg.timestamp|date('H:i') }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="msgInput" placeholder="Écrire un message..." autocomplete="off" maxlength="500" />
+            <button class="btn-send" id="sendBtn" title="Envoyer">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const eventId = {{ evenement.id_ev }};
+    const currentUserId = {{ currentUser.id }};
+    const sendUrl = "{{ path('app_event_chat_send', {'id': evenement.id_ev}) }}";
+    const pollUrl = "{{ path('app_event_chat_poll', {'id': evenement.id_ev}) }}";
+
+    const messagesDiv = document.getElementById('chatMessages');
+    const input = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    let lastId = {{ messages|length > 0 ? messages|last.id : 0 }};
+
+    function scrollBottom() {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function appendMessage(msg) {
+        const empty = document.getElementById('emptyState');
+        if (empty) empty.remove();
+
+        const bubble = document.createElement('div');
+        bubble.className = 'msg-bubble ' + (msg.is_mine ? 'mine' : 'other');
+        bubble.dataset.id = msg.id;
+
+        const label = msg.is_mine ? '<span class="msg-sender" style="color:#86efac;">Vous</span>' : `<span class="msg-sender">${escapeHtml(msg.sender_name)}</span>`;
+        bubble.innerHTML = `${label}<div class="msg-text">${escapeHtml(msg.content)}</div><span class="msg-time">${msg.timestamp}</span>`;
+        messagesDiv.appendChild(bubble);
+        scrollBottom();
+    }
+
+    function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(text));
+        return d.innerHTML;
+    }
+
+    async function sendMessage() {
+        const content = input.value.trim();
+        if (!content) return;
+
+        input.value = '';
+        sendBtn.disabled = true;
+
+        const form = new FormData();
+        form.append('content', content);
+
+        try {
+            const res = await fetch(sendUrl, { method: 'POST', body: form });
+            const msg = await res.json();
+            if (msg.id) {
+                msg.is_mine = true;
+                appendMessage(msg);
+                lastId = msg.id;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+
+        sendBtn.disabled = false;
+        input.focus();
+    }
+
+    async function pollMessages() {
+        try {
+            const res = await fetch(pollUrl + '?since=' + lastId);
+            const msgs = await res.json();
+            msgs.forEach(msg => {
+                if (!document.querySelector('[data-id="' + msg.id + '"]')) {
+                    appendMessage(msg);
+                    lastId = Math.max(lastId, msg.id);
+                }
+            });
+        } catch (e) {}
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+    scrollBottom();
+    setInterval(pollMessages, 3000);
+</script>
+{% endblock %}

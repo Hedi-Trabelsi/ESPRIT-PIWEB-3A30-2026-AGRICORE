@@ -10,20 +10,24 @@ class Messages
 {
 
     #[ORM\Id]
+    #[ORM\GeneratedValue]
     #[ORM\Column(type: "integer")]
     private int $id;
 
     #[ORM\Column(type: "integer")]
     private int $sender_id;
 
-    #[ORM\Column(type: "integer")]
-    private int $receiver_id;
+    #[ORM\Column(type: "integer", nullable: true)]
+    private ?int $receiver_id = null;
 
     #[ORM\Column(type: "text")]
     private string $content;
 
     #[ORM\Column(type: "datetime")]
     private \DateTimeInterface $timestamp;
+
+    #[ORM\Column(type: "integer", nullable: true)]
+    private ?int $event_id = null;
 
     public function getId()
     {
@@ -73,5 +77,16 @@ class Messages
     public function setTimestamp($value)
     {
         $this->timestamp = $value;
+    }
+
+    public function getEventId(): ?int
+    {
+        return $this->event_id;
+    }
+
+    public function setEventId(?int $event_id): self
+    {
+        $this->event_id = $event_id;
+        return $this;
     }
 }

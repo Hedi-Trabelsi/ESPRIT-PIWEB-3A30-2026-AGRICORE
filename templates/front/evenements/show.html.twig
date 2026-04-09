@@ -273,6 +273,11 @@
                                 <i class="fas fa-check-circle text-success me-2"></i>
                                 Vous participez déjà.
                             </div>
+                            <a href="{{ path('app_event_chat', {'id': evenement.id_ev}) }}"
+                               class="btn w-100 mb-3"
+                               style="background:var(--agri-green);color:white;border-radius:20px;padding:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;transition:0.4s;border:none;text-decoration:none;display:block;text-align:center;">
+                                <i class="fas fa-comments me-2"></i> Chat des participants
+                            </a>
                             <button type="button" class="btn w-100 mb-3"
                                 style="background:#dc2626;color:white;border-radius:20px;padding:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;transition:0.4s;border:none;"
                                 onclick="openCancelModal()">
