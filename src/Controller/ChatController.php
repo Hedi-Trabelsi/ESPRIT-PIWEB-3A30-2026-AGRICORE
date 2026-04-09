@@ -79,13 +79,9 @@ class ChatController extends AbstractController
         // Handle voice message
         $audioFile = $request->files->get('audio');
         if ($audioFile) {
-            $filename = uniqid('voice_') . '.webm';
-            $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/voice';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0775, true);
-            }
-            $audioFile->move($uploadDir, $filename);
-            $content = '[AUDIO]:uploads/voice/' . $filename;
+            $audioData = base64_encode(file_get_contents($audioFile->getPathname()));
+            $mimeType = $audioFile->getMimeType() ?: 'audio/webm';
+            $content = '[AUDIO_B64]:data:' . $mimeType . ';base64,' . $audioData;
         } else {
             $content = trim($request->request->get('content', ''));
             if (empty($content)) {

@@ -285,7 +285,11 @@
                         {% else %}
                             <span class="msg-sender" style="color: #86efac;">Vous</span>
                         {% endif %}
-                        {% if msg.content starts with '[AUDIO]:' %}
+                        {% if msg.content starts with '[AUDIO_B64]:' %}
+                            <div class="msg-audio">
+                                <audio controls src="{{ msg.content|slice(12) }}"></audio>
+                            </div>
+                        {% elseif msg.content starts with '[AUDIO]:' %}
                             <div class="msg-audio">
                                 <audio controls src="/{{ msg.content|slice(8) }}"></audio>
                             </div>
@@ -361,7 +365,10 @@
             ? '<span class="msg-sender" style="color:#86efac;">Vous</span>'
             : `<span class="msg-sender">${escapeHtml(msg.sender_name)}</span>`;
         let body;
-        if (msg.content.startsWith('[AUDIO]:')) {
+        if (msg.content.startsWith('[AUDIO_B64]:')) {
+            const src = msg.content.slice(12);
+            body = `<div class="msg-audio"><audio controls src="${src}"></audio></div>`;
+        } else if (msg.content.startsWith('[AUDIO]:')) {
             const src = '/' + msg.content.slice(8);
             body = `<div class="msg-audio"><audio controls src="${src}"></audio></div>`;
         } else {

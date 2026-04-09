@@ -20,7 +20,7 @@ class Messages
     #[ORM\Column(type: "integer", nullable: true)]
     private ?int $receiver_id = null;
 
-    #[ORM\Column(type: "text")]
+    #[ORM\Column(type: "text", columnDefinition: "MEDIUMTEXT")]
     private string $content;
 
     #[ORM\Column(type: "datetime")]
