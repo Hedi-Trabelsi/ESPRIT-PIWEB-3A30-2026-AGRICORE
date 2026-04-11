@@ -22,7 +22,7 @@
     /* --- Hero Header --- */
     .detail-hero {
         height: 400px;
-        background: linear-gradient(rgba(0,0,0,0.3), var(--agri-dark)), url('{% if evenement.image %}/{{ evenement.image }}{% else %}{{ asset('img/evenement.jpg') }}{% endif %}');
+        background: linear-gradient(rgba(0,0,0,0.3), var(--agri-dark)), url('{{ asset('img/evenement.jpg') }}');
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
@@ -31,6 +31,8 @@
         padding-bottom: 60px;
         color: white;
         clip-path: ellipse(150% 100% at 50% 0%);
+        position: relative;
+        overflow: hidden;
     }
 
     /* --- Glass Cards & Description --- */
@@ -232,7 +234,11 @@
     </a>
 
     <div class="detail-hero">
-        <div class="container">
+        {% if evenement.image %}
+            <img src="{{ evenement.image|raw }}" alt="{{ evenement.titre }}"
+                 style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:.45;">
+        {% endif %}
+        <div class="container" style="position:relative;z-index:1;">
             <div class="animate__animated animate__fadeInLeft">
                 <span class="badge bg-success rounded-pill px-3 py-2 mb-3">Événement Certifié AgriCore</span>
                 <h1 class="display-3 fw-black">{{ evenement.titre }}</h1>

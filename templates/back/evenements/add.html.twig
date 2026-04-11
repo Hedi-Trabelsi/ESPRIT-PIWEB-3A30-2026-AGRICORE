@@ -331,9 +331,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const dl = document.getElementById('posterDownload');
                     dl.href = data.image_data;
                     dl.download = titre.replace(/\s+/g,'_') + '_affiche.jpg';
-                    // Store temp key for form submission
-                    if (data.temp_key) {
-                        document.getElementById('posterImageDataField').value = data.temp_key;
+                    // Store image data for form submission
+                    if (data.image_data) {
+                        document.getElementById('posterImageDataField').value = data.image_data;
                     }
                     // Reset keep button
                     const kb = document.getElementById('posterKeepAdd');

@@ -49,7 +49,7 @@ class AiController extends AbstractController
     }
 
     #[Route('/back/ai/generate-poster', name: 'back_ai_generate_poster', methods: ['POST'])]
-    public function generatePoster(Request $request, EntityManagerInterface $em): JsonResponse
+    public function generatePoster(Request $request): JsonResponse
     {
         set_time_limit(180);
 
@@ -57,7 +57,6 @@ class AiController extends AbstractController
         $lieu     = trim($request->request->get('lieu', ''));
         $dateDebut= trim($request->request->get('date_debut', ''));
         $prix     = trim($request->request->get('prix', ''));
-        $eventId  = (int) $request->request->get('event_id', 0);
 
         if (empty($titre)) return new JsonResponse(['error' => 'Le titre est requis.'], 400);
 
@@ -82,47 +81,29 @@ class AiController extends AbstractController
             $mime    = explode(';', $response->getHeaders(false)['content-type'][0] ?? 'image/jpeg')[0];
             $dataUri = 'data:' . $mime . ';base64,' . base64_encode($content);
 
-            // Save as temp file so it can be linked after event creation
-            $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/events';
-            if (!is_dir($uploadDir)) mkdir($uploadDir, 0775, true);
-            $tempKey  = 'tmp_' . uniqid() . '.jpg';
-            file_put_contents($uploadDir . '/' . $tempKey, $content);
-
-            return new JsonResponse([
-                'image_data' => $dataUri,
-                'temp_key'   => $tempKey,
-            ]);
+            return new JsonResponse(['image_data' => $dataUri]);
         } catch (\Exception $e) {
             return new JsonResponse(['error' => 'Erreur : ' . $e->getMessage()], 500);
         }
     }
+
     #[Route('/back/ai/save-poster', name: 'back_ai_save_poster', methods: ['POST'])]
     public function savePoster(Request $request, EntityManagerInterface $em): JsonResponse
     {
         $eventId  = (int) $request->request->get('event_id', 0);
-        $imageB64 = $request->request->get('image_data', '');
+        $imageData = trim($request->request->get('image_data', ''));
 
-        if ($eventId <= 0 || empty($imageB64)) {
+        if ($eventId <= 0 || empty($imageData)) {
             return new JsonResponse(['error' => 'Données manquantes.'], 400);
         }
 
         $ev = $em->getRepository(Evennementagricole::class)->find($eventId);
         if (!$ev) return new JsonResponse(['error' => 'Événement introuvable.'], 404);
 
-        // Decode base64 data URI
-        if (preg_match('/^data:image\/\w+;base64,/', $imageB64)) {
-            $content = base64_decode(preg_replace('/^data:image\/\w+;base64,/', '', $imageB64));
-        } else {
-            return new JsonResponse(['error' => 'Format image invalide.'], 400);
-        }
-
-        $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/events';
-        if (!is_dir($uploadDir)) mkdir($uploadDir, 0775, true);
-        $filename = 'event_' . $eventId . '_' . time() . '.jpg';
-        file_put_contents($uploadDir . '/' . $filename, $content);
-        $ev->setImage('uploads/events/' . $filename);
+        // Store base64 data URI directly in the image column
+        $ev->setImage($imageData);
         $em->flush();
 
-        return new JsonResponse(['success' => true, 'path' => 'uploads/events/' . $filename]);
+        return new JsonResponse(['success' => true]);
     }
 }

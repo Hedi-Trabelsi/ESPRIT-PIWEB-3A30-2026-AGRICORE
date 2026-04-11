@@ -102,7 +102,7 @@
             <div class="row align-items-center g-4">
                 <div class="col-md-auto">
                     {% if evenement.image %}
-                        <img src="/{{ evenement.image }}" alt="{{ evenement.titre }}"
+                        <img src="{{ evenement.image|raw }}" alt="{{ evenement.titre }}"
                              style="width:90px;height:90px;object-fit:cover;border-radius:20px;box-shadow:0 10px 20px rgba(0,0,0,.15);">
                     {% else %}
                         <div class="date-badge-pro animate__animated animate__pulse animate__infinite animate__slow">

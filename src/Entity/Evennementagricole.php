@@ -82,7 +82,7 @@ class Evennementagricole
 
     public function setStatut(string $statut): self { return $this; }
 
-    #[ORM\Column(type: 'string', nullable: true)]
+    #[ORM\Column(type: 'text', nullable: true)]
     private ?string $image = null;
 
     public function getImage(): ?string { return $this->image; }
