@@ -493,16 +493,29 @@
             var lat = parseFloat(match[1]);
             var lng = parseFloat(match[2]);
             initMap(lat, lng, lieu);
-        } else {
-            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(lieu))
+        } else if (lieu && lieu.trim() !== '') {
+            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(lieu) + '&countrycodes=tn&limit=1')
                 .then(r => r.json())
                 .then(data => {
                     if (data.length > 0) {
                         initMap(parseFloat(data[0].lat), parseFloat(data[0].lon), data[0].display_name);
                     } else {
-                        document.getElementById('map').innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-muted">Localisation non trouvée</div>';
+                        // Try without country restriction
+                        return fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(lieu) + '&limit=1')
+                            .then(r => r.json())
+                            .then(data2 => {
+                                if (data2.length > 0) {
+                                    initMap(parseFloat(data2[0].lat), parseFloat(data2[0].lon), data2[0].display_name);
+                                } else {
+                                    // Fallback: show Tunisia center with a note
+                                    initMap(36.8065, 10.1815, lieu + ' (position approximative)');
+                                }
+                            });
                     }
-                });
+                })
+                .catch(() => initMap(36.8065, 10.1815, lieu));
+        } else {
+            initMap(36.8065, 10.1815, 'Tunisie');
         }
 
         function initMap(lat, lng, placeName) {
