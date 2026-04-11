@@ -25,10 +25,9 @@ class Tache
 
     #[ORM\Column(type: "text")]
     #[Assert\NotBlank(message: "La description est obligatoire.")]
-    #[Assert\Regex(
-        // Force au moins 7 caractères ET interdit d'avoir UNIQUEMENT des chiffres
-        pattern: "/^(?![0-9]*$)[a-zA-Z0-9\s\.,!?]{7,}$/",
-        message: "La description doit faire au moins 7 caractères et ne pas contenir que des chiffres."
+    #[Assert\Length(
+        min: 7,
+        minMessage: "La description doit faire au moins 7 caractères et ne pas contenir que des chiffres."
     )]
     private ?string $description = null;
 
@@ -50,8 +49,8 @@ class Tache
     #[Assert\NotBlank(message: "Le nom de la tâche est obligatoire.")]
     #[Assert\Length(min: 3, minMessage: "Le nom de la tâche doit contenir au moins 3 caractères.")]
     #[Assert\Regex(
-        pattern: "/^[a-zA-Z\s]+$/",
-        message: "Le nom de la tâche ne doit contenir que des lettres."
+        pattern: "/^(?=(?:.*\p{L}){3,})[\p{L}0-9\s]{3,}$/u",
+        message: "Le nom de la tâche doit contenir au moins 3 des lettres."
     )]
     private ?string $nomTache = null;
 
