@@ -142,9 +142,14 @@
 </style>
 
 <div class="row mb-4">
-    <div class="col-12">
-        <h4 class="fw-bold mb-1">Gestion des utilisateurs</h4>
-        <p class="text-muted mb-0">Consulter, modifier, bannir ou supprimer les utilisateurs de la plateforme.</p>
+    <div class="col-12 d-flex justify-content-between align-items-start">
+        <div>
+            <h4 class="fw-bold mb-1">Gestion des utilisateurs</h4>
+            <p class="text-muted mb-0">Consulter, modifier, bannir ou supprimer les utilisateurs de la plateforme.</p>
+        </div>
+        <a href="{{ path('back_utilisateurs_export_excel') }}" class="btn btn-success d-flex align-items-center gap-2" style="border-radius:12px;padding:10px 20px;font-weight:600;font-size:13px;">
+            <i class="ti ti-file-spreadsheet fs-5"></i> Exporter en Excel
+        </a>
     </div>
 </div>
 

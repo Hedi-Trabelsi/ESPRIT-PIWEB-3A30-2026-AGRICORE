@@ -6,11 +6,19 @@ use App\Entity\User;
 use App\Form\UserType;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Color\Color;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\Writer\SvgWriter;
 use OTPHP\TOTP;
 use ParagonIE\ConstantTime\Base32;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -462,5 +470,116 @@ class UtilisateurController extends AbstractController
         }
 
         return $this->redirectToRoute('front_forgot_password');
+    }
+
+    // ===================== QR CODE VCARD (Profile) =====================
+    #[Route('/profil/qrcode', name: 'app_profile_qrcode')]
+    public function profileQrCode(Request $request, UserRepository $userRepo): Response
+    {
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        $user = $userRepo->find($sessionUser->getId());
+        if (!$user) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        // Build vCard data
+        $vcard = "BEGIN:VCARD\r\n";
+        $vcard .= "VERSION:3.0\r\n";
+        $vcard .= "N:" . $user->getNom() . ";" . $user->getPrenom() . "\r\n";
+        $vcard .= "FN:" . $user->getPrenom() . " " . $user->getNom() . "\r\n";
+        $vcard .= "EMAIL:" . $user->getEmail() . "\r\n";
+        $vcard .= "TEL:" . $user->getNumeroT() . "\r\n";
+        $vcard .= "ADR:;;" . $user->getAdresse() . "\r\n";
+        $vcard .= "ORG:Agricore\r\n";
+        $vcard .= "END:VCARD\r\n";
+
+        $builder = new Builder(
+            writer: new SvgWriter(),
+            data: $vcard,
+            encoding: new Encoding('UTF-8'),
+            errorCorrectionLevel: ErrorCorrectionLevel::High,
+            size: 300,
+            margin: 10,
+            foregroundColor: new Color(15, 66, 41),
+            backgroundColor: new Color(255, 255, 255),
+        );
+
+        $result = $builder->build();
+
+        return new Response($result->getString(), 200, [
+            'Content-Type' => 'image/svg+xml',
+        ]);
+    }
+
+    // ===================== EXPORT USERS TO EXCEL (Admin) =====================
+    #[Route('/back/utilisateurs/export-excel', name: 'back_utilisateurs_export_excel')]
+    public function exportUsersExcel(Request $request, UserRepository $userRepo): StreamedResponse
+    {
+        $currentUser = $request->getSession()->get('user');
+        if (!$currentUser || $currentUser->getRole() !== 0) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        $users = $userRepo->findAll();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Utilisateurs Agricore');
+
+        // Header row
+        $columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        $headers = ['ID', 'Nom', 'Prenom', 'Email', 'Telephone', 'Adresse', 'Genre', 'Role', 'Statut', 'Profil complet'];
+        foreach ($headers as $i => $header) {
+            $sheet->getCell($columns[$i] . '1')->setValue($header);
+        }
+        $headerStyle = $sheet->getStyle('A1:J1');
+        $headerStyle->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+        $headerStyle->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
+        $headerStyle->getFill()->getStartColor()->setRGB('348E38');
+
+        // Data rows
+        $row = 2;
+        foreach ($users as $user) {
+            $roleLabel = match ($user->getRole()) {
+                0 => 'Administrateur',
+                1 => 'Agriculteur',
+                2 => 'Technicien',
+                default => 'Inconnu',
+            };
+            $statusLabel = $user->isBanned() ? 'Banni' : 'Actif';
+            $profileLabel = $user->isProfileComplete() ? 'Oui' : 'Non';
+
+            $sheet->getCell('A' . $row)->setValue($user->getId());
+            $sheet->getCell('B' . $row)->setValue($user->getNom());
+            $sheet->getCell('C' . $row)->setValue($user->getPrenom());
+            $sheet->getCell('D' . $row)->setValue($user->getEmail());
+            $sheet->getCell('E' . $row)->setValue($user->getNumeroT());
+            $sheet->getCell('F' . $row)->setValue($user->getAdresse());
+            $sheet->getCell('G' . $row)->setValue($user->getGenre());
+            $sheet->getCell('H' . $row)->setValue($roleLabel);
+            $sheet->getCell('I' . $row)->setValue($statusLabel);
+            $sheet->getCell('J' . $row)->setValue($profileLabel);
+            $row++;
+        }
+
+        // Auto-size columns
+        foreach (range('A', 'J') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $response = new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        });
+
+        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->headers->set('Content-Disposition', 'attachment;filename="utilisateurs_agricore.xlsx"');
+        $response->headers->set('Cache-Control', 'max-age=0');
+
+        return $response;
     }
 }
