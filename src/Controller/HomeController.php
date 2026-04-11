@@ -123,12 +123,6 @@ class HomeController extends AbstractController
         return $this->redirectToRoute('app_equipement_catalogue');
     }
 
-    #[Route('/ventes-depenses', name: 'app_ventes_depenses')]
-    public function ventesDepenses(): Response
-    {
-        return $this->render('front/ventes_depenses/ventes_depenses.html.twig');
-    }
-
     // ← AJOUTE CE QUI SUIT
     #[Route('/profil', name: 'app_profile')]
     public function profile(): Response

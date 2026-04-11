@@ -113,11 +113,11 @@
                                 <td>{{ depense.type }}</td>
                                 <td>{{ depense.montant|number_format(2, ',', ' ') }} DT</td>
                                 <td class="text-end">
-                                    <a href="{{ path('back_edit_depense', {'id': depense.id}) }}" class="btn-icon btn-edit" title="Modifier">
+                                    <a href="{{ path('back_edit_depense', {'id': depense.idDepense}) }}" class="btn-icon btn-edit" title="Modifier">
                                         <i class="ti ti-edit"></i>
                                     </a>
                                     <button type="button" class="btn-icon btn-delete delete-btn" 
-                                            data-url="{{ path('back_delete_depense', {'id': depense.id}) }}" 
+                                            data-url="{{ path('back_delete_depense', {'id': depense.idDepense}) }}" 
                                             title="Supprimer">
                                         <i class="ti ti-trash"></i>
                                     </button>
@@ -158,11 +158,11 @@
                                 <td>{{ vente.prixUnitaire|number_format(2, ',', ' ') }} DT</td>
                                 <td>{{ vente.chiffreAffaires|number_format(2, ',', ' ') }} DT</td>
                                 <td class="text-end">
-                                    <a href="{{ path('back_edit_vente', {'id': vente.id}) }}" class="btn-icon btn-edit" title="Modifier">
+                                    <a href="{{ path('back_edit_vente', {'id': vente.idVente}) }}" class="btn-icon btn-edit" title="Modifier">
                                         <i class="ti ti-edit"></i>
                                     </a>
                                     <button type="button" class="btn-icon btn-delete delete-btn" 
-                                            data-url="{{ path('back_delete_vente', {'id': vente.id}) }}" 
+                                            data-url="{{ path('back_delete_vente', {'id': vente.idVente}) }}" 
                                             title="Supprimer">
                                         <i class="ti ti-trash"></i>
                                     </button>

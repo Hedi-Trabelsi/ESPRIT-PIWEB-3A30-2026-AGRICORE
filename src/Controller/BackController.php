@@ -32,9 +32,4 @@ class BackController extends AbstractController
         return $this->redirectToRoute('back_equipement_index');
     }
 
-    #[Route('/back/ventes-depenses', name: 'back_ventes_depenses')]
-    public function ventesDepenses(): Response
-    {
-        return $this->render('back/ventes_depenses/ventes_depenses.html.twig');
-    }
 }

@@ -15,7 +15,7 @@ class Vente
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(name: 'idVente', type: 'integer')]
     private ?int $idVente = null;
 
     public function getIdVente(): ?int
@@ -29,7 +29,7 @@ class Vente
         return $this;
     }
 
-    #[ORM\Column(type: 'integer', nullable: false)]
+    #[ORM\Column(name: 'prixUnitaire', type: 'integer', nullable: false)]
     private ?int $prixUnitaire = null;
 
     public function getPrixUnitaire(): ?int
@@ -57,7 +57,7 @@ class Vente
         return $this;
     }
 
-    #[ORM\Column(type: 'integer', nullable: false)]
+    #[ORM\Column(name: 'chiffreAffaires', type: 'integer', nullable: false)]
     private ?int $chiffreAffaires = null;
 
     public function getChiffreAffaires(): ?int

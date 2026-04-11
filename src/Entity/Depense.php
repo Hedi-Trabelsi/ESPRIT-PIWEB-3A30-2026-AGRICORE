@@ -15,7 +15,7 @@ class Depense
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(name: 'idDepense', type: 'integer')]
     private ?int $idDepense = null;
 
     public function getIdDepense(): ?int
