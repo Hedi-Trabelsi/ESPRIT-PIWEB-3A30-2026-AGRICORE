@@ -5,6 +5,10 @@
 {% block body %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css"/>
+
+{% if app.session.get('user') %}
+<div id="eventReminderBanner" style="display:none;"></div>
+{% endif %}
 <style>
 :root {
     --g: #16a34a;
@@ -460,10 +464,135 @@ body { background: #f8fafc; }
 <div style="height:60px;"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+{% if app.session.get('user') %}
+<style>
+.ev-reminder-banner {
+    position: fixed; top: 80px; right: 20px; z-index: 9999;
+    display: flex; flex-direction: column; gap: 10px;
+    max-width: 340px; width: 100%;
+    pointer-events: none;
+}
+.ev-reminder-card {
+    background: #fff;
+    border-left: 4px solid #16a34a;
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    display: flex; gap: 12px; align-items: flex-start;
+    pointer-events: all;
+    animation: slideInRight .4s cubic-bezier(.34,1.56,.64,1) both;
+    position: relative;
+}
+@keyframes slideInRight {
+    from { opacity:0; transform: translateX(60px); }
+    to   { opacity:1; transform: translateX(0); }
+}
+.ev-reminder-card.urgent { border-left-color: #dc2626; }
+.ev-reminder-icon {
+    width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+    background: linear-gradient(135deg,#16a34a,#22c55e);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: .95rem;
+}
+.ev-reminder-card.urgent .ev-reminder-icon { background: linear-gradient(135deg,#dc2626,#ef4444); }
+.ev-reminder-title { font-weight: 800; font-size: .85rem; color: #0f172a; margin-bottom: 2px; }
+.ev-reminder-meta  { font-size: .73rem; color: #64748b; line-height: 1.4; }
+.ev-reminder-time  { font-size: .72rem; font-weight: 800; margin-top: 4px;
+    color: #16a34a; display: flex; align-items: center; gap: 4px; }
+.ev-reminder-card.urgent .ev-reminder-time { color: #dc2626; }
+.ev-reminder-close {
+    position: absolute; top: 8px; right: 10px;
+    background: none; border: none; color: #94a3b8;
+    cursor: pointer; font-size: .9rem; line-height: 1;
+    padding: 2px 4px;
+}
+.ev-reminder-close:hover { color: #0f172a; }
+.ev-reminder-link { text-decoration: none; color: inherit; display: block; }
+</style>
+
+<script>
+(function() {
+    async function checkEventReminders() {
+        try {
+            const res  = await fetch('{{ path('front_notifications_events') }}');
+            const data = await res.json();
+            if (!data.length) return;
+
+            const banner = document.getElementById('eventReminderBanner');
+            banner.className = 'ev-reminder-banner';
+            banner.style.display = 'flex';
+            banner.innerHTML = '';
+
+            data.forEach((n, i) => {
+                const isUrgent = n.timeLabel.includes('min') && !n.timeLabel.includes('h');
+                const key = 'ev_notif_' + n.id;
+                if (sessionStorage.getItem(key)) return; // already shown this session
+
+                const card = document.createElement('div');
+                card.className = 'ev-reminder-card' + (isUrgent ? ' urgent' : '');
+                card.style.animationDelay = (i * 120) + 'ms';
+                card.innerHTML = `
+                    <div class="ev-reminder-icon"><i class="fas fa-calendar-alt"></i></div>
+                    <a href="${n.url}" class="ev-reminder-link" style="flex:1;">
+                        <div class="ev-reminder-title">📅 ${n.titre}</div>
+                        <div class="ev-reminder-meta">
+                            <i class="fas fa-map-marker-alt me-1"></i>${n.lieu || ''}<br>
+                            <i class="fas fa-clock me-1"></i>${n.start}
+                        </div>
+                        <div class="ev-reminder-time">
+                            <i class="fas fa-bell"></i> Commence ${n.timeLabel}
+                        </div>
+                    </a>
+                    <button class="ev-reminder-close" onclick="dismissReminder(this,'${n.id}')">×</button>
+                `;
+                banner.appendChild(card);
+
+                // Auto-dismiss after 8s
+                setTimeout(() => {
+                    if (card.parentNode) {
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateX(60px)';
+                        card.style.transition = '.3s ease';
+                        setTimeout(() => card.remove(), 300);
+                    }
+                }, 8000 + i * 500);
+            });
+
+            // Browser push notification
+            if (Notification.permission === 'granted') {
+                data.forEach(n => {
+                    const key = 'ev_push_' + n.id;
+                    if (!sessionStorage.getItem(key)) {
+                        new Notification('⏰ Rappel AgriCore', {
+                            body: n.titre + ' commence ' + n.timeLabel,
+                            icon: '/img/logo.png'
+                        });
+                        sessionStorage.setItem(key, '1');
+                    }
+                });
+            } else if (Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        } catch(e) {}
+    }
+
+    window.dismissReminder = function(btn, id) {
+        const card = btn.closest('.ev-reminder-card');
+        sessionStorage.setItem('ev_notif_' + id, '1');
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(60px)';
+        card.style.transition = '.3s ease';
+        setTimeout(() => card.remove(), 300);
+    };
+
+    checkEventReminders();
+})();
+</script>
+{% endif %}
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Budget range display
-    const budgetRange = document.getElementById('budgetRange');
     const budgetDisplay = document.getElementById('budgetDisplay');
     if (budgetRange) {
         budgetRange.addEventListener('input', () => {
