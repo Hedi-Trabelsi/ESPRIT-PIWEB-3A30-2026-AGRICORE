@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Form;
+
+use App\Entity\Vente;
+use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\NumberType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+
+class VenteType extends AbstractType
+{
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        $builder
+            ->add('produit', TextType::class, [
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Ex: Tomates'],
+                'label' => 'Nom du produit'
+            ])
+            ->add('prixUnitaire', IntegerType::class, [
+                'attr' => ['class' => 'form-control', 'placeholder' => '0'],
+                'label' => 'Prix Unitaire (DT)'
+            ])
+            ->add('quantite', IntegerType::class, [
+                'attr' => ['class' => 'form-control', 'placeholder' => '0'],
+                'label' => 'Quantité'
+            ])
+            ->add('date', DateType::class, [
+                'widget' => 'single_text',
+                'attr' => ['class' => 'form-control'],
+                'label' => 'Date'
+            ])
+        ;
+    }
+
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver->setDefaults([
+            'data_class' => Vente::class,
+        ]);
+    }
+}
