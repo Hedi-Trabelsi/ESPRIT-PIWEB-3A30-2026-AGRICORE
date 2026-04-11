@@ -96,6 +96,7 @@ class AiController extends AbstractController
             return new JsonResponse(['error' => 'Erreur : ' . $e->getMessage()], 500);
         }
     }
+    #[Route('/back/ai/save-poster', name: 'back_ai_save_poster', methods: ['POST'])]
     public function savePoster(Request $request, EntityManagerInterface $em): JsonResponse
     {
         $eventId  = (int) $request->request->get('event_id', 0);

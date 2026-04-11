@@ -373,6 +373,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 style="background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;border:none;border-radius:14px;padding:12px 24px;font-weight:800;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 6px 20px rgba(22,163,74,.3);">
                 <i class="fas fa-check"></i> Garder avec l'événement
             </button>
+            <button type="button" id="posterRegenAdd"
+                style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:12px 22px;font-weight:700;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-redo"></i> Régénérer
+            </button>
             <a id="posterDownload" href="#" download style="display:inline-flex;align-items:center;gap:8px;background:#f1f5f9;color:#475569;text-decoration:none;border-radius:14px;padding:12px 22px;font-weight:700;font-size:.85rem;">
                 <i class="fas fa-download"></i> Télécharger
             </a>
@@ -403,6 +407,19 @@ document.addEventListener('DOMContentLoaded', function() {
             keepBtn.style.background = '#0f172a';
             keepBtn.disabled = true;
             setTimeout(() => document.getElementById('posterModal').style.display = 'none', 800);
+        });
+    }
+
+    const regenBtn = document.getElementById('posterRegenAdd');
+    if (regenBtn) {
+        regenBtn.addEventListener('click', function() {
+            // Clear selection and re-trigger generation
+            document.getElementById('posterImageDataField').value = '';
+            document.getElementById('posterKeptMsg').style.display = 'none';
+            document.getElementById('posterKeepAdd').disabled = false;
+            document.getElementById('posterKeepAdd').style.background = 'linear-gradient(135deg,#16a34a,#22c55e)';
+            document.getElementById('posterKeepAdd').innerHTML = '<i class="fas fa-check"></i> Garder avec l\'événement';
+            document.getElementById('posterBtn').click();
         });
     }
 
