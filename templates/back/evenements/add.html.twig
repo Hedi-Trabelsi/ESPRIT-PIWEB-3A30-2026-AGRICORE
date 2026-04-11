@@ -73,6 +73,7 @@
 <div class="container py-5">
     <div class="main-card animate__animated animate__fadeInUp">
         {{ form_start(form, {'attr': {'class': 'row g-5', 'novalidate': 'novalidate', 'id': 'eventForm'}}) }}
+            <input type="hidden" name="poster_image_data" id="posterImageDataField">
 
             <div class="col-lg-6">
                 <h5 class="mb-4 fw-bold">Configuration de l'événement</h5>
@@ -136,7 +137,11 @@
                 <div id="map-selector"></div>
             </div>
         
-            <div class="mt-5 pt-4 border-top d-flex justify-content-end w-100">
+            <div class="mt-5 pt-4 border-top d-flex justify-content-between w-100">
+                <button type="button" id="posterBtn"
+                    style="background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border:none;border-radius:20px;padding:14px 28px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.2s;">
+                    <i class="fas fa-image"></i> Générer l'affiche IA
+                </button>
                 <button class="btn btn-submit-agri" type="submit" id="submitBtn">Enregistrer l'événement</button>
             </div>
 
@@ -231,7 +236,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const aiStatus = document.getElementById('aiStatus');
     const descField = document.getElementById('desc_field')
                    || document.querySelector('textarea[name*="description"]');
-
     if (!aiBtn || !descField) return;
 
     aiBtn.addEventListener('click', async function() {
@@ -288,6 +292,127 @@ document.addEventListener('DOMContentLoaded', function() {
         aiBtn.disabled = false;
         aiBtn.innerHTML = '<i class="fas fa-magic"></i> Générer avec IA';
     });
+
+    // ── Poster Generator — via PHP proxy ──
+    const posterBtn = document.getElementById('posterBtn');
+    if (posterBtn) {
+        posterBtn.addEventListener('click', async function() {
+            const titre    = document.querySelector('input[name*="titre"]')?.value?.trim() || '';
+            const lieu     = document.getElementById('{{ form.lieu.vars.id }}')?.value?.trim() || '';
+            const dateDebut= document.querySelector('input[name*="date_debut"]')?.value?.trim() || '';
+            const prix     = document.querySelector('input[name*="frais_inscription"]')?.value?.trim() || '';
+
+            if (!titre) { alert('Remplissez d\'abord le titre.'); return; }
+
+            // Reset modal state
+            document.getElementById('posterModal').style.display = 'flex';
+            document.getElementById('posterImg').style.display = 'none';
+            document.getElementById('posterActions').style.display = 'none';
+            document.getElementById('posterKeptMsg').style.display = 'none';
+            document.getElementById('posterLoading').style.display = 'flex';
+            document.getElementById('posterLoading').innerHTML =
+                '<div style="width:48px;height:48px;border:4px solid #f1f5f9;border-top-color:#f97316;border-radius:50%;animation:spin .8s linear infinite;"></div>'
+                + '<p style="color:#64748b;font-size:.85rem;font-weight:600;text-align:center;">Génération en cours...<br><small style="opacity:.7;">Cela peut prendre 30-60 secondes</small></p>';
+
+            const fd = new FormData();
+            fd.append('titre', titre); fd.append('lieu', lieu);
+            fd.append('date_debut', dateDebut); fd.append('prix', prix);
+
+            try {
+                const res  = await fetch('{{ path('back_ai_generate_poster') }}', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.image_data) {
+                    const img = document.getElementById('posterImg');
+                    img.src = data.image_data;
+                    img.style.display = 'block';
+                    document.getElementById('posterLoading').style.display = 'none';
+                    document.getElementById('posterActions').style.display = 'flex';
+                    // Pre-fill download link
+                    const dl = document.getElementById('posterDownload');
+                    dl.href = data.image_data;
+                    dl.download = titre.replace(/\s+/g,'_') + '_affiche.jpg';
+                    // Store temp key for form submission
+                    if (data.temp_key) {
+                        document.getElementById('posterImageDataField').value = data.temp_key;
+                    }
+                    // Reset keep button
+                    const kb = document.getElementById('posterKeepAdd');
+                    kb.disabled = false;
+                    kb.style.background = 'linear-gradient(135deg,#16a34a,#22c55e)';
+                    kb.innerHTML = '<i class="fas fa-check"></i> Garder avec l\'événement';
+                } else {
+                    document.getElementById('posterLoading').innerHTML =
+                        '<p style="color:#dc2626;text-align:center;">❌ ' + (data.error || 'Erreur') + '</p>';
+                }
+            } catch(e) {
+                document.getElementById('posterLoading').innerHTML =
+                    '<p style="color:#dc2626;text-align:center;">❌ Erreur réseau.</p>';
+            }
+        });
+    }
 });
 </script>
+
+<!-- Poster Modal -->
+<div id="posterModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:#fff;border-radius:28px;padding:32px;max-width:560px;width:90%;box-shadow:0 30px 80px rgba(0,0,0,.25);position:relative;">
+        <button onclick="document.getElementById('posterModal').style.display='none'"
+            style="position:absolute;top:16px;right:20px;background:none;border:none;font-size:1.4rem;color:#94a3b8;cursor:pointer;">×</button>
+        <h5 style="font-weight:800;margin-bottom:6px;color:#0f172a;"><i class="fas fa-image me-2" style="color:#f97316;"></i>Affiche générée par IA</h5>
+        <p style="font-size:.82rem;color:#64748b;margin-bottom:20px;">Basée sur les informations de votre événement</p>
+
+        <div id="posterLoading" style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:40px 0;">
+            <div style="width:48px;height:48px;border:4px solid #f1f5f9;border-top-color:#f97316;border-radius:50%;animation:spin .8s linear infinite;"></div>
+            <p style="color:#64748b;font-size:.85rem;font-weight:600;">Génération de l'affiche en cours...<br><small style="opacity:.7;">Cela peut prendre 10-20 secondes</small></p>
+        </div>
+
+        <img id="posterImg" style="display:none;width:100%;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.1);" alt="Affiche événement">
+
+        <div id="posterActions" style="display:none;margin-top:16px;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <button type="button" id="posterKeepAdd"
+                style="background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;border:none;border-radius:14px;padding:12px 24px;font-weight:800;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 6px 20px rgba(22,163,74,.3);">
+                <i class="fas fa-check"></i> Garder avec l'événement
+            </button>
+            <a id="posterDownload" href="#" download style="display:inline-flex;align-items:center;gap:8px;background:#f1f5f9;color:#475569;text-decoration:none;border-radius:14px;padding:12px 22px;font-weight:700;font-size:.85rem;">
+                <i class="fas fa-download"></i> Télécharger
+            </a>
+            <button type="button" id="posterIgnoreAdd"
+                style="background:#fee2e2;color:#dc2626;border:none;border-radius:14px;padding:12px 22px;font-weight:700;font-size:.85rem;cursor:pointer;">
+                <i class="fas fa-times"></i> Ignorer
+            </button>
+            <p id="posterKeptMsg" style="display:none;font-size:.78rem;color:#16a34a;font-weight:700;text-align:center;width:100%;margin:0;">
+                ✅ Affiche sélectionnée — elle sera enregistrée avec l'événement.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const keepBtn   = document.getElementById('posterKeepAdd');
+    const ignoreBtn = document.getElementById('posterIgnoreAdd');
+
+    if (keepBtn) {
+        keepBtn.addEventListener('click', function() {
+            document.getElementById('posterKeptMsg').style.display = 'block';
+            keepBtn.innerHTML = '<i class="fas fa-check"></i> Sélectionnée !';
+            keepBtn.style.background = '#0f172a';
+            keepBtn.disabled = true;
+            setTimeout(() => document.getElementById('posterModal').style.display = 'none', 800);
+        });
+    }
+
+    if (ignoreBtn) {
+        ignoreBtn.addEventListener('click', function() {
+            document.getElementById('posterImageDataField').value = '';
+            document.getElementById('posterModal').style.display = 'none';
+        });
+    }
+});
+</script>
+
 {% endblock %}

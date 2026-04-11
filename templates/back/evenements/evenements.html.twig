@@ -187,7 +187,12 @@
                               {% if status == 'HISTORIQUE' %}background:#dc2626;{% elseif status == 'EN_COURS' %}background:var(--color-default);{% else %}background:var(--agri-dark);{% endif %} color:white;">
                             {{ status|replace({'_': ' '}) }}
                         </span>
-                        <div class="icon-wrapper {{ col }}"><i class="fas {{ icon }}"></i></div>
+                        {% if ev.image %}
+                            <img src="/{{ ev.image }}" alt="{{ ev.titre }}"
+                                 style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">
+                        {% else %}
+                            <div class="icon-wrapper {{ col }}"><i class="fas {{ icon }}"></i></div>
+                        {% endif %}
                     </div>
 
                     <div class="p-4 text-center">

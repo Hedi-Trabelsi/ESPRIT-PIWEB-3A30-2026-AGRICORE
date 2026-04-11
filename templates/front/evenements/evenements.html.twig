@@ -379,7 +379,10 @@ body { background: #f8fafc; }
                 <div class="ev-card h-100">
                     <div class="ev-card-img">
                         {% set titre = ev.evenement.titre|lower %}
-                        {% if 'formation' in titre %}
+                        {% if ev.evenement.image %}
+                            <img src="/{{ ev.evenement.image }}" alt="{{ ev.evenement.titre }}"
+                                 style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">
+                        {% elseif 'formation' in titre %}
                             <i class="fas fa-graduation-cap ev-icon text-primary"></i>
                         {% elseif 'tracteur' in titre or 'tractor' in titre %}
                             <i class="fas fa-tractor ev-icon text-secondary"></i>

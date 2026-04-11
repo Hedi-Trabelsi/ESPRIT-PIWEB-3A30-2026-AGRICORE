@@ -22,7 +22,7 @@
     /* --- Hero Header --- */
     .detail-hero {
         height: 400px;
-        background: linear-gradient(rgba(0,0,0,0.3), var(--agri-dark)), url('{{ asset('img/evenement.jpg') }}');
+        background: linear-gradient(rgba(0,0,0,0.3), var(--agri-dark)), url('{% if evenement.image %}/{{ evenement.image }}{% else %}{{ asset('img/evenement.jpg') }}{% endif %}');
         background-size: cover;
         background-position: center;
         background-attachment: fixed;

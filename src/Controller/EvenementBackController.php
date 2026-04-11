@@ -130,6 +130,20 @@ class EvenementBackController extends AbstractController
             $em->persist($event);
             $em->flush();
 
+            // Save poster image if provided
+            $posterData = $request->request->get('poster_image_data', '');
+            if (!empty($posterData) && $posterData !== 'no_key') {
+                $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/events';
+                $basename  = basename($posterData); // security: strip any path traversal
+                $tempFile  = $uploadDir . '/' . $basename;
+                if (file_exists($tempFile) && preg_match('/^tmp_[a-zA-Z0-9]+\.jpg$/', $basename)) {
+                    $filename = 'event_' . $event->getId_ev() . '_' . time() . '.jpg';
+                    rename($tempFile, $uploadDir . '/' . $filename);
+                    $event->setImage('uploads/events/' . $filename);
+                    $em->flush();
+                }
+            }
+
             // LOG CREATE
             $sessionUser = $request->getSession()->get('user');
 
