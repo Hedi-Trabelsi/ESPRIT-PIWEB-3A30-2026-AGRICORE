@@ -1297,3 +1297,137 @@
     display: block;
     border-radius: 8px;
 }
+
+/* ====== WEATHER WIDGET (OpenWeatherMap API) ====== */
+
+.weather-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.weather-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.weather-icon {
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+}
+
+.weather-temp {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0F4229;
+    line-height: 1.1;
+}
+
+.weather-desc {
+    font-size: 14px;
+    color: #4b5563;
+    font-weight: 500;
+}
+
+.weather-details {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.weather-detail {
+    font-size: 12px;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.weather-detail i {
+    color: #348E38;
+    font-size: 11px;
+}
+
+.weather-city {
+    font-size: 12px;
+    color: #9ca3af;
+    padding-top: 6px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.weather-city i {
+    color: #348E38;
+    margin-right: 4px;
+}
+
+.weather-error {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 13px;
+    padding: 16px 0;
+}
+
+.weather-error i {
+    margin-right: 6px;
+    color: #d1d5db;
+}
+
+/* ====== MAP WIDGET (LocationIQ + Leaflet) ====== */
+
+.profile-map {
+    width: 100%;
+    height: 200px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e8f5e9;
+    z-index: 1;
+}
+
+/* ====== EMAIL VALIDATION (Abstract API) ====== */
+
+.email-validate-wrap {
+    position: relative;
+}
+
+.email-status {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    z-index: 2;
+}
+
+.email-status-msg {
+    min-height: 0;
+    margin-top: 4px;
+}
+
+.ev-valid {
+    color: #16a34a;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ev-invalid {
+    color: #dc2626;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ev-warning {
+    color: #f59e0b;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}

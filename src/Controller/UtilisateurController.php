@@ -18,6 +18,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -108,6 +109,30 @@ class UtilisateurController extends AbstractController
                 ]);
             }
 
+            // Validate email with Disify API (free, no key needed)
+            try {
+                $ctx = stream_context_create(['http' => ['timeout' => 5]]);
+                $emailCheckUrl = 'https://disify.com/api/email/' . urlencode($user->getEmail());
+                $emailJson = file_get_contents($emailCheckUrl, false, $ctx);
+                if ($emailJson) {
+                    $emailResult = json_decode($emailJson, true);
+                    if (isset($emailResult['disposable']) && $emailResult['disposable'] === true) {
+                        $this->addFlash('error', 'Les adresses email temporaires ne sont pas acceptees.');
+                        return $this->render('front/utilisateurs/register.html.twig', [
+                            'form' => $form->createView(),
+                        ]);
+                    }
+                    if (isset($emailResult['dns']) && $emailResult['dns'] === false) {
+                        $this->addFlash('error', 'Le domaine de cet email n\'existe pas.');
+                        return $this->render('front/utilisateurs/register.html.twig', [
+                            'form' => $form->createView(),
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                // API failed, continue without validation
+            }
+
             $user->setBanned(false);
 
             // Hash the password
@@ -156,7 +181,58 @@ class UtilisateurController extends AbstractController
             $user->prepareForSession();
             $request->getSession()->set('user', $user);
         }
-        return $this->render('front/utilisateurs/profil.html.twig');
+
+        $weatherData = null;
+        $geoData = null;
+        $address = $user ? $user->getAdresse() : '';
+
+        if ($address && strlen($address) > 1) {
+            // API keys - replace with your own
+            $locationiqKey = 'pk.a979013cc3f23c0c7b7edd99881a5e67';
+            $openweatherKey = 'cdaffac2d917777295772c89f67dd06d';
+
+            try {
+                // 1. Geocode address with LocationIQ
+                $geoUrl = 'https://us1.locationiq.com/v1/search?key=' . $locationiqKey . '&q=' . urlencode($address) . '&format=json&limit=1';
+                $ctx = stream_context_create(['http' => ['timeout' => 5]]);
+                $geoJson = file_get_contents($geoUrl, false, $ctx);
+                if ($geoJson) {
+                    $geoResult = json_decode($geoJson, true);
+                    if (is_array($geoResult) && count($geoResult) > 0) {
+                        $geoData = [
+                            'lat' => (float) $geoResult[0]['lat'],
+                            'lon' => (float) $geoResult[0]['lon'],
+                            'display_name' => $geoResult[0]['display_name'],
+                        ];
+
+                        // 2. Get weather using coordinates
+                        $weatherUrl = 'https://api.openweathermap.org/data/2.5/weather?lat=' . $geoData['lat'] . '&lon=' . $geoData['lon'] . '&appid=' . $openweatherKey . '&units=metric&lang=fr';
+                        $weatherJson = file_get_contents($weatherUrl, false, $ctx);
+                        if ($weatherJson) {
+                            $weatherResult = json_decode($weatherJson, true);
+                            if (isset($weatherResult['main'])) {
+                                $weatherData = [
+                                    'temp' => round($weatherResult['main']['temp']),
+                                    'desc' => ucfirst($weatherResult['weather'][0]['description']),
+                                    'icon' => $weatherResult['weather'][0]['icon'],
+                                    'humidity' => $weatherResult['main']['humidity'],
+                                    'wind' => round($weatherResult['wind']['speed']),
+                                    'visibility' => round(($weatherResult['visibility'] ?? 10000) / 1000, 1),
+                                    'city' => $weatherResult['name'] ?? $address,
+                                ];
+                            }
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                // APIs failed silently, widgets will show fallback
+            }
+        }
+
+        return $this->render('front/utilisateurs/profil.html.twig', [
+            'weatherData' => $weatherData,
+            'geoData' => $geoData,
+        ]);
     }
 
     // ===================== EDIT PROFILE (frontend) =====================
@@ -332,6 +408,41 @@ class UtilisateurController extends AbstractController
         return $this->render('back/utilisateurs/modifier.html.twig', [
             'user' => $user,
         ]);
+    }
+
+    // ===================== EMAIL VALIDATION API (Abstract API) =====================
+    #[Route('/api/validate-email', name: 'api_validate_email', methods: ['POST'])]
+    public function validateEmail(Request $request): JsonResponse
+    {
+        $email = $request->request->get('email', '');
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return new JsonResponse(['status' => 'invalid', 'message' => 'Format email invalide']);
+        }
+
+        // Disify API (free, no key needed)
+        try {
+            $ctx = stream_context_create(['http' => ['timeout' => 5]]);
+            $url = 'https://disify.com/api/email/' . urlencode($email);
+            $json = file_get_contents($url, false, $ctx);
+            if ($json) {
+                $result = json_decode($json, true);
+
+                if (isset($result['format']) && $result['format'] === false) {
+                    return new JsonResponse(['status' => 'invalid', 'message' => 'Format email invalide']);
+                }
+                if (isset($result['disposable']) && $result['disposable'] === true) {
+                    return new JsonResponse(['status' => 'disposable', 'message' => 'Email temporaire non accepte']);
+                }
+                if (isset($result['dns']) && $result['dns'] === false) {
+                    return new JsonResponse(['status' => 'invalid', 'message' => 'Le domaine n\'existe pas']);
+                }
+                return new JsonResponse(['status' => 'valid', 'message' => 'Email valide']);
+            }
+        } catch (\Exception $e) {
+            return new JsonResponse(['status' => 'error', 'message' => 'Erreur de verification']);
+        }
+
+        return new JsonResponse(['status' => 'error', 'message' => 'Erreur']);
     }
 
     // ===================== FORGOT PASSWORD (Google Authenticator TOTP) =====================

@@ -5,6 +5,8 @@
 {% block body %}
 
 <link href="{{ asset('css/utilisateur/utilisateur.css') }}" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 {# ===== Hero Section ===== #}
 <div class="profile-hero">
@@ -140,6 +142,44 @@
                 </div>
             </div>
 
+            {# Weather Widget (OpenWeatherMap API) #}
+            <div class="sidebar-mini-card">
+                <h5><i class="fas fa-cloud-sun me-2"></i> Meteo locale</h5>
+                {% if weatherData %}
+                <div class="weather-content">
+                    <div class="weather-main">
+                        <img src="https://openweathermap.org/img/wn/{{ weatherData.icon }}@2x.png" alt="{{ weatherData.desc }}" class="weather-icon">
+                        <div>
+                            <div class="weather-temp">{{ weatherData.temp }}°C</div>
+                            <div class="weather-desc">{{ weatherData.desc }}</div>
+                        </div>
+                    </div>
+                    <div class="weather-details">
+                        <div class="weather-detail"><i class="fas fa-tint"></i> {{ weatherData.humidity }}%</div>
+                        <div class="weather-detail"><i class="fas fa-wind"></i> {{ weatherData.wind }} km/h</div>
+                        <div class="weather-detail"><i class="fas fa-eye"></i> {{ weatherData.visibility }} km</div>
+                    </div>
+                    <div class="weather-city"><i class="fas fa-map-marker-alt"></i> {{ weatherData.city }}</div>
+                </div>
+                {% else %}
+                <div class="weather-error"><i class="fas fa-exclamation-triangle"></i> Meteo indisponible</div>
+                {% endif %}
+            </div>
+
+            {# Map Widget (LocationIQ + Leaflet) #}
+            {% if geoData %}
+            <div class="sidebar-mini-card" style="padding-bottom:16px;">
+                <h5><i class="fas fa-map-marked-alt me-2"></i> Ma localisation</h5>
+                <div id="profileMap" class="profile-map"></div>
+                <p style="font-size:11px;color:#6b7280;margin-top:10px;text-align:center;line-height:1.4;"><i class="fas fa-map-pin" style="color:#348E38;"></i> {{ geoData.display_name }}</p>
+            </div>
+            {% else %}
+            <div class="sidebar-mini-card">
+                <h5><i class="fas fa-map-marked-alt me-2"></i> Ma localisation</h5>
+                <div class="weather-error"><i class="fas fa-map"></i> Localisation indisponible</div>
+            </div>
+            {% endif %}
+
             <div class="sidebar-mini-card">
                 <h5><i class="fas fa-chart-pie me-2"></i> Activite</h5>
                 <div class="stats-grid">
@@ -193,5 +233,26 @@
         </div>
     {% endif %}
 </div>
+
+{% if geoData is defined and geoData %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var lat = {{ geoData.lat }};
+    var lon = {{ geoData.lon }};
+    var map = L.map('profileMap', { scrollWheelZoom: false }).setView([lat, lon], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    var greenIcon = L.divIcon({
+        html: '<i class="fas fa-map-marker-alt" style="font-size:28px;color:#348E38;text-shadow:0 2px 4px rgba(0,0,0,.3);"></i>',
+        iconSize: [28, 36],
+        iconAnchor: [14, 36],
+        className: ''
+    });
+    L.marker([lat, lon], { icon: greenIcon }).addTo(map);
+    setTimeout(function() { map.invalidateSize(); }, 500);
+});
+</script>
+{% endif %}
 
 {% endblock %}

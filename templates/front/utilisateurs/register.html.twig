@@ -96,13 +96,15 @@
                     </div>
                 </div>
 
-                {# --- Email --- #}
+                {# --- Email with validation --- #}
                 <div class="field">
                     <label for="{{ form.email.vars.id }}">Adresse email</label>
-                    <div class="field-input-wrap">
+                    <div class="field-input-wrap email-validate-wrap">
                         {{ form_widget(form.email, {'attr': {'class': 'form-control'}}) }}
                         <i class="fas fa-envelope fi-icon"></i>
+                        <span class="email-status" id="emailStatus"></span>
                     </div>
+                    <div class="email-status-msg" id="emailMsg"></div>
                     <div class="field-error">{{ form_errors(form.email) }}</div>
                 </div>
 
@@ -280,6 +282,52 @@ function setRule(id, pass) {
         el.classList.remove('pw-rule-pass');
         el.querySelector('i').className = 'fas fa-circle';
     }
+}
+
+// ====== Email Validation (Abstract API) ======
+var emailTimer = null;
+var emailField = document.getElementById('{{ form.email.vars.id }}');
+if (emailField) {
+    emailField.addEventListener('blur', function() {
+        var email = this.value.trim();
+        var status = document.getElementById('emailStatus');
+        var msg = document.getElementById('emailMsg');
+        if (!email || email.indexOf('@') === -1) {
+            status.innerHTML = '';
+            msg.innerHTML = '';
+            return;
+        }
+        status.innerHTML = '<i class="fas fa-spinner fa-spin" style="color:#9ca3af;"></i>';
+        msg.innerHTML = '<span style="color:#9ca3af;">Verification en cours...</span>';
+
+        var formData = new FormData();
+        formData.append('email', email);
+
+        fetch('{{ path("api_validate_email") }}', { method: 'POST', body: formData })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === 'valid') {
+                    status.innerHTML = '<i class="fas fa-check-circle" style="color:#16a34a;"></i>';
+                    msg.innerHTML = '<span class="ev-valid"><i class="fas fa-check-circle"></i> ' + data.message + '</span>';
+                } else if (data.status === 'disposable') {
+                    status.innerHTML = '<i class="fas fa-ban" style="color:#dc2626;"></i>';
+                    msg.innerHTML = '<span class="ev-invalid"><i class="fas fa-ban"></i> ' + data.message + '</span>';
+                } else if (data.status === 'invalid') {
+                    status.innerHTML = '<i class="fas fa-times-circle" style="color:#dc2626;"></i>';
+                    msg.innerHTML = '<span class="ev-invalid"><i class="fas fa-times-circle"></i> ' + data.message + '</span>';
+                } else if (data.status === 'skip') {
+                    status.innerHTML = '';
+                    msg.innerHTML = '';
+                } else {
+                    status.innerHTML = '<i class="fas fa-question-circle" style="color:#f59e0b;"></i>';
+                    msg.innerHTML = '<span class="ev-warning"><i class="fas fa-question-circle"></i> ' + data.message + '</span>';
+                }
+            })
+            .catch(function() {
+                status.innerHTML = '';
+                msg.innerHTML = '';
+            });
+    });
 }
 </script>
 </body>
