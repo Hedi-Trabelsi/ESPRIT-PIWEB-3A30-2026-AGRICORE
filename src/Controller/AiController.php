@@ -106,4 +106,60 @@ class AiController extends AbstractController
 
         return new JsonResponse(['success' => true]);
     }
+
+    #[Route('/back/ai/chat-sentiment/{id}', name: 'back_ai_chat_sentiment', methods: ['GET'])]
+    public function chatSentiment(int $id, EntityManagerInterface $em): JsonResponse
+    {
+        $messages = $em->getRepository(\App\Entity\Messages::class)
+            ->createQueryBuilder('m')
+            ->where('m.event_id = :eid')
+            ->setParameter('eid', $id)
+            ->orderBy('m.timestamp', 'ASC')
+            ->getQuery()->getResult();
+
+        if (empty($messages)) {
+            return new JsonResponse(['status' => 'empty', 'summary' => 'Aucun message dans ce chat.', 'bad' => [], 'good' => []]);
+        }
+
+        $textMessages = [];
+        foreach ($messages as $msg) {
+            $c = $msg->getContent();
+            if (!str_starts_with($c, '[AUDIO')) $textMessages[] = $c;
+        }
+
+        if (empty($textMessages)) {
+            return new JsonResponse(['status' => 'empty', 'summary' => 'Uniquement des messages vocaux.', 'bad' => [], 'good' => []]);
+        }
+
+        $chatText = implode("\n", array_map(fn($i, $m) => ($i+1).'. '.$m, array_keys($textMessages), $textMessages));
+
+        $prompt = "Tu es un modérateur de chat pour une plateforme agricole. "
+            . "Analyse ces messages et réponds UNIQUEMENT en JSON valide :\n"
+            . "{\"sentiment\":\"positive\" ou \"negative\" ou \"mixed\","
+            . "\"summary\":\"résumé en 2 phrases\","
+            . "\"bad_messages\":[messages problématiques, vide si aucun],"
+            . "\"good_messages\":[3 meilleurs messages positifs, vide si aucun]}\n\n"
+            . "Messages:\n" . $chatText;
+
+        try {
+            $response = $this->httpClient->request('POST', 'https://text.pollinations.ai/', [
+                'headers' => ['Content-Type' => 'application/json'],
+                'json'    => ['messages' => [['role' => 'user', 'content' => $prompt]], 'model' => 'openai', 'seed' => 1],
+                'timeout' => 30,
+            ]);
+            $raw = trim($response->getContent());
+            if (preg_match('/\{.*\}/s', $raw, $m)) $raw = $m[0];
+            $data = json_decode($raw, true);
+            if (!$data || !isset($data['sentiment'])) throw new \Exception('Invalid JSON');
+
+            return new JsonResponse([
+                'status'  => $data['sentiment'],
+                'summary' => $data['summary'] ?? '',
+                'bad'     => $data['bad_messages'] ?? [],
+                'good'    => $data['good_messages'] ?? [],
+            ]);
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 500);
+        }
+    }
 }

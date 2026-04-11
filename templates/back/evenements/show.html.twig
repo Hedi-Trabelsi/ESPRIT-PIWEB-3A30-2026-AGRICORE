@@ -239,6 +239,27 @@
                     <div class="bg-white p-4 rounded-4 border text-muted shadow-sm" style="line-height: 1.8;">
                         {{ evenement.description|nl2br }}
                     </div>
+
+                    {# ── AI Chat Sentiment ── #}
+                    <div class="mt-5">
+                        <div class="d-flex align-items-center justify-content-between mb-3 px-2">
+                            <h5 class="fw-bold mb-0">
+                                <i class="fas fa-robot me-2 text-purple" style="color:#8b5cf6;"></i>
+                                Analyse IA du Chat
+                            </h5>
+                            <button id="sentimentBtn" onclick="loadSentiment()"
+                                style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:10px 22px;font-weight:700;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:8px;">
+                                <i class="fas fa-magic"></i> Analyser le chat
+                            </button>
+                        </div>
+                        <div id="sentimentPanel" style="display:none;">
+                            <div id="sentimentLoading" style="display:none;text-align:center;padding:30px;">
+                                <div style="width:40px;height:40px;border:4px solid #f1f5f9;border-top-color:#8b5cf6;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;"></div>
+                                <p style="color:#64748b;font-size:.85rem;font-weight:600;">Analyse en cours...</p>
+                            </div>
+                            <div id="sentimentResult"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="col-lg-5">
@@ -268,8 +289,7 @@
             <div class="mt-5 pt-4 border-top d-flex justify-content-between align-items-center">
                 <a href="{{ path('back_evenements_list') }}" class="btn btn-light rounded-pill px-4 fw-bold">
                     <i class="fas fa-arrow-left me-2"></i>Retour au Dashboard
-                </a>
-                <div class="text-muted small fw-medium">
+                </a>                <div class="text-muted small fw-medium">
                     <i class="fas fa-history me-1"></i> Dernière modification : {{ "now"|date('H:i') }}
                 </div>
             </div>
@@ -316,4 +336,82 @@
             });
     });
 </script>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+.sentiment-card { border-radius: 20px; padding: 24px; margin-bottom: 16px; }
+.sentiment-positive { background: linear-gradient(135deg,#f0fdf4,#dcfce7); border: 1px solid #86efac; }
+.sentiment-negative { background: linear-gradient(135deg,#fef2f2,#fee2e2); border: 1px solid #fca5a5; }
+.sentiment-mixed    { background: linear-gradient(135deg,#fffbeb,#fef3c7); border: 1px solid #fde68a; }
+.sentiment-empty    { background: #f8fafc; border: 1px solid #e2e8f0; }
+.sentiment-face { font-size: 3.5rem; line-height: 1; margin-bottom: 8px; }
+.bad-msg-item { background: #fff; border-left: 3px solid #dc2626; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: .83rem; color: #1e293b; }
+.good-msg-item { background: #fff; border-left: 3px solid #16a34a; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: .83rem; color: #1e293b; }
+</style>
+
+<script>
+async function loadSentiment() {
+    const btn    = document.getElementById('sentimentBtn');
+    const panel  = document.getElementById('sentimentPanel');
+    const loading= document.getElementById('sentimentLoading');
+    const result = document.getElementById('sentimentResult');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse...';
+    panel.style.display = 'block';
+    loading.style.display = 'block';
+    result.innerHTML = '';
+
+    try {
+        const res  = await fetch('{{ path('back_ai_chat_sentiment', {id: evenement.id_ev}) }}');
+        const data = await res.json();
+        loading.style.display = 'none';
+
+        if (data.error) {
+            result.innerHTML = `<div class="sentiment-card sentiment-empty"><p style="color:#dc2626;">❌ ${data.error}</p></div>`;
+            return;
+        }
+
+        const isPos  = data.status === 'positive';
+        const isNeg  = data.status === 'negative';
+        const isEmpty= data.status === 'empty';
+        const face   = isEmpty ? '💬' : isPos ? '😊' : isNeg ? '😢' : '😐';
+        const cls    = isEmpty ? 'sentiment-empty' : isPos ? 'sentiment-positive' : isNeg ? 'sentiment-negative' : 'sentiment-mixed';
+        const label  = isEmpty ? 'Chat vide' : isPos ? 'Ambiance positive' : isNeg ? 'Contenu problématique détecté' : 'Ambiance mitigée';
+        const labelColor = isNeg ? '#dc2626' : isPos ? '#16a34a' : '#b45309';
+
+        let html = `
+            <div class="sentiment-card ${cls}">
+                <div class="sentiment-face">${face}</div>
+                <div style="font-weight:800;font-size:1.1rem;color:${labelColor};margin-bottom:8px;">${label}</div>
+                <p style="font-size:.88rem;color:#475569;margin:0;">${data.summary}</p>
+            </div>`;
+
+        if (data.bad && data.bad.length > 0) {
+            html += `<h6 style="font-weight:800;color:#dc2626;margin-bottom:10px;"><i class="fas fa-exclamation-triangle me-2"></i>Messages problématiques (${data.bad.length})</h6>`;
+            data.bad.forEach(m => { html += `<div class="bad-msg-item"><i class="fas fa-times-circle me-2" style="color:#dc2626;"></i>${escapeHtml(m)}</div>`; });
+        }
+
+        if (data.good && data.good.length > 0) {
+            html += `<h6 style="font-weight:800;color:#16a34a;margin:16px 0 10px;"><i class="fas fa-thumbs-up me-2"></i>Messages positifs</h6>`;
+            data.good.forEach(m => { html += `<div class="good-msg-item"><i class="fas fa-check-circle me-2" style="color:#16a34a;"></i>${escapeHtml(m)}</div>`; });
+        }
+
+        result.innerHTML = html;
+    } catch(e) {
+        loading.style.display = 'none';
+        result.innerHTML = `<div class="sentiment-card sentiment-empty"><p style="color:#dc2626;">❌ Erreur réseau.</p></div>`;
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-magic"></i> Analyser le chat';
+}
+
+function escapeHtml(t) {
+    const d = document.createElement('div');
+    d.appendChild(document.createTextNode(t));
+    return d.innerHTML;
+}
+</script>
+
 {% endblock %}
