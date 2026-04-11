@@ -20,11 +20,17 @@ class TacheController extends AbstractController
     {
         $tache = new Tache();
 
-        
-        $technicien = $em->getRepository(User::class)->find(4);
-        if ($technicien) {
-            $tache->setIdTechnicien($technicien);
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser instanceof User) {
+            return $this->redirectToRoute('front_login');
         }
+
+        $technicien = $em->getRepository(User::class)->find($sessionUser->getId());
+        if (!$technicien) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        $tache->setIdTechnicien($technicien);
 
       
         if ($id_maintenance) {
