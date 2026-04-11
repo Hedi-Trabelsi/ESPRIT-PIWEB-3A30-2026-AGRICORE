@@ -1141,3 +1141,141 @@
 .pw-rule-pass i {
     font-size: 11px;
 }
+
+/* ====== FORGOT PASSWORD - STEP INDICATOR ====== */
+
+.fp-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 28px;
+}
+
+.fp-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.fp-step span {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.fp-step-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    transition: all .3s;
+}
+
+.fp-step-active .fp-step-circle {
+    background: #348E38;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(52,142,56,.3);
+}
+
+.fp-step-active span {
+    color: #348E38;
+}
+
+.fp-step-done .fp-step-circle {
+    background: #0F4229;
+    color: #fff;
+}
+
+.fp-step-done span {
+    color: #0F4229;
+}
+
+.fp-step-line {
+    width: 40px;
+    height: 2px;
+    background: #e5e7eb;
+    margin: 0 8px;
+    margin-bottom: 22px;
+    transition: background .3s;
+}
+
+.fp-step-line-active {
+    background: #0F4229;
+}
+
+/* QR Code Container */
+.fp-qr-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.fp-qr-wrap #qrcode {
+    padding: 14px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    border: 2px solid #e8f5e9;
+    display: inline-block;
+}
+
+/* Instructions */
+.fp-instructions {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 24px 0;
+    counter-reset: fp-counter;
+}
+
+.fp-instructions li {
+    counter-increment: fp-counter;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.5;
+}
+
+.fp-instructions li::before {
+    content: counter(fp-counter);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #f0fdf4;
+    color: #348E38;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+/* TOTP Code Input */
+.fp-code-input {
+    text-align: center !important;
+    font-size: 24px !important;
+    letter-spacing: 8px !important;
+    font-weight: 700 !important;
+    font-family: 'Courier New', monospace !important;
+    padding-left: 44px !important;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .fp-step span { display: none; }
+    .fp-step-line { width: 24px; margin-bottom: 0; }
+    .fp-code-input { font-size: 20px !important; letter-spacing: 5px !important; }
+}

@@ -6,6 +6,8 @@ use App\Entity\User;
 use App\Form\UserType;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use OTPHP\TOTP;
+use ParagonIE\ConstantTime\Base32;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -324,10 +326,141 @@ class UtilisateurController extends AbstractController
         ]);
     }
 
-    // ===================== FORGOT PASSWORD =====================
-    #[Route('/utilisateurs/mot-de-passe-oublie', name: 'front_forgot_password')]
-    public function forgotPassword(): Response
+    // ===================== FORGOT PASSWORD (Google Authenticator TOTP) =====================
+    #[Route('/utilisateurs/mot-de-passe-oublie', name: 'front_forgot_password', methods: ['GET', 'POST'])]
+    public function forgotPassword(Request $request, UserRepository $userRepo, EntityManagerInterface $em): Response
     {
-        return $this->render('front/utilisateurs/forgot_password.html.twig');
+        $session = $request->getSession();
+        $step = $request->request->get('step', $request->query->get('step', 'email'));
+
+        // === STEP 1: EMAIL ===
+        if ($step === 'email') {
+            if ($request->isMethod('POST')) {
+                $email = trim($request->request->get('email', ''));
+                $user = $userRepo->findOneBy(['email' => $email]);
+
+                if (!$user) {
+                    $this->addFlash('error', 'Aucun compte trouve avec cet email.');
+                    return $this->render('front/utilisateurs/forgot_password.html.twig', ['step' => 'email']);
+                }
+
+                if ($user->isBanned()) {
+                    $this->addFlash('error', 'Ce compte est banni. Contactez l\'administrateur.');
+                    return $this->render('front/utilisateurs/forgot_password.html.twig', ['step' => 'email']);
+                }
+
+                // Derive deterministic TOTP secret from email + APP_SECRET
+                $raw = hash('sha256', $email . $this->getParameter('app_secret'), true);
+                $base32Secret = Base32::encodeUpper(substr($raw, 0, 20));
+
+                $totp = TOTP::createFromSecret($base32Secret);
+                $totp->setLabel($email);
+                $totp->setIssuer('Agricore');
+                $totp->setPeriod(30);
+                $totp->setDigits(6);
+
+                $session->set('fp_user_id', $user->getId());
+                $session->set('fp_secret', $base32Secret);
+                $session->remove('fp_verified');
+
+                return $this->render('front/utilisateurs/forgot_password.html.twig', [
+                    'step' => 'verify',
+                    'provisioningUri' => $totp->getProvisioningUri(),
+                    'userEmail' => $email,
+                ]);
+            }
+            return $this->render('front/utilisateurs/forgot_password.html.twig', ['step' => 'email']);
+        }
+
+        // === STEP 2: VERIFY TOTP CODE ===
+        if ($step === 'verify') {
+            $userId = $session->get('fp_user_id');
+            $secret = $session->get('fp_secret');
+            if (!$userId || !$secret) {
+                return $this->redirectToRoute('front_forgot_password');
+            }
+
+            $totp = TOTP::createFromSecret($secret);
+            $totp->setIssuer('Agricore');
+            $totp->setPeriod(30);
+            $totp->setDigits(6);
+
+            $user = $userRepo->find($userId);
+
+            if ($request->isMethod('POST')) {
+                $code = trim($request->request->get('totp_code', ''));
+
+                if ($totp->verify($code, null, 1)) {
+                    $session->set('fp_verified', true);
+                    return $this->render('front/utilisateurs/forgot_password.html.twig', ['step' => 'reset']);
+                }
+
+                $this->addFlash('error', 'Code incorrect ou expire. Veuillez reessayer.');
+            }
+
+            $totp->setLabel($user ? $user->getEmail() : '');
+
+            return $this->render('front/utilisateurs/forgot_password.html.twig', [
+                'step' => 'verify',
+                'provisioningUri' => $totp->getProvisioningUri(),
+                'userEmail' => $user ? $user->getEmail() : '',
+            ]);
+        }
+
+        // === STEP 3: RESET PASSWORD ===
+        if ($step === 'reset') {
+            if (!$session->get('fp_verified')) {
+                return $this->redirectToRoute('front_forgot_password');
+            }
+
+            if ($request->isMethod('POST')) {
+                $password = $request->request->get('password', '');
+                $passwordConfirm = $request->request->get('password_confirm', '');
+
+                $errors = [];
+                if ($password !== $passwordConfirm) {
+                    $errors[] = 'Les mots de passe ne correspondent pas.';
+                }
+                if (strlen($password) < 6) {
+                    $errors[] = 'Le mot de passe doit contenir au moins 6 caracteres.';
+                }
+                if (!preg_match('/[a-z]/', $password)) {
+                    $errors[] = 'Le mot de passe doit contenir une lettre minuscule.';
+                }
+                if (!preg_match('/[A-Z]/', $password)) {
+                    $errors[] = 'Le mot de passe doit contenir une lettre majuscule.';
+                }
+                if (!preg_match('/[0-9]/', $password)) {
+                    $errors[] = 'Le mot de passe doit contenir un chiffre.';
+                }
+
+                if (!empty($errors)) {
+                    foreach ($errors as $err) {
+                        $this->addFlash('error', $err);
+                    }
+                    return $this->render('front/utilisateurs/forgot_password.html.twig', ['step' => 'reset']);
+                }
+
+                $user = $userRepo->find($session->get('fp_user_id'));
+                if (!$user) {
+                    $this->addFlash('error', 'Utilisateur introuvable.');
+                    return $this->redirectToRoute('front_forgot_password');
+                }
+
+                $user->setPassword(password_hash($password, PASSWORD_BCRYPT));
+                $em->flush();
+
+                $session->remove('fp_user_id');
+                $session->remove('fp_secret');
+                $session->remove('fp_verified');
+
+                $this->addFlash('success', 'Mot de passe reinitialise avec succes ! Connectez-vous avec votre nouveau mot de passe.');
+                return $this->redirectToRoute('front_login');
+            }
+
+            return $this->render('front/utilisateurs/forgot_password.html.twig', ['step' => 'reset']);
+        }
+
+        return $this->redirectToRoute('front_forgot_password');
     }
 }
