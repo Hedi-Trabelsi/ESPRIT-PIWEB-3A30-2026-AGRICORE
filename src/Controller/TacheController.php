@@ -9,10 +9,12 @@ use App\Form\TacheType;
 use App\Repository\MaintenanceRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Repository\TacheRepository;
+use App\Service\TaskDescriptionAiService;
 class TacheController extends AbstractController
 {
     #[Route('/tache/nouvelle/{id_maintenance}', name: 'app_tache_new', defaults: ['id_maintenance' => null])]
@@ -64,9 +66,59 @@ class TacheController extends AbstractController
 
         return $this->render('front/maintenance/new_tache.html.twig', [
             'form' => $form->createView(),
+            'maintenanceId' => $id_maintenance,
         ]);
     }
 
+ #[Route('/tache/generer-description', name: 'app_tache_generate_description', methods: ['POST'])]
+public function generateDescription(
+    Request $request,
+    MaintenanceRepository $maintenanceRepository,
+    TaskDescriptionAiService $taskDescriptionAiService,
+    EntityManagerInterface $em
+): JsonResponse {
+
+    $userId = $request->getSession()->get('user')?->getId();
+    $sessionUser = $userId
+        ? $em->getRepository(User::class)->find($userId)
+        : null;
+
+    if (!$sessionUser) {
+        return new JsonResponse(['error' => 'Session invalide'], Response::HTTP_UNAUTHORIZED);
+    }
+
+    $payload = json_decode($request->getContent(), true) ?? [];
+
+    $maintenanceId = (int)($payload['id_maintenance'] ?? 0);
+    $taskName = trim($payload['nomTache'] ?? '');
+
+    if ($maintenanceId <= 0) {
+        return new JsonResponse(['error' => 'Maintenance ID invalide'], Response::HTTP_BAD_REQUEST);
+    }
+
+    $maintenance = $maintenanceRepository->find($maintenanceId);
+
+    if (!$maintenance) {
+        return new JsonResponse(['error' => 'Maintenance introuvable'], Response::HTTP_NOT_FOUND);
+    }
+
+    try {
+        $description = $taskDescriptionAiService->generateForMaintenance(
+            $maintenance,
+            $taskName,
+            $sessionUser
+        );
+
+        return new JsonResponse([
+            'description' => $description
+        ]);
+
+    } catch (\Throwable $e) {
+        return new JsonResponse([
+            'error' => $e->getMessage()
+        ], Response::HTTP_INTERNAL_SERVER_ERROR);
+    }
+}
     #[Route('/tache/modifier/{id_tache}', name: 'app_tache_edit')]
     public function edit(Tache $tache, Request $request, EntityManagerInterface $em): Response
     {

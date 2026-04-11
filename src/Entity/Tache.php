@@ -20,7 +20,10 @@ class Tache
     // Ajout de name: "date_prevue" pour être sûr
     #[ORM\Column(name: "date_prevue", type: "date")]
     #[Assert\NotBlank(message: "La date prévue est obligatoire.")]
-    #[Assert\GreaterThanOrEqual("today", message: "La date ne peut pas être antérieure à aujourd'hui.")]
+   #[Assert\GreaterThanOrEqual(
+    value: "today",
+    message: "La date ne peut pas être antérieure à aujourd'hui."
+)]
     private ?\DateTimeInterface $date_prevue = null;
 
     #[ORM\Column(type: "text")]
