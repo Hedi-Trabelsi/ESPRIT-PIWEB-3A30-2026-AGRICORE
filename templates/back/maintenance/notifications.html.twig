@@ -4,7 +4,18 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold mb-0">Notifications</h4>
-      
+        <div class="d-flex gap-2">
+            {% if unreadCount > 0 %}
+                <span class="badge bg-danger">{{ unreadCount }} non lue(s)</span>
+            {% else %}
+                <span class="badge bg-success">Tout est lu</span>
+            {% endif %}
+            {% if pendingCount > 0 %}
+                <form method="post" action="{{ path('app_maintenance_notification_mark_all_read_back') }}">
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Tout marquer comme lu</button>
+                </form>
+            {% endif %}
+        </div>
     </div>
 
     <div class="card shadow-sm border-0" style="border-radius: 15px;">
@@ -13,17 +24,22 @@
                 {% for notif in notifications %}
                     <div class="list-group-item list-group-item-action p-3 border-bottom">
                         <div class="d-flex align-items-center">
-                            <div class="bg-light-primary rounded-circle p-2 me-3">
+                            <div class="bg-light-primary rounded-circle p-2 me-3" style="min-width: 40px; text-align: center;">
                                 <i class="ti ti-alert-circle text-primary fs-6"></i>
                             </div>
                             <div class="flex-grow-1">
-                                <h6 class="mb-1 fw-semibold">Nouvelle demande : {{ notif.nomMaintenance }}</h6>
+                                <h6 class="mb-1 fw-semibold">
+                                    Nouvelle demande : {{ notif.nomMaintenance }}
+                                    {% if notif.id_maintenance in readNotificationIds %}
+                                        <span class="text-muted small">(lu)</span>
+                                    {% else %}
+                                        <span class="text-danger small">(non lu)</span>
+                                    {% endif %}
+                                </h6>
                                 <p class="mb-0 text-muted small">L'équipement <strong>{{ notif.Equipement }}</strong> nécessite une intervention (Priorité : {{ notif.Priorite }}).</p>
                                 <small class="text-primary">{{ notif.dateDeclaration|date('d/m/Y') }}</small>
                             </div>
-                            <a href="{{ path('app_maintenance_detail_back', {'id_maintenance': notif.id_maintenance}) }}" class="btn btn-sm btn-light">
-                                Voir
-                            </a>
+                            <a href="{{ path('app_maintenance_detail_back', {'id_maintenance': notif.id_maintenance}) }}" class="btn btn-sm btn-light">Voir</a>
                         </div>
                     </div>
                 {% else %}

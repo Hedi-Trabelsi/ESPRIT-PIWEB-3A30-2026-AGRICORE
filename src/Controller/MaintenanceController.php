@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Maintenance;
+use App\Entity\Tache;
 use App\Form\MaintenanceType;
 use App\Entity\User;
 use App\Repository\MaintenanceRepository;
@@ -128,7 +129,10 @@ public function deleteBack(Request $request, Maintenance $maintenance, EntityMan
 }
 
 #[Route('/back/maintenance', name: 'app_maintenance_back_list', priority: 2)]
-public function backList(Request $request, MaintenanceRepository $repo): Response
+public function backList(
+    Request $request,
+    MaintenanceRepository $repo
+): Response
 {
     $search = $request->query->get('q');
     $status = $request->query->get('s');
@@ -136,15 +140,35 @@ public function backList(Request $request, MaintenanceRepository $repo): Respons
 
    
     $maintenances = $repo->findByFilters($search, $status, $priority);
+    $pendingNotifications = $repo->findBy(['statut' => 'En attente'], ['date_declaration' => 'DESC']);
+    $readNotificationIds = $this->getReadNotificationIds($request);
+    $unreadNotifications = array_values(array_filter(
+        $pendingNotifications,
+        static fn (Maintenance $maintenance): bool => !in_array((int) $maintenance->getId_maintenance(), $readNotificationIds, true)
+    ));
+
+    $pendingCount = count($pendingNotifications);
+    $unreadCount = count($unreadNotifications);
 
     return $this->render('back/maintenance/maintenance.html.twig', [
         'maintenances' => $maintenances,
+        'pendingNotifications' => $pendingNotifications,
+        'readNotificationIds' => $readNotificationIds,
+        'pendingCount' => $pendingCount,
+        'unreadCount' => $unreadCount,
     ]);
 }
 
 #[Route('/back/maintenance/detail/{id_maintenance}', name: 'app_maintenance_detail_back')]
-public function showBack(Maintenance $maintenance): Response 
+public function showBack(Maintenance $maintenance, Request $request): Response 
 {
+    $readIds = $this->getReadNotificationIds($request);
+    $maintenanceId = (int) $maintenance->getId_maintenance();
+    if (!in_array($maintenanceId, $readIds, true)) {
+        $readIds[] = $maintenanceId;
+        $this->saveReadNotificationIds($request, $readIds);
+    }
+
    
     return $this->render('back/maintenance/show.html.twig', [
         'maintenance' => $maintenance,
@@ -193,17 +217,44 @@ public function statsBack(MaintenanceRepository $repo): Response
     ]);
 }
 #[Route('/back/maintenance/notifications', name: 'app_maintenance_notifications_back')]
-public function notifications(MaintenanceRepository $repo): Response
+public function notifications(
+    Request $request,
+    MaintenanceRepository $repo
+): Response
 {
-   
-    $enAttente = $repo->findBy(
-        ['statut' => 'En attente'], 
-        ['date_declaration' => 'DESC'] 
-    );
+    $pendingNotifications = $repo->findBy(['statut' => 'En attente'], ['date_declaration' => 'DESC']);
+    $readNotificationIds = $this->getReadNotificationIds($request);
+    $unreadCount = count(array_filter(
+        $pendingNotifications,
+        static fn (Maintenance $maintenance): bool => !in_array((int) $maintenance->getId_maintenance(), $readNotificationIds, true)
+    ));
 
     return $this->render('back/maintenance/notifications.html.twig', [
-        'notifications' => $enAttente,
+        'notifications' => $pendingNotifications,
+        'readNotificationIds' => $readNotificationIds,
+        'pendingCount' => count($pendingNotifications),
+        'unreadCount' => $unreadCount,
     ]);
+}
+
+#[Route('/back/maintenance/notifications/mark-read/{id_maintenance}', name: 'app_maintenance_notification_mark_read_back', methods: ['POST'])]
+public function markNotificationReadBack(int $id_maintenance, Request $request): Response
+{
+    $readIds = $this->getReadNotificationIds($request);
+    $readIds[] = (int) $id_maintenance;
+    $this->saveReadNotificationIds($request, $readIds);
+
+    return $this->redirectToRoute('app_maintenance_notifications_back');
+}
+
+#[Route('/back/maintenance/notifications/mark-all-read', name: 'app_maintenance_notification_mark_all_read_back', methods: ['POST'])]
+public function markAllNotificationsReadBack(Request $request, MaintenanceRepository $repo): Response
+{
+    $pendingNotifications = $repo->findBy(['statut' => 'En attente'], ['date_declaration' => 'DESC']);
+    $ids = array_map(static fn (Maintenance $maintenance): int => (int) $maintenance->getId_maintenance(), $pendingNotifications);
+    $this->saveReadNotificationIds($request, $ids);
+
+    return $this->redirectToRoute('app_maintenance_notifications_back');
 }
 #[Route('/back/maintenance/refuser/{id_maintenance}', name: 'app_maintenance_refuse_back', methods: ['POST'])]
 public function refuseBack(Maintenance $maintenance, EntityManagerInterface $em): Response
@@ -233,5 +284,47 @@ public function evaluer(Tache $tache, int $note, EntityManagerInterface $em) {
     return $this->redirectToRoute('app_maintenance_show', ['id' => $tache->getMaintenance()->getId()]);
 }
 
+/**
+ * @return int[]
+ */
+private function getReadNotificationIds(Request $request): array
+{
+    $session = $request->getSession();
+    $userSuffix = $this->resolveSessionUserKey($request);
+    $key = 'maintenance_notifications_read_' . $userSuffix;
+    $ids = $session->get($key, []);
+
+    if (!is_array($ids)) {
+        return [];
+    }
+
+    return array_values(array_unique(array_map('intval', $ids)));
+}
+
+/**
+ * @param int[] $ids
+ */
+private function saveReadNotificationIds(Request $request, array $ids): void
+{
+    $session = $request->getSession();
+    $userSuffix = $this->resolveSessionUserKey($request);
+    $key = 'maintenance_notifications_read_' . $userSuffix;
+    $session->set($key, array_values(array_unique(array_map('intval', $ids))));
+}
+
+private function resolveSessionUserKey(Request $request): string
+{
+    $sessionUser = $request->getSession()->get('user');
+
+    if (is_object($sessionUser) && method_exists($sessionUser, 'getId')) {
+        return (string) $sessionUser->getId();
+    }
+
+    if (is_scalar($sessionUser)) {
+        return (string) $sessionUser;
+    }
+
+    return 'anonymous';
+}
 
 }
