@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Maintenance;
 use App\Form\MaintenanceType;
+use App\Entity\User;
 use App\Repository\MaintenanceRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -40,27 +41,50 @@ public function index(Request $request, MaintenanceRepository $repo): Response
         ]);
     }
 
-    #[Route('/maintenance/ajouter', name: 'app_maintenance_add')]
-    public function add(Request $request, EntityManagerInterface $em): Response
-    {
-        $maintenance = new Maintenance();
-        $maintenance->setDateDeclaration(new \DateTime());
-        $maintenance->setStatut('En attente'); 
+ #[Route('/maintenance/ajouter', name: 'app_maintenance_add')]
+public function add(Request $request, EntityManagerInterface $em): Response
+{
+    // 1. On récupère ce qu'il y a en session
+    $sessionUser = $request->getSession()->get('user');
 
-        $form = $this->createForm(MaintenanceType::class, $maintenance);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $em->persist($maintenance);
-            $em->flush();
-            return $this->redirectToRoute('app_maintenance');
-        }
-
-        return $this->render('front/maintenance/new.html.twig', [
-            'form' => $form->createView(),
-        ]);
+    // 2. On vérifie si on a quelque chose (soit l'objet, soit l'ID)
+    // On ne fait plus de "instanceof User" ici car c'est cela qui cause la redirection
+    if (!$sessionUser) {
+        return $this->redirectToRoute('front_login');
     }
 
+    // 3. On récupère l'ID (que ce soit un objet ou un entier)
+    $userId = (is_object($sessionUser)) ? $sessionUser->getId() : $sessionUser;
+
+    // 4. On recharge l'utilisateur "frais" depuis la base de données
+    $agriculteur = $em->getRepository(User::class)->find($userId);
+    
+    if (!$agriculteur) {
+        return $this->redirectToRoute('front_login');
+    }
+
+    // 5. Initialisation de la maintenance
+    $maintenance = new Maintenance();
+    $maintenance->setDateDeclaration(new \DateTime());
+    $maintenance->setStatut('En attente');
+    
+    // Affectation de l'agriculteur connecté
+    $maintenance->setId_agriculteur($agriculteur);
+
+    $form = $this->createForm(MaintenanceType::class, $maintenance);
+    $form->handleRequest($request);
+
+    if ($form->isSubmitted() && $form->isValid()) {
+        $em->persist($maintenance);
+        $em->flush();
+        
+        return $this->redirectToRoute('app_maintenance');
+    }
+
+    return $this->render('front/maintenance/new.html.twig', [
+        'form' => $form->createView(),
+    ]);
+}
     #[Route('/maintenance/modifier/{id_maintenance}', name: 'app_maintenance_edit')]
     public function edit(Maintenance $maintenance, Request $request, EntityManagerInterface $em): Response
     {
