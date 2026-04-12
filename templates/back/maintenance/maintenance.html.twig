@@ -251,6 +251,30 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
+    const badge = bell.querySelector('.notification');
+    if (badge) {
+        {% if unreadCount > 0 %}
+        badge.textContent = '{{ unreadCount }}';
+        Object.assign(badge.style, {
+            position: 'absolute',
+            top: '-5px',
+            right: '-5px',
+            width: '18px',
+            height: '18px',
+            backgroundColor: '#fa896b',
+            color: 'white',
+            fontSize: '10px',
+            fontWeight: 'bold',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+        });
+        {% else %}
+        badge.style.display = 'none';
+        {% endif %}
+    }
+
     bell.style.cursor = 'pointer';
     bell.addEventListener('click', function (event) {
         event.preventDefault();
