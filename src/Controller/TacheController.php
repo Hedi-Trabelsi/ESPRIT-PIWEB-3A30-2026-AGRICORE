@@ -14,61 +14,75 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Repository\TacheRepository;
+use App\Service\MaintenancePlanningMailer;
 use App\Service\TaskDescriptionAiService;
 class TacheController extends AbstractController
 {
     #[Route('/tache/nouvelle/{id_maintenance}', name: 'app_tache_new', defaults: ['id_maintenance' => null])]
-    public function new(Request $request, EntityManagerInterface $em, MaintenanceRepository $maintenanceRepository, ?int $id_maintenance = null): Response
-    {
-        $tache = new Tache();
+public function new(
+    Request $request,
+    EntityManagerInterface $em,
+    MaintenanceRepository $maintenanceRepository,
+    MaintenancePlanningMailer $maintenancePlanningMailer,
+    ?int $id_maintenance = null
+): Response
+{
+    $tache = new Tache();
 
-        $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser instanceof User) {
-            return $this->redirectToRoute('front_login');
+    // Vérification de la session utilisateur
+    $sessionUser = $request->getSession()->get('user');
+    if (!$sessionUser instanceof User) {
+        return $this->redirectToRoute('front_login');
+    }
+
+    $technicien = $em->getRepository(User::class)->find($sessionUser->getId());
+    if (!$technicien) {
+        return $this->redirectToRoute('front_login');
+    }
+
+    $tache->setIdTechnicien($technicien);
+
+    // Liaison avec la maintenance si présente
+    if ($id_maintenance) {
+        $maintenance = $maintenanceRepository->find($id_maintenance);
+        if ($maintenance) {
+            $tache->setIdMaintenance($maintenance);
+        }
+    }
+
+    $tache->setDatePrevue(new \DateTime()); 
+    $tache->setEvaluation(0);
+
+    $form = $this->createForm(TacheType::class, $tache);
+    $form->handleRequest($request);
+
+    if ($form->isSubmitted() && $form->isValid()) {
+        $maintenance = $tache->getIdMaintenance();
+        if ($maintenance && $maintenance->getStatut() !== 'Planifiée' && $maintenance->getStatut() !== 'Résolue') {
+            $maintenance->setStatut('Planifiée');
         }
 
-        $technicien = $em->getRepository(User::class)->find($sessionUser->getId());
-        if (!$technicien) {
-            return $this->redirectToRoute('front_login');
+        $em->persist($tache);
+        $em->flush();
+
+        // Envoi du mail et message de retour utilisateur
+        try {
+            $maintenancePlanningMailer->sendPlanningNotification($tache);
+           
+        } catch (\Throwable $e) {
+            $this->addFlash('warning', 'La tâche est enregistrée, mais l\'email n\'a pas pu être envoyé.');
         }
 
-        $tache->setIdTechnicien($technicien);
-
-      
-        if ($id_maintenance) {
-            $maintenance = $maintenanceRepository->find($id_maintenance);
-            if ($maintenance) {
-                $tache->setIdMaintenance($maintenance);
-            }
-        }
-
-      
-        $tache->setDatePrevue(new \DateTime()); 
-        
-        $tache->setEvaluation(0);
-
-        $form = $this->createForm(TacheType::class, $tache);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $maintenance = $tache->getIdMaintenance();
-            if ($maintenance && $maintenance->getStatut() !== 'Planifiée' && $maintenance->getStatut() !== 'Résolue') {
-                $maintenance->setStatut('Planifiée');
-            }
-
-            $em->persist($tache);
-            $em->flush();
-
-            return $this->redirectToRoute('app_maintenance_taches', [
-                'id_maintenance' => $maintenance ? $maintenance->getId_maintenance() : null,
-            ]);
-        }
-
-        return $this->render('front/maintenance/new_tache.html.twig', [
-            'form' => $form->createView(),
-            'maintenanceId' => $id_maintenance,
+        return $this->redirectToRoute('app_maintenance_taches', [
+            'id_maintenance' => $maintenance ? $maintenance->getId_maintenance() : null,
         ]);
     }
+
+    return $this->render('front/maintenance/new_tache.html.twig', [
+        'form' => $form->createView(),
+        'maintenanceId' => $id_maintenance,
+    ]);
+}
 
  #[Route('/tache/generer-description', name: 'app_tache_generate_description', methods: ['POST'])]
 public function generateDescription(
