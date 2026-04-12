@@ -59,6 +59,18 @@
             "./config/packages/nyholm_psr7.yaml"
         ]
     },
+    "php-http/discovery": {
+        "version": "1.20",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "1.18",
+            "ref": "f45b5dd173a27873ab19f5e3180b2f661c21de02"
+        },
+        "files": [
+            "./config/packages/http_discovery.yaml"
+        ]
+    },
     "phpunit/phpunit": {
         "version": "11.5",
         "recipe": {
@@ -328,5 +340,14 @@
     },
     "twig/extra-bundle": {
         "version": "v3.24.0"
+    },
+    "willdurand/geocoder-bundle": {
+        "version": "6.0",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "5.0",
+            "ref": "b272ad4fbfcd45a20e7cbfdc4ad1b0e27a62fd3b"
+        }
     }
 }

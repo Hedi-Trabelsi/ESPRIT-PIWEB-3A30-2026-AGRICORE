@@ -72,6 +72,26 @@
         color: #0F4229;
         font-weight: 600;
     }
+
+    .distance-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #0F4229;
+        background: #E9F7EF;
+        border: 1px solid #CFE9DB;
+    }
+
+    .distance-chip.muted {
+        color: #6c757d;
+        background: #f8f9fa;
+        border-color: #eaecef;
+    }
 </style>
 
 <div class="container mt-5">
@@ -91,6 +111,8 @@
                         {# Affichage de la priorité #}
                        
                         <h5 class="card-title-custom">{{ m.nomMaintenance }}</h5>
+
+                        {% set distanceKm = maintenanceDistances[m.Id_maintenance]|default(null) %}
                         
                         {# Affichage Equipement (sans icône) et Lieu #}
                         <div class="small text-dark fw-bold mb-1">
@@ -99,6 +121,17 @@
                         <div class="small text-muted mb-2">
                             <i class="fas fa-map-marker-alt me-1"></i> {{ m.Lieu }}
                         </div>
+
+                        {% if proximityEnabled and distanceKm is not null %}
+                            <div class="distance-chip">
+                                <i class="fas fa-route"></i>
+                                {{ distanceKm|number_format(2, '.', ' ') }} km
+                            </div>
+                        {% else %}
+                            <div class="distance-chip muted">
+                                Distance indisponible
+                            </div>
+                        {% endif %}
 
                         <button type="button" class="btn-plus" data-bs-toggle="modal" data-bs-target="#detailModal{{ m.Id_maintenance }}">
                             PLUS
@@ -124,6 +157,15 @@
                                     <div class="col-md-4">
                                         <small class="text-muted d-block">Localisation</small>
                                         <span class="detail-value">{{ m.Lieu }}</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Distance estimée</small>
+                                        {% set detailDistanceKm = maintenanceDistances[m.Id_maintenance]|default(null) %}
+                                        {% if proximityEnabled and detailDistanceKm is not null %}
+                                            <span class="detail-value">{{ detailDistanceKm|number_format(2, '.', ' ') }} km</span>
+                                        {% else %}
+                                            <span class="text-muted">Indisponible</span>
+                                        {% endif %}
                                     </div>
                                     <div class="col-md-4">
                                         <small class="text-muted d-block">Priorité</small>

@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use App\Service\MaintenanceProximityService;
 use App\Repository\MaintenanceRepository;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -58,12 +59,26 @@ class HomeController extends AbstractController
     }
 
     #[Route('/maintenance/traiter', name: 'app_maintenance_traiter')]
-    public function maintenanceATraiter(MaintenanceRepository $maintenanceRepository): Response
+    public function maintenanceATraiter(
+        Request $request,
+        MaintenanceRepository $maintenanceRepository,
+        MaintenanceProximityService $proximityService
+    ): Response
     {
         $maintenances = $maintenanceRepository->findBy(['statut' => 'En attente']);
+
+        $sessionUser = $request->getSession()->get('user');
+        $technicianAddress = null;
+        if (is_object($sessionUser) && method_exists($sessionUser, 'getAdresse')) {
+            $technicianAddress = (string) $sessionUser->getAdresse();
+        }
+
+        $proximityResult = $proximityService->sortByRoadDistance($maintenances, $technicianAddress);
         
         return $this->render('front/maintenance/interventions_a_traiter.html.twig', [
-            'listeMaintenances' => $maintenances,
+            'listeMaintenances' => $proximityResult['maintenances'],
+            'maintenanceDistances' => $proximityResult['distances'],
+            'proximityEnabled' => $proximityResult['enabled'],
         ]);
     }
 
