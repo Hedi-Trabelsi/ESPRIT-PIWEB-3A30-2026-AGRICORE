@@ -38,6 +38,9 @@
     "jbafford/password-strength-bundle": {
         "version": "dev-master"
     },
+    "knplabs/knp-paginator-bundle": {
+        "version": "v6.10.0"
+    },
     "meteo-concept/hcaptcha-bundle": {
         "version": "4.5",
         "recipe": {

@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
 use App\Repository\AnimalRepository;
+use Knp\Component\Pager\PaginatorInterface;
 
 class HomeController extends AbstractController
 {
@@ -62,7 +63,8 @@ class HomeController extends AbstractController
     public function maintenanceATraiter(
         Request $request,
         MaintenanceRepository $maintenanceRepository,
-        MaintenanceProximityService $proximityService
+        MaintenanceProximityService $proximityService,
+        PaginatorInterface $paginator
     ): Response
     {
         $maintenances = $maintenanceRepository->findBy(['statut' => 'En attente']);
@@ -74,9 +76,14 @@ class HomeController extends AbstractController
         }
 
         $proximityResult = $proximityService->sortByRoadDistance($maintenances, $technicianAddress);
+        $pagination = $paginator->paginate(
+            $proximityResult['maintenances'],
+            $request->query->getInt('page', 1),
+            6
+        );
         
         return $this->render('front/maintenance/interventions_a_traiter.html.twig', [
-            'listeMaintenances' => $proximityResult['maintenances'],
+            'listeMaintenances' => $pagination,
             'maintenanceDistances' => $proximityResult['distances'],
             'proximityEnabled' => $proximityResult['enabled'],
         ]);

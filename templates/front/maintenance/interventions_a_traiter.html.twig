@@ -92,6 +92,35 @@
         background: #f8f9fa;
         border-color: #eaecef;
     }
+
+    .pagination {
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .pagination .page-item .page-link {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0 !important;
+        border: 1px solid #d7e6dd;
+        color: #0F4229;
+        background: #fff;
+        font-weight: 700;
+        box-shadow: 0 2px 6px rgba(15, 66, 41, 0.06);
+    }
+
+    .pagination .page-item.active .page-link {
+        background: #0F4229;
+        color: #fff;
+        border-color: #0F4229;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        opacity: 0.5;
+    }
 </style>
 
 <div class="container mt-5">
@@ -200,6 +229,39 @@
                 </div>
             {% endfor %}
         </div>
+
+      <div class="d-flex justify-content-center mt-4">
+    <nav aria-label="Pagination">
+        <ul class="pagination">
+            {# Bouton Précédent (avec flèche, masqué si on est à la page 1) #}
+            {% if listeMaintenances.pageCount > 1 and listeMaintenances.currentPageNumber > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ path(app.request.attributes.get('_route'), app.request.query.all|merge({'page': listeMaintenances.currentPageNumber - 1})) }}">
+                        &laquo;
+                    </a>
+                </li>
+            {% endif %}
+
+            {# Numéros de pages #}
+            {% for page in 1..listeMaintenances.pageCount %}
+                <li class="page-item {{ page == listeMaintenances.currentPageNumber ? 'active' : '' }}">
+                    <a class="page-link" href="{{ path(app.request.attributes.get('_route'), app.request.query.all|merge({'page': page})) }}">
+                        {{ page }}
+                    </a>
+                </li>
+            {% endfor %}
+
+            {# Bouton Suivant (avec flèche, masqué si on est à la dernière page) #}
+            {% if listeMaintenances.pageCount > 1 and listeMaintenances.currentPageNumber < listeMaintenances.pageCount %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ path(app.request.attributes.get('_route'), app.request.query.all|merge({'page': listeMaintenances.currentPageNumber + 1})) }}">
+                        &raquo;
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
     {% endif %}
 </div>
 {% endblock %}
