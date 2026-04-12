@@ -344,9 +344,35 @@
 .sentiment-negative { background: linear-gradient(135deg,#fef2f2,#fee2e2); border: 1px solid #fca5a5; }
 .sentiment-mixed    { background: linear-gradient(135deg,#fffbeb,#fef3c7); border: 1px solid #fde68a; }
 .sentiment-empty    { background: #f8fafc; border: 1px solid #e2e8f0; }
-.sentiment-face { font-size: 3.5rem; line-height: 1; margin-bottom: 8px; }
 .bad-msg-item { background: #fff; border-left: 3px solid #dc2626; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: .83rem; color: #1e293b; }
 .good-msg-item { background: #fff; border-left: 3px solid #16a34a; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: .83rem; color: #1e293b; }
+
+/* ── Animated CSS Faces ── */
+.css-face { width:80px;height:80px;border-radius:50%;position:relative;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;flex-direction:column; }
+.face-happy { background:linear-gradient(135deg,#fde68a,#fbbf24);box-shadow:0 8px 24px rgba(251,191,36,.4);animation:bounce 1.2s ease-in-out infinite; }
+.face-happy .eyes,.face-sad .eyes,.face-mixed .eyes,.face-empty .eyes { display:flex;gap:14px;margin-bottom:8px; }
+.face-happy .eye { width:10px;height:10px;background:#78350f;border-radius:50%;animation:blink 3s ease-in-out infinite; }
+.face-happy .mouth { width:30px;height:15px;border-bottom:4px solid #78350f;border-radius:0 0 30px 30px; }
+.face-sad { background:linear-gradient(135deg,#bfdbfe,#93c5fd);box-shadow:0 8px 24px rgba(147,197,253,.5);animation:wobble 1.5s ease-in-out infinite; }
+.face-sad .eye { width:10px;height:10px;background:#1e3a5f;border-radius:50%;position:relative; }
+.face-sad .eye::after { content:'';position:absolute;bottom:-6px;left:3px;width:4px;height:0;background:#60a5fa;border-radius:0 0 4px 4px;animation:drip 2s ease-in-out infinite; }
+.face-sad .mouth { width:28px;height:14px;border-top:4px solid #1e3a5f;border-radius:30px 30px 0 0;margin-top:4px; }
+.face-mixed { background:linear-gradient(135deg,#d9f99d,#bef264);box-shadow:0 8px 24px rgba(190,242,100,.4);animation:tilt 2s ease-in-out infinite; }
+.face-mixed .eye { width:10px;height:10px;background:#365314;border-radius:50%; }
+.face-mixed .eye.left { animation:lookLeft 2s ease-in-out infinite; }
+.face-mixed .eye.right { animation:lookRight 2s ease-in-out infinite; }
+.face-mixed .mouth { width:28px;height:4px;background:#365314;border-radius:4px; }
+.face-empty { background:linear-gradient(135deg,#e2e8f0,#cbd5e1);box-shadow:0 8px 24px rgba(0,0,0,.08);animation:float 3s ease-in-out infinite; }
+.face-empty .eye { width:10px;height:3px;background:#475569;border-radius:4px; }
+.face-empty .mouth { width:20px;height:3px;background:#475569;border-radius:4px; }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes blink { 0%,90%,100%{transform:scaleY(1)} 95%{transform:scaleY(0.1)} }
+@keyframes wobble { 0%,100%{transform:rotate(-3deg)} 50%{transform:rotate(3deg)} }
+@keyframes drip { 0%,40%{height:0;opacity:0} 70%{height:10px;opacity:1} 100%{height:0;opacity:0} }
+@keyframes tilt { 0%,100%{transform:rotate(-5deg)} 50%{transform:rotate(5deg)} }
+@keyframes lookLeft { 0%,100%{transform:translateX(-2px)} 50%{transform:translateX(2px)} }
+@keyframes lookRight { 0%,100%{transform:translateX(2px)} 50%{transform:translateX(-2px)} }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
 </style>
 
 <script>
@@ -375,16 +401,24 @@ async function loadSentiment() {
         const isPos  = data.status === 'positive';
         const isNeg  = data.status === 'negative';
         const isEmpty= data.status === 'empty';
-        const face   = isEmpty ? '💬' : isPos ? '😊' : isNeg ? '😢' : '😐';
+
+        const faceHtml = isEmpty
+            ? `<div class="css-face face-empty"><div class="eyes"><div class="eye"></div><div class="eye"></div></div><div class="mouth"></div></div>`
+            : isPos
+            ? `<div class="css-face face-happy"><div class="eyes"><div class="eye"></div><div class="eye"></div></div><div class="mouth"></div></div>`
+            : isNeg
+            ? `<div class="css-face face-sad"><div class="eyes"><div class="eye"></div><div class="eye"></div></div><div class="mouth"></div></div>`
+            : `<div class="css-face face-mixed"><div class="eyes"><div class="eye left"></div><div class="eye right"></div></div><div class="mouth"></div></div>`;
+
         const cls    = isEmpty ? 'sentiment-empty' : isPos ? 'sentiment-positive' : isNeg ? 'sentiment-negative' : 'sentiment-mixed';
         const label  = isEmpty ? 'Chat vide' : isPos ? 'Ambiance positive' : isNeg ? 'Contenu problématique détecté' : 'Ambiance mitigée';
         const labelColor = isNeg ? '#dc2626' : isPos ? '#16a34a' : '#b45309';
 
         let html = `
-            <div class="sentiment-card ${cls}">
-                <div class="sentiment-face">${face}</div>
+            <div class="sentiment-card ${cls}" style="text-align:center;">
+                ${faceHtml}
                 <div style="font-weight:800;font-size:1.1rem;color:${labelColor};margin-bottom:8px;">${label}</div>
-                <p style="font-size:.88rem;color:#475569;margin:0;">${data.summary}</p>
+                <p style="font-size:.88rem;color:#475569;margin:0;text-align:left;">${data.summary}</p>
             </div>`;
 
         if (data.bad && data.bad.length > 0) {
