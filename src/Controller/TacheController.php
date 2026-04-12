@@ -16,6 +16,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use App\Repository\TacheRepository;
 use App\Service\MaintenancePlanningMailer;
 use App\Service\TaskDescriptionAiService;
+use App\Service\TwilioSmsApiService;
 class TacheController extends AbstractController
 {
     #[Route('/tache/nouvelle/{id_maintenance}', name: 'app_tache_new', defaults: ['id_maintenance' => null])]
@@ -24,6 +25,7 @@ public function new(
     EntityManagerInterface $em,
     MaintenanceRepository $maintenanceRepository,
     MaintenancePlanningMailer $maintenancePlanningMailer,
+    TwilioSmsApiService $twilioSmsApiService,
     ?int $id_maintenance = null
 ): Response
 {
@@ -71,6 +73,12 @@ public function new(
            
         } catch (\Throwable $e) {
             $this->addFlash('warning', 'La tâche est enregistrée, mais l\'email n\'a pas pu être envoyé.');
+        }
+
+        try {
+            $twilioSmsApiService->sendTaskPlannedSms($tache);
+        } catch (\Throwable) {
+            $this->addFlash('warning', 'La tâche est enregistrée, mais le SMS Twilio n\'a pas pu être envoyé.');
         }
 
         return $this->redirectToRoute('app_maintenance_taches', [
