@@ -134,6 +134,7 @@ public function backList(
     MaintenanceRepository $repo
 ): Response
 {
+    $this->cleanReadNotificationIds($request, $repo);
     $search = $request->query->get('q');
     $status = $request->query->get('s');
     $priority = $request->query->get('p'); 
@@ -222,7 +223,11 @@ public function notifications(
     MaintenanceRepository $repo
 ): Response
 {
-    $pendingNotifications = $repo->findBy(['statut' => 'En attente'], ['date_declaration' => 'DESC']);
+   
+$pendingNotifications = $repo->findBy(
+    ['statut' => 'En attente'], 
+    ['date_declaration' => 'DESC', 'id_maintenance' => 'DESC']
+);
     $readNotificationIds = $this->getReadNotificationIds($request);
     $unreadCount = count(array_filter(
         $pendingNotifications,
@@ -325,6 +330,17 @@ private function resolveSessionUserKey(Request $request): string
     }
 
     return 'anonymous';
+}
+ private function cleanReadNotificationIds(Request $request, MaintenanceRepository $repo): void
+{
+    $allPending = $repo->findBy(['statut' => 'En attente']);
+    $currentPendingIds = array_map(fn($m) => (int)$m->getId_maintenance(), $allPending);
+    
+    $readIds = $this->getReadNotificationIds($request);
+    // On ne garde que les IDs qui sont toujours en attente
+    $validReadIds = array_values(array_intersect($readIds, $currentPendingIds));
+    
+    $this->saveReadNotificationIds($request, $validReadIds);
 }
 
 }
