@@ -79,6 +79,7 @@
 
     /* Carte de la liste */
     .custom-card {
+        position: relative;
         background-color: #ffffff;
         border: 1px solid #f0f0f0;
         border-radius: 0 70px 0 70px;
@@ -141,6 +142,18 @@
         color: #fff;
     }
 
+    .status-badge-front {
+        position: absolute;
+        top: 20px;
+        right: 40px;
+        font-size: 0.7rem;
+        padding: 3px 10px;
+        border-radius: 15px;
+        margin-top: 0;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
     .btn-outline-gray {
         border: 1px solid #6c757d;
         color: #6c757d;
@@ -196,6 +209,19 @@
             {% for m in listeMaintenances %}
                 <div class="col-lg-3 col-md-6 maintenance-item">
                     <div class="custom-card shadow-sm">
+                        {# Affichage du statut en haut à droite #}
+                        {% set statusClass = 'bg-secondary text-white' %}
+                        {% if m.Statut == 'En attente' %}
+                            {% set statusClass = 'bg-warning text-dark' %}
+                        {% elseif m.Statut == 'Planifiée' %}
+                            {% set statusClass = 'bg-info text-white' %}
+                        {% elseif m.Statut in ['Résolue', 'Résolu'] %}
+                            {% set statusClass = 'bg-success text-white' %}
+                        {% elseif m.Statut in ['Refusée', 'Refusé'] %}
+                            {% set statusClass = 'bg-danger text-white' %}
+                        {% endif %}
+                        <span class="status-badge-front {{ statusClass }}">{{ m.Statut }}</span>
+
                         <h5 class="card-title-custom">{{ m.nomMaintenance }}</h5>
                         <div class="card-info-val text-muted small">{{ m.Equipement }}</div>
                         <div class="card-lieu-val small text-muted">
