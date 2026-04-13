@@ -93,9 +93,37 @@
 
             </form>
 
+            <div class="oauth-divider">
+                <span>OU</span>
+            </div>
+
+            <div class="oauth-buttons">
+                <a href="{{ path('oauth_connect', {provider: 'google'}) }}" class="oauth-btn oauth-btn-google" title="Se connecter avec Google">
+                    <i class="fab fa-google"></i> Google
+                </a>
+                <a href="{{ path('oauth_connect', {provider: 'facebook'}) }}" class="oauth-btn oauth-btn-facebook" title="Se connecter avec Facebook">
+                    <i class="fab fa-facebook-f"></i> Facebook
+                </a>
+                <a href="{{ path('oauth_connect', {provider: 'github'}) }}" class="oauth-btn oauth-btn-github" title="Se connecter avec GitHub">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+            </div>
+
             <div class="auth-footer-link">
                 Pas encore inscrit ? <a href="{{ path('front_register') }}">Creer un compte</a>
             </div>
+
+            <style>
+                .oauth-divider { display: flex; align-items: center; margin: 20px 0; color: #888; font-size: 13px; }
+                .oauth-divider::before, .oauth-divider::after { content: ""; flex: 1; height: 1px; background: #e0e0e0; }
+                .oauth-divider span { padding: 0 12px; }
+                .oauth-buttons { display: flex; gap: 10px; margin-bottom: 18px; }
+                .oauth-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 6px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; border: 1px solid #e0e0e0; transition: all .2s; color: #333; background: #fff; }
+                .oauth-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,.08); }
+                .oauth-btn-google:hover { color: #DB4437; border-color: #DB4437; }
+                .oauth-btn-facebook:hover { color: #fff; background: #1877F2; border-color: #1877F2; }
+                .oauth-btn-github:hover { color: #fff; background: #24292e; border-color: #24292e; }
+            </style>
 
         </div>
     </div>

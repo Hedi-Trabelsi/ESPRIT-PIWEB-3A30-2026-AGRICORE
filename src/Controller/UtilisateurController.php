@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Form\UserType;
 use App\Repository\UserRepository;
+use App\Service\IdCardService;
 use Doctrine\ORM\EntityManagerInterface;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Color\Color;
@@ -623,6 +624,131 @@ class UtilisateurController extends AbstractController
 
         return new Response($result->getString(), 200, [
             'Content-Type' => 'image/svg+xml',
+        ]);
+    }
+
+    // ===================== AI CHATBOT (Groq + Llama) =====================
+    #[Route('/api/chat', name: 'api_chat', methods: ['POST'])]
+    public function apiChat(Request $request, HttpClientInterface $httpClient): JsonResponse
+    {
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser) {
+            return new JsonResponse(['error' => 'Not authenticated'], 401);
+        }
+
+        $payload = json_decode($request->getContent(), true);
+        if (!is_array($payload)) {
+            return new JsonResponse(['error' => 'Invalid JSON'], 400);
+        }
+
+        $message = trim((string) ($payload['message'] ?? ''));
+        if ($message === '') {
+            return new JsonResponse(['error' => 'Empty message'], 400);
+        }
+        $message = mb_substr($message, 0, 500);
+
+        // Keep only last 8 history entries to bound cost/latency
+        $history = [];
+        if (isset($payload['history']) && is_array($payload['history'])) {
+            $raw = array_slice($payload['history'], -8);
+            foreach ($raw as $h) {
+                if (!isset($h['role'], $h['content'])) {
+                    continue;
+                }
+                $role = $h['role'] === 'user' ? 'user' : 'assistant';
+                $history[] = [
+                    'role'    => $role,
+                    'content' => mb_substr((string) $h['content'], 0, 1000),
+                ];
+            }
+        }
+
+        $roleLabel = match ($sessionUser->getRole()) {
+            0 => 'Administrateur',
+            1 => 'Agriculteur',
+            2 => 'Technicien',
+            default => 'Utilisateur',
+        };
+
+        $systemPrompt = "Tu es l'assistant IA d'Agricore, une plateforme de gestion agricole. "
+            . "Tu reponds toujours en francais, de maniere brève et concrète (max 3 phrases). "
+            . "Tu t'adresses a " . $sessionUser->getPrenom() . " " . $sessionUser->getNom()
+            . " (role: " . $roleLabel . "). "
+            . "Fonctionnalites d'Agricore: inscription classique ou via Google/Facebook/GitHub (OAuth), "
+            . "profil modifiable avec photo, carte d'identite PDF a telecharger depuis /profil, "
+            . "QR code vCard pour partager ses contacts, reinitialisation de mot de passe via 2FA Google Authenticator, "
+            . "export Excel des utilisateurs (admin), widget meteo local et geolocalisation sur le profil, "
+            . "gestion d'equipements, depenses, ventes, animaux, maintenance. "
+            . "Si la question sort totalement du cadre d'Agricore, invite poliment l'utilisateur a la reformuler.";
+
+        $messages = array_merge(
+            [['role' => 'system', 'content' => $systemPrompt]],
+            $history,
+            [['role' => 'user', 'content' => $message]],
+        );
+
+        $apiKey = $_ENV['GROQ_API_KEY'] ?? getenv('GROQ_API_KEY') ?: '';
+        if ($apiKey === '' || $apiKey === 'YOUR_GROQ_API_KEY') {
+            return new JsonResponse([
+                'reply' => "Desole, l'assistant IA n'est pas encore configure (cle API Groq manquante).",
+            ]);
+        }
+
+        try {
+            $response = $httpClient->request('POST', 'https://api.groq.com/openai/v1/chat/completions', [
+                'timeout' => 15,
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $apiKey,
+                    'Content-Type'  => 'application/json',
+                ],
+                'json' => [
+                    'model'       => 'llama-3.3-70b-versatile',
+                    'messages'    => $messages,
+                    'max_tokens'  => 300,
+                    'temperature' => 0.7,
+                ],
+            ]);
+
+            if ($response->getStatusCode() !== 200) {
+                return new JsonResponse([
+                    'reply' => "Desole, je suis indisponible pour le moment. Reessayez dans un instant.",
+                ]);
+            }
+
+            $data = $response->toArray(false);
+            $reply = $data['choices'][0]['message']['content'] ?? null;
+            if (!is_string($reply) || $reply === '') {
+                $reply = "Je n'ai pas pu formuler de reponse. Pouvez-vous reformuler votre question ?";
+            }
+
+            return new JsonResponse(['reply' => trim($reply)]);
+        } catch (\Throwable) {
+            return new JsonResponse([
+                'reply' => "Desole, je suis indisponible pour le moment. Reessayez dans un instant.",
+            ]);
+        }
+    }
+
+    // ===================== PDF ID CARD (Profile) =====================
+    #[Route('/profil/id-card', name: 'app_profile_id_card', methods: ['GET'])]
+    public function profileIdCard(Request $request, UserRepository $userRepo, IdCardService $idCardService): Response
+    {
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        $user = $userRepo->find($sessionUser->getId());
+        if (!$user) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        $pdfBinary = $idCardService->generate($user);
+
+        return new Response($pdfBinary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="carte_' . $user->getId() . '.pdf"',
+            'Cache-Control' => 'no-store, max-age=0',
         ]);
     }
 

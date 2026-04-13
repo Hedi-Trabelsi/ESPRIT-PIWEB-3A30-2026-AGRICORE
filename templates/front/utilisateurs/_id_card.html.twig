@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>
+    @page { margin: 0; }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: "DejaVu Sans", sans-serif;
+        background: #ffffff;
+    }
+    .card {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        background: #ffffff;
+        border: 2px solid #0F4229;
+    }
+    .header {
+        background: #0F4229;
+        color: #ffffff;
+        padding: 8px 14px;
+        height: 38px;
+    }
+    .header .title {
+        font-size: 14px;
+        font-weight: bold;
+        letter-spacing: 1px;
+        margin: 0;
+    }
+    .header .sub {
+        font-size: 9px;
+        color: #c8e6c9;
+        margin: 1px 0 0 0;
+    }
+    .body {
+        padding: 14px;
+    }
+    .photo {
+        width: 95px;
+        height: 110px;
+        border: 2px solid #0F4229;
+        background: #f4f4f4;
+        float: left;
+        text-align: center;
+        overflow: hidden;
+    }
+    .photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .photo .placeholder {
+        font-size: 60px;
+        color: #bbb;
+        line-height: 110px;
+    }
+    .info {
+        margin-left: 110px;
+        padding-top: 4px;
+    }
+    .info .label {
+        font-size: 8px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 1px;
+    }
+    .info .value {
+        font-size: 13px;
+        color: #222;
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+    .role-badge {
+        display: inline-block;
+        background: #348E38;
+        color: #fff;
+        padding: 3px 10px;
+        font-size: 10px;
+        font-weight: bold;
+        border-radius: 10px;
+        letter-spacing: 1px;
+    }
+    .footer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #f4f8f5;
+        padding: 5px 14px;
+        font-size: 8px;
+        color: #555;
+        border-top: 1px solid #e0e0e0;
+    }
+    .footer .left { float: left; }
+    .footer .right { float: right; }
+</style>
+</head>
+<body>
+    <div class="card">
+
+        <div class="header">
+            <p class="title">AGRICORE</p>
+            <p class="sub">Carte d'identite officielle</p>
+        </div>
+
+        <div class="body">
+            <div class="photo">
+                {% if image_b64 %}
+                    <img src="data:image/jpeg;base64,{{ image_b64 }}" alt="">
+                {% else %}
+                    <div class="placeholder">&#128100;</div>
+                {% endif %}
+            </div>
+
+            <div class="info">
+                <div class="label">Nom complet</div>
+                <div class="value">{{ user.prenom }} {{ user.nom|upper }}</div>
+
+                <div class="label">Role</div>
+                <div class="value">
+                    <span class="role-badge">{{ role_label|upper }}</span>
+                </div>
+
+                <div class="label">N&deg; Membre</div>
+                <div class="value">#{{ '%05d'|format(user.id) }}</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <span class="left">Emise le {{ issued_at|date('d/m/Y') }}</span>
+            <span class="right">agricore.tn</span>
+        </div>
+
+    </div>
+</body>
+</html>
