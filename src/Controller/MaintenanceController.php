@@ -22,17 +22,16 @@ public function index(Request $request, MaintenanceRepository $repo): Response
     $search = $request->query->get('q');
     $status = $request->query->get('s');
 
-    // 🔥 récupérer utilisateur depuis session
     $sessionUser = $request->getSession()->get('user');
 
     if (!$sessionUser) {
         return $this->redirectToRoute('front_login');
     }
 
-    // 🔹 récupérer ID
+    
     $userId = is_object($sessionUser) ? $sessionUser->getId() : $sessionUser;
 
-    // 🔥 IMPORTANT : passer userId au lieu de null
+    
     $maintenances = $repo->findByFilters($search, $status, $userId);
 
     return $this->render('front/maintenance/maintenance.html.twig', [

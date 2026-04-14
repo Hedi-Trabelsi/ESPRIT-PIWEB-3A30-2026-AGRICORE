@@ -89,20 +89,35 @@ class HomeController extends AbstractController
         ]);
     }
 
-    #[Route('/maintenance/planifiee', name: 'app_maintenance_planifiee')]
-    public function maintenancePlanifiee(MaintenanceRepository $maintenanceRepository): Response
-    {
-        $maintenances = $maintenanceRepository->findBy(['statut' => 'Planifiée']);
-        
-        return $this->render('front/maintenance/interventions_planifiees.html.twig', [
-            'listeMaintenances' => $maintenances,
-        ]);
-    }
+#[Route('/maintenance/planifiee', name: 'app_maintenance_planifiee')]
+public function maintenancePlanifiee(
+    MaintenanceRepository $maintenanceRepository,
+    MaintenanceProximityService $proximityService, // Injectez le service
+    Request $request // Injectez la requête pour avoir l'utilisateur
+): Response
+{
+    $maintenances = $maintenanceRepository->findBy(['statut' => 'Planifiée']);
+    
+    // Récupérer l'adresse du technicien (pour calculer la distance)
+    $sessionUser = $request->getSession()->get('user');
+    $technicianAddress = (is_object($sessionUser) && method_exists($sessionUser, 'getAdresse')) 
+        ? (string)$sessionUser->getAdresse() 
+        : null;
+
+    // Utiliser le service pour obtenir les distances
+    $proximityResult = $proximityService->sortByRoadDistance($maintenances, $technicianAddress);
+
+    return $this->render('front/maintenance/interventions_planifiees.html.twig', [
+        'listeMaintenances'    => $proximityResult['maintenances'], // Utilisez les maintenances triées
+        'maintenanceDistances' => $proximityResult['distances'],    // <--- VOICI CE QUI MANQUAIT
+        'proximityEnabled'     => $proximityResult['enabled'],      // <--- Variable de contrôle
+    ]);
+}
 
 #[Route('/maintenance/historique', name: 'app_maintenance_historique')]
     public function Hmaintenance(MaintenanceRepository $maintenanceRepository): Response
     {
-        // On essaie avec la minuscule qui est la norme Symfony
+       
         $maintenancesResolues = $maintenanceRepository->findBy(['statut' => 'Résolue']);
 
         return $this->render('front/maintenance/HistoriqueMaintenances.html.twig', [
