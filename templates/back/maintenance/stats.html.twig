@@ -1,6 +1,7 @@
 {% extends 'back/base_back.html.twig' %}
 
 {% block content %}
+
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold mb-0">Tableau de Bord Analytique</h4>
@@ -56,14 +57,67 @@
                 </div>
             </div>
         </div>
+
+     
+ <div class="col-md-6 mb-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <h5 class="card-title mb-4 fw-semibold text-center">Performance des Techniciens (Avis Négatifs)</h5>
+            {# Ajout d'une hauteur fixe de 300px pour correspondre aux autres cartes #}
+            <div style="height: 300px;">
+                <canvas id="chartTechnicians"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="col-md-6 mb-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <h5 class="card-title mb-4 fw-semibold text-center">Performance des Techniciens (Avis Positifs)</h5>
+            <div style="height: 300px;">
+                <canvas id="chartTechniciansPositive"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+
+const techData = {{ techniciansNegativeEval|json_encode|raw }};
+
+const techLabels = techData.map(t => t.prenom + ' ' + t.nom);
+const techValues = techData.map(t => t.negativeCount);
+new Chart(document.getElementById('chartTechnicians'), {
+    type: 'bar', 
+    data: {
+        labels: techLabels,
+        datasets: [{
+            label: 'Nombre d\'avis négatifs',
+            data: techValues,
+            backgroundColor: '#fa896b', 
+            borderColor: '#fa896b',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        indexAxis: 'y', 
+        responsive: true,
+        maintainAspectRatio: false, // <-- C'est cette ligne qui le force à prendre la taille du conteneur
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            x: { beginAtZero: true }
+        }
+    }
+});
     const rawData = {{ statsParJour|json_encode|raw }};
 
-    // Graphique Linéaire
+    
     new Chart(document.getElementById('chartDaily'), {
         type: 'line',
         data: {
@@ -84,7 +138,7 @@
         }
     });
 
-    // Graphique Statuts
+  
     new Chart(document.getElementById('chartStatus'), {
         type: 'doughnut',
         data: {
@@ -100,11 +154,10 @@
         }
     });
 
- // --- Graphique Priorités (Pie / Camembert) CORRIGÉ ---
 new Chart(document.getElementById('chartPriority'), {
     type: 'pie',
     data: {
-        labels: ['Urgente', 'Normale', 'Faible'], // Noms corrigés ici
+        labels: ['Urgente', 'Normale', 'Faible'], 
         datasets: [{
             data: [
                 {{ statsPriorite.Urgente }}, 
@@ -125,6 +178,26 @@ new Chart(document.getElementById('chartPriority'), {
                 position: 'bottom' // Place la légende en dessous pour plus de clarté
             }
         }
+    }
+});
+const posData = {{ techniciansPositiveEval|json_encode|raw }};
+
+new Chart(document.getElementById('chartTechniciansPositive'), {
+    type: 'bar', 
+    data: {
+        labels: posData.map(t => t.prenom + ' ' + t.nom),
+        datasets: [{
+            label: 'Nombre d\'avis positifs',
+            data: posData.map(t => t.positiveCount),
+            backgroundColor: '#13deb9', // Vert pour le positif
+            borderRadius: 5
+        }]
+    },
+    options: {
+        indexAxis: 'y', 
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
     }
 });
 </script>

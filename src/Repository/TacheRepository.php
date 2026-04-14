@@ -68,5 +68,30 @@ class TacheRepository extends ServiceEntityRepository
 
         return (int) $qb->getQuery()->getSingleScalarResult();
     }
+
+    public function getTechniciansWithNegativeEvaluations(): array
+    {
+        return $this->createQueryBuilder('t')
+            ->select('u.id, u.nom, u.prenom, COUNT(t.id_tache) as negativeCount')
+            ->innerJoin('t.id_technicien', 'u')
+            ->andWhere('t.evaluation = :negativeEval')
+            ->setParameter('negativeEval', -1)
+            ->groupBy('u.id')
+            ->orderBy('negativeCount', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
     
+    public function getTechniciansWithPositiveEvaluations(): array
+{
+    return $this->createQueryBuilder('t')
+        ->select('u.id, u.nom, u.prenom, COUNT(t.id_tache) as positiveCount')
+        ->innerJoin('t.id_technicien', 'u')
+        ->andWhere('t.evaluation = :positiveEval') // Ajustez la valeur selon votre base
+        ->setParameter('positiveEval', 1) 
+        ->groupBy('u.id')
+        ->orderBy('positiveCount', 'DESC')
+        ->getQuery()
+        ->getResult();
+}
 }
