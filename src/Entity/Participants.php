@@ -43,6 +43,12 @@ class Participants
     #[ORM\Column(type: "integer")]
     private int $entry_code;
 
+    #[ORM\Column(type: "string", length: 180, nullable: true)]
+    private ?string $email = null;
+
+    #[ORM\Column(type: "string", length: 64, nullable: true)]
+    private ?string $confirm_token = null;
+
     public function getId_participant()
     {
         return $this->id_participant;
@@ -245,4 +251,10 @@ class Participants
 
         return $this;
     }
+
+    public function getEmail(): ?string { return $this->email; }
+    public function setEmail(?string $email): static { $this->email = $email; return $this; }
+
+    public function getConfirmToken(): ?string { return $this->confirm_token; }
+    public function setConfirmToken(?string $token): static { $this->confirm_token = $token; return $this; }
 }

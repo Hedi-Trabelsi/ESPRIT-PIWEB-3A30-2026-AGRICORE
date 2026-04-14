@@ -4,6 +4,7 @@ namespace App\Form;
 
 use App\Entity\Participants;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -32,6 +33,13 @@ class ParticipantsType extends AbstractType
                         'value' => 1,
                         'message' => 'Minimum 1 place'
                     ])
+                ]
+            ])
+            ->add('email', EmailType::class, [
+                'required' => false,
+                'constraints' => [
+                    new Assert\NotBlank(['message' => "L'adresse email est obligatoire."]),
+                    new Assert\Email(['message' => "L'adresse email n'est pas valide."]),
                 ]
             ]);
     }

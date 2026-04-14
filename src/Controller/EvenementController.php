@@ -9,9 +9,12 @@ use App\Form\ParticipantsType;
 use App\Repository\EvennementagricoleRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class EvenementController extends AbstractController
 {
@@ -156,6 +159,7 @@ class EvenementController extends AbstractController
         $sessionUser = $request->getSession()->get('user');
         $dejaInscrit = false;
 
+        $participantConfirmation = 'pending';
         if ($sessionUser) {
             $existing = $em->getRepository(Participants::class)->findOneBy([
                 'evenement' => $ev,
@@ -163,6 +167,9 @@ class EvenementController extends AbstractController
             ]);
 
             $dejaInscrit = $existing !== null;
+            if ($existing) {
+                $participantConfirmation = $existing->getConfirmation();
+            }
         }
 
         $now = new \DateTime();
@@ -221,6 +228,7 @@ class EvenementController extends AbstractController
             'evenement'              => $ev,
             'placesRestantes'        => max(0, $placesRestantes),
             'dejaInscrit'            => $dejaInscrit,
+            'participantConfirmation'=> $participantConfirmation,
             'isPast'                 => $isPast,
             'form'                   => $form->createView(),
             'showParticipationModal' => $form->isSubmitted(),
@@ -228,7 +236,7 @@ class EvenementController extends AbstractController
         ]);
     }
 #[Route('/evenement/{id}/participer', name: 'app_participer', methods: ['POST'])]
-public function participer(Evennementagricole $ev, Request $request, EntityManagerInterface $em): Response
+public function participer(Evennementagricole $ev, Request $request, EntityManagerInterface $em, MailerInterface $mailer): Response
 {
     $sessionUser = $request->getSession()->get('user');
     if (!$sessionUser) {
@@ -241,24 +249,30 @@ public function participer(Evennementagricole $ev, Request $request, EntityManag
         return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
     }
 
-    // Récupération et nettoyage des données
-    $nbrPlaces = (int)$request->request->get('nbr_places', 1);
+    $nbrPlaces      = (int)$request->request->get('nbr_places', 1);
     $nomParticipant = trim($request->request->get('nom_participant'));
-    $montantPayee = $request->request->get('montant_payee', 0);
+    $emailParticipant = trim($request->request->get('email_participant', ''));
+    $montantPayee   = $request->request->get('montant_payee', 0);
 
-    // --- VÉRIFICATION CRUCIALE ---
     if (empty($nomParticipant)) {
-        $this->addFlash('error', 'Le nom du participant est obligatoire pour valider l\'inscription.');
+        $this->addFlash('error', 'Le nom du participant est obligatoire.');
         return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
     }
 
-    // Vérification de la capacité restante (sécurité côté serveur)
+    if (empty($emailParticipant) || !filter_var($emailParticipant, FILTER_VALIDATE_EMAIL)) {
+        $this->addFlash('error', 'Une adresse email valide est obligatoire.');
+        return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
+    }
+
     $totalReserved = $this->getTotalReservedPlaces($ev, $em);
     $dispo = $ev->getCapaciteMax() - $totalReserved;
     if ($nbrPlaces > $dispo) {
         $this->addFlash('error', "Désolé, il ne reste que $dispo places.");
         return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
     }
+
+    $entryCode = random_int(100000, 999999);
+    $confirmToken = bin2hex(random_bytes(32));
 
     $participant = new Participants();
     $participant->setEvenement($ev);
@@ -268,15 +282,62 @@ public function participer(Evennementagricole $ev, Request $request, EntityManag
     $participant->setMontantPayee((string)$montantPayee);
     $participant->setDateInscription(new \DateTime());
     $participant->setStatutParticipation("En attente");
-    $participant->setEntryCode(random_int(100000, 999999));
+    $participant->setEntryCode($entryCode);
     $participant->setConfirmation("pending");
+    $participant->setEmail($emailParticipant);
+    $participant->setConfirmToken($confirmToken);
 
     $em->persist($participant);
     $em->flush();
 
-    $this->addFlash('success', "Inscription réussie pour " . $ev->getTitre() . " !");
+    // Send confirmation email
+    try {
+        $html = $this->renderView('emails/inscription_confirmation.html.twig', [
+            'nom'           => $nomParticipant,
+            'evenement'     => $ev->getTitre(),
+            'date_debut'    => $ev->getDateDebut()?->format('d/m/Y H:i'),
+            'date_fin'      => $ev->getDateFin()?->format('d/m/Y H:i'),
+            'lieu'          => $ev->getLieu(),
+            'nbr_places'    => $nbrPlaces,
+            'montant'       => $montantPayee,
+            'entry_code'    => $entryCode,
+            'confirm_url'   => $this->generateUrl('app_confirmer_inscription', ['token' => $confirmToken], UrlGeneratorInterface::ABSOLUTE_URL),
+            'url'           => $this->generateUrl('app_evenement_show', ['id' => $ev->getIdEv()], UrlGeneratorInterface::ABSOLUTE_URL),
+        ]);
+
+        $email = (new Email())
+            ->from('noreply@agricore.tn')
+            ->to($emailParticipant)
+            ->subject('✅ Confirmation d\'inscription — ' . $ev->getTitre())
+            ->html($html);
+
+        $mailer->send($email);
+        $mailStatus = "Un email de confirmation a été envoyé à $emailParticipant.";
+    } catch (\Exception $e) {
+        $mailStatus = "(email non envoyé : " . $e->getMessage() . ")";
+    }
+
+    $this->addFlash('success', "Inscription réussie pour " . $ev->getTitre() . " ! " . $mailStatus);
     return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
 }
+    #[Route('/inscription/confirmer/{token}', name: 'app_confirmer_inscription')]
+    public function confirmerInscription(string $token, EntityManagerInterface $em): Response
+    {
+        $participant = $em->getRepository(Participants::class)->findOneBy(['confirm_token' => $token]);
+
+        if (!$participant) {
+            return new Response('<h2 style="font-family:sans-serif;text-align:center;margin-top:80px;color:#dc2626;">Lien invalide ou déjà utilisé.</h2>');
+        }
+
+        $participant->setConfirmation('confirmed');
+        $participant->setConfirmToken(null); // invalidate token
+        $em->flush();
+
+        $ev = $participant->getEvenement();
+        $this->addFlash('success', '✅ Votre participation à "' . $ev->getTitre() . '" est confirmée !');
+        return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
+    }
+
     #[Route('/evenement/{id}/annuler', name: 'app_annuler_inscription', methods: ['POST'])]
     public function annulerInscription(Evennementagricole $ev, Request $request, EntityManagerInterface $em): Response
     {

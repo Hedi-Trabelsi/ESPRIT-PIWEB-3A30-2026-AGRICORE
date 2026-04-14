@@ -64,6 +64,11 @@ class ChatController extends AbstractController
             return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
         }
 
+        if ($participant->getConfirmation() !== 'confirmed') {
+            $this->addFlash('error', 'Vous devez confirmer votre inscription par email avant d\'accéder au chat.');
+            return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
+        }
+
         $messages     = $em->getRepository(Messages::class)
             ->createQueryBuilder('m')
             ->where('m.event_id = :eid')->setParameter('eid', $ev->getIdEv())
@@ -131,6 +136,7 @@ class ChatController extends AbstractController
                 'evenement' => $ev, 'id_utilisateur' => $user->getId()
             ]);
             if (!$participant) return new JsonResponse(['error' => 'Non inscrit'], 403);
+            if ($participant->getConfirmation() !== 'confirmed') return new JsonResponse(['error' => 'Inscription non confirmée'], 403);
         }
 
         $audioFile = $request->files->get('audio');

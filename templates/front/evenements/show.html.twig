@@ -324,15 +324,24 @@
                         <h5 class="fw-bold mb-4 mt-2">Réserver ma place</h5>
                         
                         {% if dejaInscrit %}
-                            <div class="alert alert-success border-0 shadow-sm rounded-4 py-3 mb-4">
+                            {% if participantConfirmation == 'confirmed' %}
+                            <div class="alert border-0 shadow-sm rounded-4 py-3 mb-4" style="background:#f0fdf4;border-left:4px solid #16a34a !important;">
                                 <i class="fas fa-check-circle text-success me-2"></i>
-                                Vous participez déjà.
+                                <strong style="color:#16a34a;">Participation confirmée</strong><br>
+                                <small class="text-muted">Votre code d'entrée vous a été envoyé par email.</small>
                             </div>
                             <a href="{{ path('app_event_chat', {'id': evenement.id_ev}) }}"
                                class="btn w-100 mb-3"
                                style="background:var(--agri-green);color:white;border-radius:20px;padding:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;transition:0.4s;border:none;text-decoration:none;display:block;text-align:center;">
                                 <i class="fas fa-comments me-2"></i> Chat des participants
                             </a>
+                            {% else %}
+                            <div class="alert border-0 shadow-sm rounded-4 py-3 mb-4" style="background:#fffbeb;border-left:4px solid #f59e0b !important;">
+                                <i class="fas fa-clock me-2" style="color:#f59e0b;"></i>
+                                <strong style="color:#b45309;">En attente de confirmation</strong><br>
+                                <small class="text-muted">Vérifiez votre email et cliquez sur le lien de confirmation pour accéder au chat.</small>
+                            </div>
+                            {% endif %}
                             <button type="button" class="btn w-100 mb-3"
                                 style="background:#dc2626;color:white;border-radius:20px;padding:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;transition:0.4s;border:none;"
                                 onclick="openCancelModal()">
@@ -402,32 +411,28 @@
         <h4><i class="fas fa-ticket-alt me-2" style="color:var(--agri-green)"></i> Inscription</h4>
         <p>Remplissez vos informations pour participer à <strong>{{ evenement.titre }}</strong></p>
 
-        {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+        <form method="post" action="{{ path('app_participer', {'id': evenement.id_ev}) }}">
             <div class="particip-field">
-                {{ form_label(form.nom_participant, 'Votre nom complet') }}
+                <label>Votre nom complet</label>
                 <div style="display:flex;gap:8px;align-items:center;">
-                    {{ form_widget(form.nom_participant, {
-                        'attr': {
-                            'class': 'particip-field-input',
-                            'placeholder': 'Entrez votre nom ou dictez-le',
-                            'value': app.session.get('user').prenom ~ ' ' ~ app.session.get('user').nom
-                        }
-                    }) }}
+                    <input type="text" name="nom_participant" value="{{ app.session.get('user').prenom ~ ' ' ~ app.session.get('user').nom }}" placeholder="Entrez votre nom" required>
                     <button type="button" id="sttBtn" title="Dicter votre nom"
                         style="width:42px;height:42px;flex-shrink:0;border:none;border-radius:12px;background:#f0fdf4;color:#16a34a;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:.2s;">
                         <i class="fas fa-microphone"></i>
                     </button>
                 </div>
-                <div class="text-danger small">{{ form_errors(form.nom_participant) }}</div>
             </div>
             <div class="particip-field">
-                {{ form_label(form.nbr_places, 'Nombre de places (max ' ~ placesRestantes ~ ')') }}
-                {{ form_widget(form.nbr_places, {
-                    'attr': {
-                        'class': 'particip-field-input'
-                    }
-                }) }}
-                <div class="text-danger small">{{ form_errors(form.nbr_places) }}</div>
+                <label>Adresse email <span style="color:#dc2626;">*</span></label>
+                <input type="email" name="email_participant" placeholder="votre@email.com" required
+                    style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:14px;font-size:14px;transition:.2s;background:#f8fafc;"
+                    onfocus="this.style.borderColor='#16a34a';this.style.background='#fff'"
+                    onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc'">
+                <small style="color:#94a3b8;font-size:.72rem;margin-top:4px;display:block;"><i class="fas fa-lock me-1"></i>Un email de confirmation sera envoyé à cette adresse.</small>
+            </div>
+            <div class="particip-field">
+                <label>Nombre de places (max {{ placesRestantes }})</label>
+                <input type="number" name="nbr_places" value="1" min="1" max="{{ placesRestantes }}" required>
             </div>
 
             <div class="mb-4 p-3 rounded-4 bg-light border d-flex justify-content-between align-items-center">
@@ -435,12 +440,12 @@
                 <span class="h5 mb-0 fw-black text-success" id="display_total">0.00 DT</span>
             </div>
 
-            <div class="text-danger small mb-3">{{ form_errors(form) }}</div>
+            <input type="hidden" name="montant_payee" id="montant_payee_hidden" value="0">
 
             <button type="submit" class="particip-submit">
                 <i class="fas fa-check-circle me-2"></i> Confirmer mon inscription
             </button>
-        {{ form_end(form) }}
+        </form>
     </div>
 </div>
 {% endif %}
@@ -466,8 +471,9 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         // --- LOGIQUE DE CALCUL DU MONTANT ---
-        const nbrPlacesInput = document.getElementById('{{ form.nbr_places.vars.id }}');
+        const nbrPlacesInput = document.querySelector('input[name="nbr_places"]');
         const displayTotal = document.getElementById('display_total');
+        const montantHidden = document.getElementById('montant_payee_hidden');
         const prixUnitaire = parseFloat("{{ evenement.frais_inscription }}") || 0;
 
         function updatePrice() {
@@ -475,6 +481,7 @@
                 let qty = parseInt(nbrPlacesInput.value) || 0;
                 let total = (qty * prixUnitaire).toFixed(2);
                 if (displayTotal) displayTotal.innerText = total + " DT";
+                if (montantHidden) montantHidden.value = total;
             }
         }
 
@@ -543,8 +550,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) { btn.style.display = 'none'; return; }
 
-    const inputId = '{{ form.nom_participant.vars.id }}';
-    const input = document.getElementById(inputId);
+    const input = document.querySelector('input[name="nom_participant"]');
     if (!input) return;
 
     // Build confirm bar and insert right after the input wrapper div
