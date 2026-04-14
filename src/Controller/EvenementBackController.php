@@ -70,6 +70,34 @@ class EvenementBackController extends AbstractController
     }
 
     // =========================
+    // PARTICIPANTS MANAGEMENT
+    // =========================
+    #[Route('/back/evenements/{id}/participants', name: 'back_evenements_participants', requirements: ['id' => '\\d+'])]
+    public function participants(Evennementagricole $event, ParticipantsRepository $participantsRepo): Response
+    {
+        $participants = $participantsRepo->findBy(['evenement' => $event]);
+        return $this->render('back/evenements/participants.html.twig', [
+            'evenement'    => $event,
+            'participants' => $participants,
+        ]);
+    }
+
+    // =========================
+    // MARK ATTENDED
+    // =========================
+    #[Route('/back/participants/{id}/attend', name: 'back_participant_attend', methods: ['POST'])]
+    public function markAttended(int $id, EntityManagerInterface $em): \Symfony\Component\HttpFoundation\JsonResponse
+    {
+        $participant = $em->getRepository(\App\Entity\Participants::class)->find($id);
+        if (!$participant) {
+            return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Not found'], 404);
+        }
+        $participant->setConfirmation('attended');
+        $em->flush();
+        return new \Symfony\Component\HttpFoundation\JsonResponse(['success' => true]);
+    }
+
+    // =========================
     // SHOW
     // =========================
     #[Route('/back/evenements/{id}', name: 'back_evenements_show', requirements: ['id' => '\\d+'])]
