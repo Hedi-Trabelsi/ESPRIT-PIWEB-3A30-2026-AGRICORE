@@ -86,7 +86,7 @@
 
 {# ── AI Tools Cards ── #}
 <style>
-.ai-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;}
+.ai-tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:.8rem;margin-bottom:1.5rem;}
 .ai-tile{
   display:flex;align-items:center;gap:14px;
   padding:16px 20px;border-radius:16px;
@@ -137,6 +137,22 @@
     <div class="ai-tile-text">
       <p class="ai-tile-name">Météo & Analyse IA</p>
       <p class="ai-tile-desc">Impact météo sur votre cheptel en temps réel</p>
+    </div>
+    <i class="fas fa-arrow-right ai-tile-arrow"></i>
+  </a>
+  <a href="{{ path('app_recommandation_alimentaire') }}" class="ai-tile" style="background:linear-gradient(135deg,#1b4332,#2d6a4f,#e65100);border-color:rgba(255,204,2,.3);">
+    <span class="ai-tile-icon">🥗</span>
+    <div class="ai-tile-text">
+      <p class="ai-tile-name">Recommandation Alimentaire</p>
+      <p class="ai-tile-desc">Plan nutritionnel personnalisé par espèce</p>
+    </div>
+    <i class="fas fa-arrow-right ai-tile-arrow"></i>
+  </a>
+  <a href="{{ path('app_notifications_animal') }}" class="ai-tile" style="background:linear-gradient(135deg,#7f0000,#c62828,#e65100);border-color:rgba(255,100,100,.3);">
+    <span class="ai-tile-icon">🔔</span>
+    <div class="ai-tile-text">
+      <p class="ai-tile-name">Alertes & Notifications</p>
+      <p class="ai-tile-desc">Détection anomalies vitales + notifications desktop</p>
     </div>
     <i class="fas fa-arrow-right ai-tile-arrow"></i>
   </a>
