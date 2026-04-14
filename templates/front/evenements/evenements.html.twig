@@ -630,6 +630,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btnCal.classList.add('active'); btnGrid.classList.remove('active');
         gridView.style.display = 'none'; calView.style.display = '';
         if (!calInit) { initCalendar(); calInit = true; }
+        else { calendar.updateSize(); }
     });
 
     function initCalendar() {
@@ -638,7 +639,7 @@ document.addEventListener('DOMContentLoaded', function() {
             initialView: 'dayGridMonth', locale: 'fr', height: 'auto',
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listMonth' },
             buttonText: { today: "Aujourd'hui", month: 'Mois', week: 'Semaine', list: 'Liste' },
-            events: { url: '/fc-load-events', method: 'POST', extraParams: { filters: JSON.stringify({}) } },
+            events: { url: '/fc-load-events', method: 'GET', extraParams: { filters: JSON.stringify({}) } },
             eventClick(info) { info.jsEvent.preventDefault(); window.location.href = info.event.url; },
             eventMouseEnter(info) {
                 removeTooltip();

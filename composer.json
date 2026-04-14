@@ -47,6 +47,7 @@
         "symfony/web-link": "6.4.*",
         "symfony/yaml": "6.4.*",
         "symfonycasts/reset-password-bundle": "*",
+        "tattali/calendar-bundle": "*",
         "twig/extra-bundle": "^2.12|^3.0",
         "twig/twig": "^2.12|^3.0"
     },
@@ -95,7 +96,7 @@
     },
     "extra": {
         "symfony": {
-            "allow-contrib": false,
+            "allow-contrib": true,
             "require": "6.4.*"
         }
     },

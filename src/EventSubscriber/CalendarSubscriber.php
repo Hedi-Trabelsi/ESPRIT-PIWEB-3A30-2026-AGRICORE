@@ -4,8 +4,9 @@ namespace App\EventSubscriber;
 
 use App\Entity\Evennementagricole;
 use App\Entity\Participants;
+use CalendarBundle\CalendarEvents;
 use CalendarBundle\Entity\Event;
-use CalendarBundle\Event\SetDataEvent;
+use CalendarBundle\Event\CalendarEvent;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Routing\RouterInterface;
@@ -20,14 +21,14 @@ class CalendarSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            SetDataEvent::class => 'onCalendarSetData',
+            CalendarEvents::SET_DATA => 'onCalendarSetData',
         ];
     }
 
-    public function onCalendarSetData(SetDataEvent $setDataEvent): void
+    public function onCalendarSetData(CalendarEvent $calendarEvent): void
     {
-        $start = $setDataEvent->getStart();
-        $end   = $setDataEvent->getEnd();
+        $start = $calendarEvent->getStart();
+        $end   = $calendarEvent->getEnd();
 
         $evenements = $this->em->getRepository(Evennementagricole::class)
             ->createQueryBuilder('e')
@@ -75,7 +76,7 @@ class CalendarSubscriber implements EventSubscriberInterface
                 ],
             ]);
 
-            $setDataEvent->addEvent($event);
+            $calendarEvent->addEvent($event);
         }
     }
 }
