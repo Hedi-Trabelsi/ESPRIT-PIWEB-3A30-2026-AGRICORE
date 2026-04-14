@@ -62,11 +62,13 @@ class EvenementController extends AbstractController
 
         $qb = $repo->createQueryBuilder('e');
 
+        // Always exclude past events on front
+        $qb->andWhere('e.date_fin >= :now')->setParameter('now', $now);
+
         // Status filter
         match($filter) {
             'EN_COURS'   => $qb->andWhere('e.date_debut <= :now AND e.date_fin >= :now')->setParameter('now', $now),
             'COMING'     => $qb->andWhere('e.date_debut > :now')->setParameter('now', $now),
-            'HISTORIQUE' => $qb->andWhere('e.date_fin < :now')->setParameter('now', $now),
             default      => null,
         };
 
@@ -136,13 +138,34 @@ class EvenementController extends AbstractController
             ];
         }
 
+        // Past events the logged-in user participated in
+        $mesEvenementsPassés = [];
+        $sessionUser = $request->getSession()->get('user');
+        if ($sessionUser) {
+            $participations = $em->getRepository(Participants::class)->findBy([
+                'id_utilisateur' => $sessionUser->getId()
+            ]);
+            foreach ($participations as $p) {
+                $ev = $p->getEvenement();
+                if ($ev && $ev->getDateFin() < $now) {
+                    $mesEvenementsPassés[] = [
+                        'evenement'   => $ev,
+                        'nbr_places'  => $p->getNbrPlaces(),
+                        'entry_code'  => $p->getEntryCode(),
+                        'confirmation'=> $p->getConfirmation(),
+                    ];
+                }
+            }
+        }
+
         return $this->render('front/evenements/evenements.html.twig', [
-            'evenements' => $data,
-            'filter'     => $filter,
-            'search'     => $search,
-            'dateFrom'   => $dateFrom,
-            'sortPrice'  => $sortPrice,
-            'budgetMax'  => (int)$budgetMax,
+            'evenements'          => $data,
+            'filter'              => $filter,
+            'search'              => $search,
+            'dateFrom'            => $dateFrom,
+            'sortPrice'           => $sortPrice,
+            'budgetMax'           => (int)$budgetMax,
+            'mesEvenementsPassés' => $mesEvenementsPassés,
         ]);
     }
 

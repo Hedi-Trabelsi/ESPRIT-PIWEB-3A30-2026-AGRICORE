@@ -120,22 +120,30 @@
         </div>
     </div>
 
+    <form method="get" action="{{ path('back_evenements_list') }}" id="filterForm">
     <div class="control-panel shadow-sm">
         <div class="row g-3 align-items-center">
             <div class="col-md-4">
                 <div class="input-group bg-white rounded-pill px-3 shadow-sm" style="border: 1px solid #e2e8f0;">
                     <span class="input-group-text bg-transparent border-0 text-muted"><i class="fas fa-search"></i></span>
-                    <input type="text" id="liveSearch" class="form-control border-0 shadow-none" placeholder="Rechercher...">
+                    <input type="text" name="search" value="{{ search }}" id="liveSearch"
+                           class="form-control border-0 shadow-none" placeholder="Rechercher..."
+                           oninput="clearTimeout(window._st);window._st=setTimeout(()=>document.getElementById('filterForm').submit(),400)">
                 </div>
             </div>
             <div class="col-md-8 text-end">
-                <button class="filter-pill btn active" data-filter="TOUT">Tous</button>
-                <button class="filter-pill btn" data-filter="EN_COURS">Maintenant</button>
-                <button class="filter-pill btn" data-filter="COMING">À venir</button>
-                <button class="filter-pill btn" data-filter="HISTORIQUE">Archives</button>
+                <button type="submit" name="filter" value="TOUT"
+                    class="filter-pill btn {{ filter == 'TOUT' ? 'active' : '' }}">Tous</button>
+                <button type="submit" name="filter" value="EN_COURS"
+                    class="filter-pill btn {{ filter == 'EN_COURS' ? 'active' : '' }}">Maintenant</button>
+                <button type="submit" name="filter" value="COMING"
+                    class="filter-pill btn {{ filter == 'COMING' ? 'active' : '' }}">À venir</button>
+                <button type="submit" name="filter" value="HISTORIQUE"
+                    class="filter-pill btn {{ filter == 'HISTORIQUE' ? 'active' : '' }}">Archives</button>
             </div>
         </div>
     </div>
+    </form>
 
     <div class="row g-4" id="eventsGrid">
     
@@ -272,54 +280,21 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const items = document.querySelectorAll('.event-item');
-
     // --- Nominatim Reverse Geocoding ---
-    items.forEach(item => {
+    document.querySelectorAll('.event-item').forEach(item => {
         const coords = item.dataset.coords;
         const locBox = item.querySelector('.loc-display');
-        if (coords.match(/^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/)) {
+        if (coords && coords.match(/^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/)) {
             const [lat, lon] = coords.split(',').map(c => c.trim());
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
                 .then(r => r.json()).then(data => {
                     const place = data.address.city || data.address.town || data.address.village || "Secteur AgriCore";
                     locBox.innerHTML = `<i class="fas fa-map-marker-alt me-1"></i> ${place}`;
                 }).catch(() => { locBox.innerHTML = `<i class="fas fa-map-marker-alt me-1"></i> Zone Rurale`; });
-        } else {
-            locBox.innerHTML = `<i class="fas fa-map-marker-alt me-1"></i> ${coords}`;
+        } else if (locBox) {
+            locBox.innerHTML = `<i class="fas fa-map-marker-alt me-1"></i> ${coords || ''}`;
         }
     });
-
-    // --- Filtrage & Animation ---
-    const search = document.getElementById('liveSearch');
-    const pills = document.querySelectorAll('.filter-pill');
-
-    function updateGrid() {
-        const q = search.value.toLowerCase();
-        const f = document.querySelector('.filter-pill.active').dataset.filter;
-        let idx = 0;
-        items.forEach(el => {
-            const mS = el.dataset.title.includes(q);
-            const mF = (f === 'TOUT' || el.dataset.status === f);
-            if (mS && mF) {
-                el.classList.remove('hidden-card');
-                setTimeout(() => el.classList.add('visible-card'), 50);
-                el.style.transitionDelay = `${idx * 60}ms`;
-                idx++;
-            } else {
-                el.classList.remove('visible-card');
-                el.classList.add('hidden-card');
-                el.style.transitionDelay = '0ms';
-            }
-        });
-    }
-
-    search.addEventListener('input', updateGrid);
-    pills.forEach(p => p.addEventListener('click', () => {
-        pills.forEach(b => b.classList.remove('active'));
-        p.classList.add('active');
-        updateGrid();
-    }));
 });
 </script>
 {% endblock %}

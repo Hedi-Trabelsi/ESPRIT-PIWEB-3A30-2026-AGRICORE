@@ -329,7 +329,20 @@
 
                         <h5 class="fw-bold mb-4 mt-2">Réserver ma place</h5>
                         
-                        {% if dejaInscrit %}
+                        {% if dejaInscrit and isPast %}
+                            <div class="alert border-0 shadow-sm rounded-4 py-3 mb-4" style="background:#f8fafc;border-left:4px solid #94a3b8 !important;">
+                                <i class="fas fa-history me-2 text-muted"></i>
+                                <strong style="color:#64748b;">Événement terminé</strong><br>
+                                <small class="text-muted">Vous avez participé à cet événement.</small>
+                            </div>
+                            {% if participantConfirmation == 'confirmed' %}
+                            <a href="{{ path('app_event_chat', {'id': evenement.id_ev}) }}"
+                               class="btn w-100 mb-3"
+                               style="background:#64748b;color:white;border-radius:20px;padding:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;transition:0.4s;border:none;text-decoration:none;display:block;text-align:center;">
+                                <i class="fas fa-comments me-2"></i> Chat communauté
+                            </a>
+                            {% endif %}
+                        {% elseif dejaInscrit %}
                             {% if participantConfirmation == 'confirmed' %}
                             <div class="alert border-0 shadow-sm rounded-4 py-3 mb-4" style="background:#f0fdf4;border-left:4px solid #16a34a !important;">
                                 <i class="fas fa-check-circle text-success me-2"></i>
@@ -389,7 +402,7 @@
 </div>
 
 {# ===== Cancel Modal ===== #}
-{% if dejaInscrit %}
+{% if dejaInscrit and not isPast %}
 <div class="cancel-overlay" id="cancelModal" onclick="if(event.target===this)closeCancelModal()">
     <div class="cancel-modal" id="cancelModalBox">
         <div class="cancel-icon"><i class="fas fa-calendar-times"></i></div>

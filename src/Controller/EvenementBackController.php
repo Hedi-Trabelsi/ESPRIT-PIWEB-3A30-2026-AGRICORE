@@ -33,6 +33,11 @@ class EvenementBackController extends AbstractController
 
         $now = new \DateTime();
 
+        if ($filter === 'TOUT') {
+            // Exclude past events from default view
+            $qb->andWhere('e.date_fin >= :now')->setParameter('now', $now);
+        }
+
         if ($filter === 'EN_COURS') {
             $qb->andWhere('e.date_debut <= :now AND e.date_fin >= :now')
                ->setParameter('now', $now);

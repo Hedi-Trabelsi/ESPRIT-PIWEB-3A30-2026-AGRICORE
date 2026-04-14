@@ -71,7 +71,7 @@ body { background: #f8fafc; }
 
 /* ── View toggle ── */
 .view-toggle { display: flex; gap: 4px; background: #f1f5f9; border-radius: 12px; padding: 4px; }
-.vtab { width: 36px; height: 36px; border: none; border-radius: 9px; background: transparent; color: #94a3b8; cursor: pointer; transition: .2s; display: flex; align-items: center; justify-content: center; }
+.vtab { width: 36px; height: 36px; border: none; border-radius: 9px; background: transparent; color: #94a3b8; cursor: pointer; transition: .2s; display: flex; align-items: center; justify-content: center; position: relative; }
 .vtab.active { background: #fff; color: var(--g); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
 
 /* ── Cards ── */
@@ -358,8 +358,6 @@ body { background: #f8fafc; }
                class="stab {{ filter == 'EN_COURS' ? 'active' : '' }}">Maintenant</a>
             <a href="{{ path('app_evenement', {filter: 'COMING', search: search, sort_price: sortPrice, date_from: dateFrom, budget_max: budgetMax}) }}"
                class="stab {{ filter == 'COMING' ? 'active' : '' }}">À venir</a>
-            <a href="{{ path('app_evenement', {filter: 'HISTORIQUE', search: search, sort_price: sortPrice, date_from: dateFrom, budget_max: budgetMax}) }}"
-               class="stab {{ filter == 'HISTORIQUE' ? 'active' : '' }}">Archives</a>
 
             {% if search or dateFrom or sortPrice != 'none' or budgetMax < 500 or filter != 'TOUT' %}
                 <a href="{{ path('app_evenement') }}"
@@ -374,6 +372,12 @@ body { background: #f8fafc; }
             <div class="view-toggle">
                 <button class="vtab active" id="btnGrid" title="Grille"><i class="fas fa-th-large"></i></button>
                 <button class="vtab" id="btnCal" title="Calendrier"><i class="fas fa-calendar-alt"></i></button>
+                {% if app.session.get('user') and mesEvenementsPassés is defined and mesEvenementsPassés|length > 0 %}
+                <button class="vtab" id="btnHistory" title="Mes événements passés">
+                    <i class="fas fa-history"></i>
+                    <span style="position:absolute;top:-4px;right:-4px;background:#f97316;color:#fff;border-radius:50%;width:16px;height:16px;font-size:.55rem;font-weight:800;display:flex;align-items:center;justify-content:center;">{{ mesEvenementsPassés|length }}</span>
+                </button>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -462,6 +466,51 @@ body { background: #f8fafc; }
             {% endfor %}
         </div>
     </div>
+
+    <!-- My past events view -->
+    {% if app.session.get('user') and mesEvenementsPassés is defined and mesEvenementsPassés|length > 0 %}
+    <div id="historyView" style="display:none;">
+        <div class="section-header mb-4">
+            <h4 style="color:var(--dark);font-weight:800;"><i class="fas fa-history me-2" style="color:var(--muted);"></i> Mes événements passés</h4>
+            <span class="count-badge">{{ mesEvenementsPassés|length }} événement{{ mesEvenementsPassés|length > 1 ? 's' : '' }}</span>
+        </div>
+        <div class="row g-4">
+            {% for item in mesEvenementsPassés %}
+            <div class="col-xl-4 col-md-6">
+                <div class="ev-card h-100" style="opacity:.8;border:1px dashed #cbd5e1;">
+                    <div class="ev-card-img" style="background:linear-gradient(135deg,#e2e8f0,#f1f5f9);">
+                        {% if item.evenement.image %}
+                            <img src="{{ item.evenement.image|raw }}" alt="{{ item.evenement.titre }}"
+                                 style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;filter:grayscale(40%);">
+                        {% else %}
+                            <i class="fas fa-calendar-check ev-icon" style="color:#94a3b8;"></i>
+                        {% endif %}
+                        <div class="ev-overlay"></div>
+                        <div class="ev-status-ribbon ribbon-closed"><i class="fas fa-lock me-1"></i>Terminé</div>
+                    </div>
+                    <div class="ev-card-body">
+                        <div class="ev-card-title">{{ item.evenement.titre }}</div>
+                        <div class="d-flex flex-column gap-2 mb-3">
+                            <div class="ev-meta"><i class="far fa-calendar-alt"></i> {{ item.evenement.date_debut|date('d/m/Y') }} → {{ item.evenement.date_fin|date('d/m/Y') }}</div>
+                            <div class="ev-meta"><i class="fas fa-map-marker-alt"></i> {{ item.evenement.lieu|slice(0,30) }}{% if item.evenement.lieu|length > 30 %}…{% endif %}</div>
+                            <div class="ev-meta"><i class="fas fa-ticket-alt"></i> {{ item.nbr_places }} place{{ item.nbr_places > 1 ? 's' : '' }}</div>
+                        </div>
+                        {% if item.confirmation == 'confirmed' %}
+                        <div class="p-2 rounded-3 mb-3" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+                            <span style="font-size:.75rem;font-weight:700;color:#16a34a;"><i class="fas fa-check-circle me-1"></i>Participation confirmée</span>
+                        </div>
+                        {% endif %}
+                        <a href="{{ path('app_evenement_show', {'id': item.evenement.id_ev}) }}"
+                           class="btn-ev" style="background:#64748b;">
+                            Voir les détails <i class="fas fa-arrow-right ms-1" style="font-size:.75rem;"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Calendar view -->
     <div id="calView" style="display:none;">
@@ -616,22 +665,32 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // View toggle
-    const btnGrid  = document.getElementById('btnGrid');
-    const btnCal   = document.getElementById('btnCal');
-    const gridView = document.getElementById('gridView');
-    const calView  = document.getElementById('calView');
+    const btnGrid    = document.getElementById('btnGrid');
+    const btnCal     = document.getElementById('btnCal');
+    const btnHistory = document.getElementById('btnHistory');
+    const gridView    = document.getElementById('gridView');
+    const calView     = document.getElementById('calView');
+    const historyView = document.getElementById('historyView');
     let calInit = false, calendar;
 
-    btnGrid.addEventListener('click', () => {
-        btnGrid.classList.add('active'); btnCal.classList.remove('active');
-        gridView.style.display = ''; calView.style.display = 'none';
-    });
+    function showView(active) {
+        [btnGrid, btnCal, btnHistory].forEach(b => b && b.classList.remove('active'));
+        [gridView, calView, historyView].forEach(v => v && (v.style.display = 'none'));
+        active.btn && active.btn.classList.add('active');
+        active.view && (active.view.style.display = '');
+    }
+
+    btnGrid.addEventListener('click', () => showView({ btn: btnGrid, view: gridView }));
+
     btnCal.addEventListener('click', () => {
-        btnCal.classList.add('active'); btnGrid.classList.remove('active');
-        gridView.style.display = 'none'; calView.style.display = '';
+        showView({ btn: btnCal, view: calView });
         if (!calInit) { initCalendar(); calInit = true; }
         else { calendar.updateSize(); }
     });
+
+    if (btnHistory) {
+        btnHistory.addEventListener('click', () => showView({ btn: btnHistory, view: historyView }));
+    }
 
     function initCalendar() {
         let tooltip = null;

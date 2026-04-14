@@ -68,7 +68,6 @@ class ChatController extends AbstractController
             $this->addFlash('error', 'Vous devez confirmer votre inscription par email avant d\'accéder au chat.');
             return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
         }
-
         $messages     = $em->getRepository(Messages::class)
             ->createQueryBuilder('m')
             ->where('m.event_id = :eid')->setParameter('eid', $ev->getIdEv())
