@@ -1,0 +1,291 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block content %}
+<style>
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1a202c;
+    }
+    .stats-card {
+        background: #f0fdf4;
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid #dcfce7;
+        height: 100%;
+    }
+    .stats-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #166534;
+        margin-bottom: 5px;
+    }
+    .stats-label {
+        color: #15803d;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    .user-card {
+        background: #fff;
+        border-radius: 15px;
+        border: 1px solid #e8e8e8;
+        padding: 20px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
+        position: relative;
+    }
+    .user-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    }
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        background: #198754;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.2rem;
+        margin-right: 15px;
+        overflow: hidden;
+    }
+    .user-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .user-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin: 0;
+        color: #2d3748;
+    }
+    .user-handle {
+        color: #a0aec0;
+        font-size: 0.85rem;
+    }
+    .badge-role {
+        background: #dcfce7;
+        color: #166534;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-block;
+        margin-top: 5px;
+    }
+    .user-stats {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #f7fafc;
+    }
+    .user-stat-item {
+        text-align: center;
+    }
+    .user-stat-value {
+        display: block;
+        font-weight: 700;
+        color: #2d3748;
+    }
+    .user-stat-label {
+        font-size: 0.7rem;
+        color: #a0aec0;
+        text-transform: uppercase;
+    }
+    .btn-group-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 20px;
+    }
+    .btn-card {
+        flex: 1;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+    .btn-tools { background: #198754; color: #fff; }
+    .btn-analysis { background: #f8fafc; color: #4a5568; border: 1px solid #e2e8f0; }
+    .btn-details { background: #f8fafc; color: #4a5568; border: 1px solid #e2e8f0; }
+
+    .btn-tools:hover { background: #146c43; color: #fff; }
+    .btn-analysis:hover, .btn-details:hover { background: #edf2f7; }
+
+    .search-container {
+        position: relative;
+        max-width: 300px;
+    }
+    .search-input {
+        padding-left: 40px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+    }
+    .filter-select {
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        padding: 8px 15px;
+        background-color: #fff;
+        color: #4a5568;
+        font-weight: 500;
+        min-width: 150px;
+    }
+    .search-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #a0aec0;
+        z-index: 5;
+    }
+    .refresh-btn {
+        background: #198754;
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 8px 20px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+</style>
+
+<div class="row">
+    <!-- Header -->
+    <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="page-title mb-1">Utilisateurs</h1>
+            <p class="text-muted small">{{ usersWithStats|length }} membres enregistrés</p>
+        </div>
+        <form action="{{ path('back_ventes_depenses') }}" method="get" class="d-flex gap-3">
+            <select name="role" class="form-select filter-select" onchange="this.form.submit()">
+                <option value="">Tous les rôles</option>
+                <option value="1" {{ filterRole == '1' ? 'selected' : '' }}>Agriculteur</option>
+                <option value="2" {{ filterRole == '2' ? 'selected' : '' }}>Administrateur</option>
+            </select>
+            <div class="search-container">
+                <i class="ti ti-search search-icon"></i>
+                <input type="text" name="q" class="form-control search-input" placeholder="Rechercher..." value="{{ searchTerm }}">
+            </div>
+            <button type="submit" class="refresh-btn">
+                <i class="ti ti-refresh"></i> Filtrer
+            </button>
+            <a href="{{ path('back_ventes_depenses') }}" class="btn btn-outline-secondary d-flex align-items-center px-3" style="border-radius: 10px;">
+                <i class="ti ti-x"></i>
+            </a>
+        </form>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row mb-5 g-3">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-value">{{ totalUsers }}</div>
+                <div class="stats-label">Total Utilisateurs</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-value">{{ totalUsers }}</div>
+                <div class="stats-label">Actifs Aujourd'hui</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-value">{{ totalExpenses|number_format(0, ',', ' ') }}</div>
+                <div class="stats-label">Dépenses Totales (DT)</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-value">4</div>
+                <div class="stats-label">Rôles Agriculteur</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Section -->
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <h5 class="m-0 font-weight-bold">Tous les membres</h5>
+        <hr class="flex-grow-1">
+        <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">{{ usersWithStats|length }} affiché(s)</span>
+    </div>
+
+    <div class="row g-4">
+        {% if usersWithStats is empty %}
+            <div class="col-12 text-center py-5">
+                <i class="ti ti-search fs-10 text-muted mb-3 d-block"></i>
+                <h3 class="text-muted">Aucun membre trouvé</h3>
+                <p class="text-muted">Essayez de modifier vos critères de recherche ou de filtrage.</p>
+                <a href="{{ path('back_ventes_depenses') }}" class="btn btn-success mt-3 rounded-pill px-4">
+                    Voir tous les membres
+                </a>
+            </div>
+        {% else %}
+            {% for stat in usersWithStats %}
+            {% set user = stat.user %}
+            <div class="col-md-4">
+                <div class="user-card">
+                    <div class="d-flex align-items-center">
+                        <div class="user-avatar">
+                            {% if user.image %}
+                                <img src="data:image/png;base64,{{ user.image }}" alt="{{ user.nom }}">
+                            {% else %}
+                                {{ user.nom|slice(0, 1)|upper }}{{ user.prenom|slice(0, 1)|upper }}
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h3 class="user-name">{{ user.nom }} {{ user.prenom }}</h3>
+                            <p class="user-handle">@{{ user.nom|lower }}.{{ user.prenom|lower }} • #00{{ user.id }}</p>
+                            <span class="badge-role">
+                                <i class="ti ti-leaf"></i> Agriculteur
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="user-stats">
+                        <div class="user-stat-item">
+                            <span class="user-stat-value">{{ stat.totalExpenses|number_format(0, ',', ' ') }}</span>
+                            <span class="user-stat-label">Dépenses</span>
+                        </div>
+                        <div class="user-stat-item">
+                            <span class="user-stat-value">{{ stat.totalVentes|number_format(0, ',', ' ') }}</span>
+                            <span class="user-stat-label">Ventes</span>
+                        </div>
+                        <div class="user-stat-item">
+                            <span class="user-stat-value">{{ stat.grandTotal|number_format(0, ',', ' ') }} DT</span>
+                            <span class="user-stat-label">Total</span>
+                        </div>
+                    </div>
+
+                    <div class="btn-group-actions">
+                        <a href="{{ path('back_user_outils', {'id': user.id}) }}" class="btn-card btn-tools">
+                            <i class="ti ti-settings"></i> Outils
+                        </a>
+                        <a href="#" class="btn-card btn-analysis">
+                            <i class="ti ti-chart-bar"></i> Analyses
+                        </a>
+                        <a href="{{ path('back_user_details', {'id': user.id}) }}" class="btn-card btn-details">
+                            <i class="ti ti-file-description"></i> Détails
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+    </div>
+</div>
+{% endblock %}

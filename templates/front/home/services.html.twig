@@ -1,0 +1,115 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block title %}Services - Agricore{% endblock %}
+
+{% block body %}
+
+<!-- Page Header -->
+<div class="container-fluid page-header py-5 mb-5 wow fadeIn" data-wow-delay="0.1s">
+    <div class="container text-center py-5">
+        <h1 class="display-3 text-white mb-4 animated slideInDown">Nos Services</h1>
+        <nav aria-label="breadcrumb animated slideInDown">
+            <ol class="breadcrumb justify-content-center mb-0">
+                <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Services</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+
+{# Services Start #}
+<div class="container-xxl py-5">
+    <div class="container">
+        <div class="text-center mx-auto wow fadeInUp" data-wow-delay="0.1s" style="max-width: 500px;">
+            
+            <h1 class="display-5 mb-5">Les fonctionnalités que nous vous proposons</h1>
+        </div>
+        <div class="row g-4">
+
+            <!-- Maintenance -->
+            <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.1s">
+                <div class="service-item rounded d-flex h-100">
+                    <div class="service-img rounded">
+                        <img class="img-fluid" src="{{ asset('img/entrtien_tracteur.jpg') }}" alt="Maintenance">
+                    </div>
+                    <div class="service-text rounded p-5">
+                        <div class="btn-square rounded-circle mx-auto mb-3">
+                            <i class="fa fa-wrench fa-2x text-primary"></i>
+                        </div>
+                        <h4 class="mb-3">Maintenance </h4>
+                        <p class="mb-4">Planifiez et suivez l’entretien de vos équipements pour éviter les pannes.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Événements -->
+            <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.3s">
+                <div class="service-item rounded d-flex h-100">
+                    <div class="service-img rounded">
+                        <img class="img-fluid" src="{{ asset('img/evenement.jpg') }}" alt="Événements">
+                    </div>
+                    <div class="service-text rounded p-5">
+                        <div class="btn-square rounded-circle mx-auto mb-3">
+                            <i class="fa fa-calendar-alt fa-2x text-primary"></i>
+                        </div>
+                        <h4 class="mb-3">Événements agricoles</h4>
+                        <p class="mb-4">Participez aux événements agricoles et profitez pleinement des activités organisées.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suivi animal -->
+            <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.5s">
+                <div class="service-item rounded d-flex h-100">
+                    <div class="service-img rounded">
+                        <img class="img-fluid" src="{{ asset('img/suivi_animal.jpg') }}" alt="Suivi animal">
+                    </div>
+                    <div class="service-text rounded p-5">
+                        <div class="btn-square rounded-circle mx-auto mb-3">
+                            <i class="fa fa-paw fa-2x text-primary"></i>
+                        </div>
+                        <h4 class="mb-3">Suivi des animaux</h4>
+                        <p class="mb-4">Surveillez la santé, la croissance et les informations de vos animaux.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dépenses -->
+            <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.3s">
+                <div class="service-item rounded d-flex h-100">
+                    <div class="service-img rounded">
+                        <img class="img-fluid" src="{{ asset('img/service-5.jpg') }}" alt="Dépenses">
+                    </div>
+                    <div class="service-text rounded p-5">
+                        <div class="btn-square rounded-circle mx-auto mb-3">
+                            <i class="fa fa-coins fa-2x text-primary"></i>
+                        </div>
+                        <h4 class="mb-3">Suivi des ventes & dépenses</h4>
+                        <p class="mb-4">Contrôlez vos coûts et suivez vos dépenses pour une meilleure rentabilité.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Achat d’équipements -->
+            <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.5s">
+                <div class="service-item rounded d-flex h-100">
+                    <div class="service-img rounded">
+                        <img class="img-fluid" src="{{ asset('img/tractors.avif') }}" alt="Achats d'équipements">
+                    </div>
+                    <div class="service-text rounded p-5">
+                        <div class="btn-square rounded-circle mx-auto mb-3">
+                            <i class="fa fa-shopping-cart fa-2x text-primary"></i>
+                        </div>
+                        <h4 class="mb-3">Achat d’équipements</h4>
+                        <p class="mb-4">Achetez facilement votre matériel agricole directement depuis la plateforme.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{# Services End #}
+
+{% endblock %}

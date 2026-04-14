@@ -1,0 +1,269 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block body %}
+<style>
+    .page-title {
+        font-weight: 700;
+        font-size: 1.75rem;
+        margin: 0;
+        color: #1a202c;
+    }
+    .card-detail {
+        background: #fff;
+        border-radius: 15px;
+        border: 1px solid #e8e8e8;
+        padding: 25px;
+        height: 100%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .card-title-custom {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1a202c;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 25px;
+    }
+    .card-title-custom::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        background: #e53e3e;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .card-title-custom.vente::before {
+        background: #38a169;
+    }
+    .item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        background: #fff;
+        border: 1px solid #f0f0f0;
+        border-left: 4px solid #38a169;
+        transition: all 0.2s;
+    }
+    .item-row:hover {
+        border-color: #e2e8f0;
+        background: #fcfcfc;
+    }
+    .item-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .item-name {
+        font-weight: 700;
+        color: #2d3748;
+        font-size: 1rem;
+    }
+    .item-meta {
+        font-size: 0.85rem;
+        color: #a0aec0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .item-price {
+        font-weight: 700;
+        color: #38a169;
+        font-size: 1.1rem;
+    }
+    .btn-retour {
+        background-color: #fff;
+        border: 1px solid #e2e8f0;
+        color: #198754;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+    .btn-retour:hover {
+        background-color: #f8fafc;
+        color: #146c43;
+        border-color: #cbd5e0;
+    }
+    .chart-container {
+        margin-top: 30px;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="row mb-5">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-4">
+                <a href="{{ path('app_ventes_depenses') }}" class="btn-retour">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+                <h1 class="page-title">Détails de l'Utilisateur : {{ user.nom }} {{ user.prenom }}</h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <!-- Dépenses Column -->
+        <div class="col-md-6">
+            <div class="card-detail">
+                <h3 class="card-title-custom">Dépenses</h3>
+                {% if depenses is empty %}
+                    <p class="text-muted">Aucune dépense enregistrée.</p>
+                {% else %}
+                    {% for depense in depenses %}
+                        <div class="item-row" style="border-left-color: #e53e3e;">
+                            <div class="item-info">
+                                <span class="item-name">{{ depense.type }}</span>
+                                <span class="item-meta">
+                                    <i class="bi bi-calendar3"></i> {{ depense.date|date('Y-m-d') }}
+                                </span>
+                            </div>
+                            <div class="item-price" style="color: #e53e3e;">
+                                - {{ depense.montant|number_format(2, '.', '') }} DT
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Ventes Column -->
+        <div class="col-md-6">
+            <div class="card-detail">
+                <h3 class="card-title-custom vente">Ventes</h3>
+                {% if ventes is empty %}
+                    <p class="text-muted">Aucune vente enregistrée.</p>
+                {% else %}
+                    {% for vente in ventes %}
+                        <div class="item-row">
+                            <div class="item-info">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="item-name">{{ vente.produit }}</span>
+                                    <span class="badge bg-success-subtle text-success small px-2" style="font-size: 0.75rem; background: #dcfce7; color: #166534;">{{ vente.prixUnitaire|number_format(2, '.', '') }} × {{ vente.quantite }} u.</span>
+                                </div>
+                                <span class="item-meta">
+                                    <i class="bi bi-calendar3"></i> {{ vente.date|date('Y-m-d') }}
+                                </span>
+                            </div>
+                            <div class="item-price">
+                                + {{ vente.chiffreAffaires|number_format(2, '.', '') }} DT
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row g-4 chart-container">
+        <div class="col-md-6">
+            <div class="card-detail">
+                <h3 class="card-title-custom vente">Répartition des dépenses</h3>
+                <div id="pieChart"></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card-detail">
+                <h3 class="card-title-custom vente">Dépenses vs Ventes / mois</h3>
+                <div id="barChart"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ApexCharts Script -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Pie Chart Data
+        const pieData = {{ expensesByCategory|json_encode|raw }};
+        const pieOptions = {
+            series: Object.values(pieData),
+            labels: Object.keys(pieData),
+            chart: {
+                type: 'pie',
+                height: 350
+            },
+            colors: ['#38a169', '#e53e3e', '#3182ce', '#ecc94b', '#805ad5'],
+            legend: {
+                position: 'bottom'
+            },
+            responsive: [{
+                breakpoint: 480,
+                options: {
+                    chart: {
+                        width: 200
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }]
+        };
+        new ApexCharts(document.querySelector("#pieChart"), pieOptions).render();
+
+        // Bar Chart Data
+        const monthlyStats = {{ monthlyStats|json_encode|raw }};
+        const months = Object.keys(monthlyStats);
+        const expenses = months.map(m => monthlyStats[m].expenses);
+        const sales = months.map(m => monthlyStats[m].sales);
+
+        const barOptions = {
+            series: [{
+                name: 'Dépenses',
+                data: expenses
+            }, {
+                name: 'Ventes',
+                data: sales
+            }],
+            chart: {
+                type: 'bar',
+                height: 350
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: false,
+                    columnWidth: '55%',
+                    endingShape: 'rounded'
+                },
+            },
+            dataLabels: {
+                enabled: false
+            },
+            stroke: {
+                show: true,
+                width: 2,
+                colors: ['transparent']
+            },
+            xaxis: {
+                categories: months,
+            },
+            yaxis: {
+                title: {
+                    text: 'DT'
+                }
+            },
+            fill: {
+                opacity: 1
+            },
+            colors: ['#e53e3e', '#38a169'],
+            tooltip: {
+                y: {
+                    formatter: function (val) {
+                        return val + " DT"
+                    }
+                }
+            }
+        };
+        new ApexCharts(document.querySelector("#barChart"), barOptions).render();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Détail Suivi{% endblock %}
+
+{% block body %}
+<table class="table">
+  <tbody>
+    <tr><th>ID Suivi</th><td>{{ suivi_animal.idSuivi }}</td></tr>
+    <tr><th>Animal</th><td>#{{ suivi_animal.animal.idAnimal }}</td></tr>
+    <tr><th>Date</th><td>{{ suivi_animal.dateSuivi ? suivi_animal.dateSuivi|date('d/m/Y H:i') : '' }}</td></tr>
+    <tr><th>Température</th><td>{{ suivi_animal.temperature }} °C</td></tr>
+    <tr><th>Poids</th><td>{{ suivi_animal.poids }} kg</td></tr>
+    <tr><th>Rythme cardiaque</th><td>{{ suivi_animal.rythmeCardiaque }} BPM</td></tr>
+    <tr><th>Niveau d'activité</th><td>{{ suivi_animal.niveauActivite }}</td></tr>
+    <tr><th>État de santé</th><td>{{ suivi_animal.etatSante }}</td></tr>
+    <tr><th>Remarque</th><td>{{ suivi_animal.remarque }}</td></tr>
+  </tbody>
+</table>
+
+<a href="{{ path('app_suivi_animal_index') }}">← Retour à la liste</a>
+<a href="{{ path('app_suivi_animal_edit', {'idSuivi': suivi_animal.idSuivi}) }}">✎ Modifier</a>
+
+{{ include('front/suivi_animal/suivi_animal/_delete_form.html.twig') }}
+{% endblock %}

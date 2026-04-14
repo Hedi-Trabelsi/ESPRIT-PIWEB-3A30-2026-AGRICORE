@@ -1,0 +1,64 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+          <div>
+            <h4 class="card-title mb-1">Achat d'equipements</h4>
+            <p class="text-muted mb-0">
+              Module integre avec la session existante de {{ sessionUser.prenom }} {{ sessionUser.nom }}.
+            </p>
+          </div>
+          <div class="text-muted">
+            {{ equipements|length }} equipement(s)
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nom</th>
+                <th>Type</th>
+                <th>Prix</th>
+                <th>Quantite</th>
+                <th>Fournisseur</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for equipement in equipements %}
+                <tr>
+                  <td>{{ equipement.idEquipement }}</td>
+                  <td>{{ equipement.nom }}</td>
+                  <td>{{ equipement.type }}</td>
+                  <td>{{ equipement.prix }} TND</td>
+                  <td>
+                    <span class="badge {% if equipement.quantite > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                      {{ equipement.quantite }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if equipement.user %}
+                      {{ equipement.user.prenom }} {{ equipement.user.nom }}
+                    {% else %}
+                      Non renseigne
+                    {% endif %}
+                  </td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="6" class="text-center text-muted py-4">Aucun equipement disponible.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

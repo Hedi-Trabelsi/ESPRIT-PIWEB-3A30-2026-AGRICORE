@@ -1,0 +1,461 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block title %}Détails - {{ evenement.titre }}{% endblock %}
+
+{% block body %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+    :root {
+        --agri-orange: #fd7e14;
+        --agri-green: #198754;
+        --agri-dark: #1e293b;
+    }
+
+    body {
+        background: #fdfdfd;
+        overflow-x: hidden;
+    }
+
+    /* --- Hero Header --- */
+    .detail-hero {
+        height: 400px;
+        background: linear-gradient(rgba(0,0,0,0.3), var(--agri-dark)), url('{{ asset('img/evenement.jpg') }}');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        display: flex;
+        align-items: flex-end;
+        padding-bottom: 60px;
+        color: white;
+        clip-path: ellipse(150% 100% at 50% 0%);
+    }
+
+    /* --- Glass Cards & Description --- */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 30px;
+        transition: 0.4s ease;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .event-description {
+        color: #64748b;
+        font-size: 1.1rem;
+        line-height: 1.8;
+        white-space: pre-line;
+        max-width: 100%;
+    }
+
+    .floating-back {
+        position: absolute; top: 20px; left: 20px; z-index: 10;
+        background: rgba(255,255,255,0.2); backdrop-filter: blur(5px);
+        color: white; border-radius: 50px; padding: 8px 20px;
+        text-decoration: none; transition: 0.3s;
+    }
+
+    .floating-back:hover { background: white; color: var(--agri-dark); transform: translateX(-5px); }
+
+    .capacity-wrapper { background: #f1f5f9; border-radius: 15px; height: 12px; overflow: hidden; position: relative; }
+    .capacity-bar { height: 100%; background: linear-gradient(90deg, var(--agri-green), #2ecc71); border-radius: 15px; transition: 1.5s cubic-bezier(0.1, 0, 0.2, 1); }
+
+    .icon-box {
+        width: 50px; height: 50px; background: rgba(25, 135, 84, 0.1);
+        color: var(--agri-green); border-radius: 15px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem; margin-bottom: 15px;
+    }
+
+    .price-tag {
+        position: absolute; top: -25px; right: 40px;
+        background: var(--agri-orange); color: white;
+        padding: 15px 30px; border-radius: 20px;
+        font-weight: 900; font-size: 1.5rem;
+        box-shadow: 0 15px 30px rgba(253, 126, 20, 0.3);
+        transform: rotate(3deg);
+    }
+
+    #map { height: 400px; border-radius: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); }
+    .custom-div-icon { background: none !important; border: none !important; }
+
+    .cta-btn {
+        background: var(--agri-dark); color: white; border-radius: 20px;
+        padding: 18px; font-weight: 800; letter-spacing: 1px;
+        text-transform: uppercase; transition: 0.4s; border: none;
+    }
+
+    .cta-btn:hover:not([disabled]) {
+        background: var(--agri-green); transform: scale(1.02);
+        box-shadow: 0 15px 30px rgba(25, 135, 84, 0.2); color: white;
+    }
+
+    /* Modal overlay */
+    .particip-overlay {
+        display: none;
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,.45);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        align-items: center; justify-content: center;
+    }
+    .particip-modal {
+        background: #fff;
+        border-radius: 28px;
+        padding: 40px 36px 32px;
+        width: 100%; max-width: 440px;
+        box-shadow: 0 30px 60px rgba(0,0,0,.2);
+        position: relative;
+        animation: modalIn .3s ease;
+    }
+    @keyframes modalIn {
+        from { opacity: 0; transform: translateY(30px) scale(.95); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .particip-modal .modal-close {
+        position: absolute; top: 16px; right: 20px;
+        background: none; border: none; font-size: 22px;
+        color: #94a3b8; cursor: pointer; transition: .2s;
+    }
+    .particip-modal .modal-close:hover { color: #1e293b; }
+    .particip-modal h4 { font-weight: 800; color: var(--agri-dark); margin-bottom: 6px; }
+    .particip-modal p { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+    .particip-field { margin-bottom: 18px; }
+    .particip-field label {
+        display: block; font-size: 13px; font-weight: 700;
+        color: #475569; margin-bottom: 6px;
+    }
+    .particip-field input {
+        width: 100%; padding: 12px 16px;
+        border: 2px solid #e2e8f0; border-radius: 14px;
+        font-size: 14px; transition: .2s; background: #f8fafc;
+    }
+    .particip-field input:focus {
+        outline: none; border-color: var(--agri-green);
+        box-shadow: 0 0 0 3px rgba(25,135,84,.1); background: #fff;
+    }
+    .particip-submit {
+        width: 100%; padding: 14px;
+        background: var(--agri-green); color: #fff;
+        border: none; border-radius: 16px;
+        font-weight: 800; font-size: 15px;
+        cursor: pointer; transition: .3s;
+        text-transform: uppercase; letter-spacing: .5px;
+    }
+    .particip-submit:hover { background: #157347; box-shadow: 0 10px 25px rgba(25,135,84,.25); }
+
+    /* Cancel confirmation modal */
+    .cancel-overlay {
+        display: none;
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,.5);
+        backdrop-filter: blur(6px);
+        z-index: 9999;
+        align-items: center; justify-content: center;
+    }
+    .cancel-modal {
+        background: #fff;
+        border-radius: 28px;
+        padding: 40px 36px 32px;
+        width: 100%; max-width: 400px;
+        box-shadow: 0 30px 60px rgba(0,0,0,.25);
+        text-align: center;
+        animation: modalIn .3s ease;
+    }
+    .cancel-modal .cancel-icon {
+        width: 72px; height: 72px; border-radius: 50%;
+        background: #fee2e2; color: #dc2626;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2rem; margin: 0 auto 20px;
+    }
+    .cancel-modal h4 { font-weight: 800; color: #1e293b; margin-bottom: 8px; }
+    .cancel-modal p  { color: #64748b; font-size: 14px; margin-bottom: 28px; }
+    .btn-cancel-confirm {
+        background: #dc2626; color: #fff; border: none;
+        border-radius: 16px; padding: 13px 28px;
+        font-weight: 800; font-size: 15px; cursor: pointer;
+        transition: .3s; width: 100%; margin-bottom: 10px;
+    }
+    .btn-cancel-confirm:hover { background: #b91c1c; box-shadow: 0 10px 25px rgba(220,38,38,.3); }
+    .btn-cancel-back {
+        background: #f1f5f9; color: #475569; border: none;
+        border-radius: 16px; padding: 13px 28px;
+        font-weight: 700; font-size: 14px; cursor: pointer;
+        transition: .3s; width: 100%;
+    }
+    .btn-cancel-back:hover { background: #e2e8f0; }
+</style>
+
+{% for msg in app.flashes('success') %}
+    <div class="alert alert-success alert-dismissible fade show position-fixed" style="top:20px;right:20px;z-index:10000;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.1);max-width:400px;" role="alert">
+        <i class="fas fa-check-circle me-2"></i> {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endfor %}
+{% for msg in app.flashes('error') %}
+    <div class="alert alert-danger alert-dismissible fade show position-fixed" style="top:20px;right:20px;z-index:10000;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.1);max-width:400px;" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i> {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endfor %}
+
+<div class="position-relative">
+    <a href="{{ path('app_evenement') }}" class="floating-back">
+        <i class="fas fa-arrow-left me-2"></i> Explorer
+    </a>
+
+    <div class="detail-hero">
+        <div class="container">
+            <div class="animate__animated animate__fadeInLeft">
+                <span class="badge bg-success rounded-pill px-3 py-2 mb-3">Événement Certifié AgriCore</span>
+                <h1 class="display-3 fw-black">{{ evenement.titre }}</h1>
+                <p class="lead opacity-75"><i class="fas fa-map-marker-alt me-2"></i> {{ evenement.lieu }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" style="margin-top: -80px;">
+        <div class="row g-5">
+            <div class="col-lg-8">
+                <div class="glass-card shadow-lg p-5 mb-5 animate__animated animate__fadeInUp">
+                    <h3 class="fw-bold mb-4">À propos de l'événement</h3>
+                    
+                    <div class="event-description mb-5">
+                        {{ evenement.description }}
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="icon-box"><i class="fas fa-calendar-alt"></i></div>
+                            <h6 class="fw-bold">Calendrier</h6>
+                            <p class="small text-muted">
+                                Du : <b>{{ evenement.date_debut|date('d M Y, H:i') }}</b><br>
+                                Au : <b>{{ evenement.date_fin|date('d M Y, H:i') }}</b>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="icon-box"><i class="fas fa-users"></i></div>
+                            <h6 class="fw-bold">Disponibilité</h6>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="small text-muted">{{ placesRestantes }} places libres</span>
+                                <span class="small fw-bold">{{ evenement.capacite_max }} Max</span>
+                            </div>
+                            <div class="capacity-wrapper">
+                                {% set placesOccupees = evenement.capacite_max - placesRestantes %}
+                                {% set percentage = evenement.capacite_max > 0 ? (placesOccupees / evenement.capacite_max) * 100 : 0 %}
+                                <div class="capacity-bar" style="width: {{ percentage }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="animate__animated animate__fadeInUp animate__delay-1s">
+                    <h4 class="fw-bold mb-3 ms-2"><i class="fas fa-compass me-2 text-success"></i>Itinéraire</h4>
+                    <div id="map"></div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="position-sticky" style="top: 100px;">
+                    <div class="glass-card shadow-xl p-4 pt-5 text-center position-relative animate__animated animate__fadeInRight">
+                        <div class="price-tag">
+                            {% if evenement.frais_inscription == 0 %} Free {% else %} {{ evenement.frais_inscription }} <small>DT</small> {% endif %}
+                        </div>
+
+                        <h5 class="fw-bold mb-4 mt-2">Réserver ma place</h5>
+                        
+                        {% if dejaInscrit %}
+                            <div class="alert alert-success border-0 shadow-sm rounded-4 py-3 mb-4">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Vous participez déjà.
+                            </div>
+                            <button type="button" class="btn w-100 mb-3"
+                                style="background:#dc2626;color:white;border-radius:20px;padding:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;transition:0.4s;border:none;"
+                                onclick="openCancelModal()">
+                                <i class="fas fa-times-circle me-2"></i> Annuler mon inscription
+                            </button>
+                        {% elseif placesRestantes > 0 %}
+                            <div class="alert alert-light border-0 shadow-sm rounded-4 py-3 mb-4">
+                                <i class="fas fa-bolt text-warning me-2"></i>
+                                Dépêchez-vous, il ne reste que <b>{{ placesRestantes }}</b> places !
+                            </div>
+                            {% if app.session.get('user') %}
+                                <button type="button" class="cta-btn btn w-100 mb-3" onclick="document.getElementById('participModal').style.display='flex'">
+                                    <i class="fas fa-check-circle me-2"></i> Confirmer l'inscription
+                                </button>
+                            {% else %}
+                                <a href="{{ path('front_login') }}" class="cta-btn btn w-100 mb-3">
+                                    <i class="fas fa-sign-in-alt me-2"></i> Connectez-vous pour participer
+                                </a>
+                            {% endif %}
+                        {% else %}
+                            <div class="alert alert-danger rounded-4 mb-4">
+                                <i class="fas fa-info-circle me-2"></i> Complet
+                            </div>
+                            <button class="cta-btn btn w-100" disabled>Complet</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ===== Cancel Modal ===== #}
+{% if dejaInscrit %}
+<div class="cancel-overlay" id="cancelModal" onclick="if(event.target===this)closeCancelModal()">
+    <div class="cancel-modal" id="cancelModalBox">
+        <div class="cancel-icon"><i class="fas fa-calendar-times"></i></div>
+        <h4>Annuler l'inscription ?</h4>
+        <p>Souhaitez-vous vraiment annuler votre place pour <strong>{{ evenement.titre }}</strong> ?</p>
+        <form method="post" action="{{ path('app_annuler_inscription', {'id': evenement.id_ev}) }}">
+            <button type="submit" class="btn-cancel-confirm">
+                <i class="fas fa-times-circle me-2"></i> Oui, annuler
+            </button>
+        </form>
+        <button class="btn-cancel-back" onclick="closeCancelModal()">
+            Retour
+        </button>
+    </div>
+</div>
+{% endif %}
+
+{# ===== Participation Modal ===== #}
+{% if app.session.get('user') and placesRestantes > 0 and not dejaInscrit %}
+<div class="particip-overlay" id="participModal" style="display: {{ showParticipationModal ? 'flex' : 'none' }}" onclick="if(event.target===this)this.style.display='none'">
+    <div class="particip-modal">
+        <button class="modal-close" onclick="document.getElementById('participModal').style.display='none'">
+            <i class="fas fa-times"></i>
+        </button>
+        <h4><i class="fas fa-ticket-alt me-2" style="color:var(--agri-green)"></i> Inscription</h4>
+        <p>Remplissez vos informations pour participer à <strong>{{ evenement.titre }}</strong></p>
+
+        {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+            <div class="particip-field">
+                {{ form_label(form.nom_participant, 'Votre nom complet') }}
+                {{ form_widget(form.nom_participant, {
+                    'attr': {
+                        'class': 'particip-field-input',
+                        'placeholder': 'Entrez votre nom',
+                        'value': app.session.get('user').prenom ~ ' ' ~ app.session.get('user').nom
+                    }
+                }) }}
+                <div class="text-danger small">{{ form_errors(form.nom_participant) }}</div>
+            </div>
+            <div class="particip-field">
+                {{ form_label(form.nbr_places, 'Nombre de places (max ' ~ placesRestantes ~ ')') }}
+                {{ form_widget(form.nbr_places, {
+                    'attr': {
+                        'class': 'particip-field-input'
+                    }
+                }) }}
+                <div class="text-danger small">{{ form_errors(form.nbr_places) }}</div>
+            </div>
+
+            <div class="mb-4 p-3 rounded-4 bg-light border d-flex justify-content-between align-items-center">
+                <span class="small fw-bold text-muted">Total à payer :</span>
+                <span class="h5 mb-0 fw-black text-success" id="display_total">0.00 DT</span>
+            </div>
+
+            <div class="text-danger small mb-3">{{ form_errors(form) }}</div>
+
+            <button type="submit" class="particip-submit">
+                <i class="fas fa-check-circle me-2"></i> Confirmer mon inscription
+            </button>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endif %}
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    function openCancelModal() {
+        const overlay = document.getElementById('cancelModal');
+        const box = document.getElementById('cancelModalBox');
+        overlay.style.display = 'flex';
+        box.classList.remove('animate__zoomOut');
+        void box.offsetWidth; 
+        box.classList.add('animate__animated', 'animate__zoomIn');
+    }
+
+    function closeCancelModal() {
+        const overlay = document.getElementById('cancelModal');
+        const box = document.getElementById('cancelModalBox');
+        box.classList.remove('animate__zoomIn');
+        box.classList.add('animate__animated', 'animate__zoomOut');
+        setTimeout(() => { overlay.style.display = 'none'; }, 250);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- LOGIQUE DE CALCUL DU MONTANT ---
+        const nbrPlacesInput = document.getElementById('{{ form.nbr_places.vars.id }}');
+        const displayTotal = document.getElementById('display_total');
+        const prixUnitaire = parseFloat("{{ evenement.frais_inscription }}") || 0;
+
+        function updatePrice() {
+            if (nbrPlacesInput) {
+                let qty = parseInt(nbrPlacesInput.value) || 0;
+                let total = (qty * prixUnitaire).toFixed(2);
+                if (displayTotal) displayTotal.innerText = total + " DT";
+            }
+        }
+
+        if (nbrPlacesInput) {
+            nbrPlacesInput.addEventListener('input', updatePrice);
+            nbrPlacesInput.addEventListener('change', updatePrice);
+            updatePrice();
+        }
+
+        // --- LOGIQUE DE LA CARTE ---
+                    let qty = parseInt(nbrPlacesInput.value) || 0;
+                    let total = (qty * prixUnitaire).toFixed(2);
+                    if (displayTotal) displayTotal.innerText = total + " DT";
+                }
+            }
+
+            if (nbrPlacesInput) {
+                nbrPlacesInput.addEventListener('input', updatePrice);
+                nbrPlacesInput.addEventListener('change', updatePrice);
+
+        // --- LOGIQUE DE LA CARTE ---
+        var lieu = "{{ evenement.lieu|e('js') }}";
+        var coordRegex = /^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/;
+        var match = lieu.match(coordRegex);
+
+        if (match) {
+            var lat = parseFloat(match[1]);
+            var lng = parseFloat(match[2]);
+            initMap(lat, lng, lieu);
+        } else {
+            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(lieu))
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        initMap(parseFloat(data[0].lat), parseFloat(data[0].lon), data[0].display_name);
+                    } else {
+                        document.getElementById('map').innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-muted">Localisation non trouvée</div>';
+                    }
+                });
+        }
+
+        function initMap(lat, lng, placeName) {
+            var map = L.map('map', { scrollWheelZoom: false, zoomControl: false }).setView([lat, lng], 14);
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+            var customIcon = L.divIcon({
+                html: '<i class="fas fa-map-marker-alt fa-3x" style="color: #198754; filter: drop-shadow(0 5px 15px rgba(25,135,84,0.4));"></i>',
+                className: 'custom-div-icon',
+                iconSize: [30, 42],
+                iconAnchor: [15, 42]
+            });
+            L.marker([lat, lng], {icon: customIcon}).addTo(map)
+                .bindPopup("<b class='text-success'>{{ evenement.titre|e('js') }}</b><br><small>" + placeName + "</small>")
+                .openPopup();
+        }
+    });
+</script>
+{% endblock %}

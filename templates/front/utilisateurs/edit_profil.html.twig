@@ -1,0 +1,137 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block title %}Modifier mon profil - Agricore{% endblock %}
+
+{% block body %}
+
+<link href="{{ asset('css/utilisateur/utilisateur.css') }}" rel="stylesheet">
+
+{# Page Header #}
+<div class="container-fluid page-header py-5 mb-5 wow fadeIn" data-wow-delay="0.1s">
+    <div class="container text-center py-5">
+        <h1 class="display-3 text-white mb-4 animated slideInDown">Modifier mon profil</h1>
+        <nav aria-label="breadcrumb animated slideInDown">
+            <ol class="breadcrumb justify-content-center mb-0">
+                <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_profile') }}">Profil</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Modifier</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container-xxl py-5">
+    <div class="container">
+        <div class="row g-5">
+
+            {# --- Form --- #}
+            <div class="col-lg-8 wow fadeIn" data-wow-delay="0.1s">
+                <h2 class="mb-4" style="color:#0F4229;font-weight:700;">Modifier mes informations</h2>
+
+                {% for msg in app.flashes('error') %}
+                    <div class="auth-alert auth-alert-error mb-3">
+                        <i class="fas fa-exclamation-circle"></i> {{ msg }}
+                    </div>
+                {% endfor %}
+
+                {% for msg in app.flashes('success') %}
+                    <div class="auth-alert auth-alert-success mb-3">
+                        <i class="fas fa-check-circle"></i> {{ msg }}
+                    </div>
+                {% endfor %}
+
+                {{ form_start(form, {'attr': {'novalidate': 'novalidate', 'enctype': 'multipart/form-data'}}) }}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{ form_widget(form.nom, {'attr': {'class': 'form-control', 'placeholder': 'Nom'}}) }}
+                                <label for="{{ form.nom.vars.id }}">Nom</label>
+                            </div>
+                            <div class="field-error">{{ form_errors(form.nom) }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{ form_widget(form.prenom, {'attr': {'class': 'form-control', 'placeholder': 'Prenom'}}) }}
+                                <label for="{{ form.prenom.vars.id }}">Prenom</label>
+                            </div>
+                            <div class="field-error">{{ form_errors(form.prenom) }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{ form_widget(form.email, {'attr': {'class': 'form-control', 'placeholder': 'Email'}}) }}
+                                <label for="{{ form.email.vars.id }}">Email</label>
+                            </div>
+                            <div class="field-error">{{ form_errors(form.email) }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{ form_widget(form.numeroT, {'attr': {'class': 'form-control', 'placeholder': 'Telephone'}}) }}
+                                <label for="{{ form.numeroT.vars.id }}">Telephone</label>
+                            </div>
+                            <div class="field-error">{{ form_errors(form.numeroT) }}</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-floating">
+                                {{ form_widget(form.adresse, {'attr': {'class': 'form-control', 'placeholder': 'Adresse'}}) }}
+                                <label for="{{ form.adresse.vars.id }}">Adresse</label>
+                            </div>
+                            <div class="field-error">{{ form_errors(form.adresse) }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{ form_widget(form.date, {'attr': {'class': 'form-control', 'placeholder': 'Date'}}) }}
+                                <label for="{{ form.date.vars.id }}">Date de naissance</label>
+                            </div>
+                            <div class="field-error">{{ form_errors(form.date) }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                {{ form_widget(form.genre, {'attr': {'class': 'form-select'}}) }}
+                                <label for="{{ form.genre.vars.id }}">Genre</label>
+                            </div>
+                            <div class="field-error">{{ form_errors(form.genre) }}</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-floating">
+                                {{ form_widget(form.password, {'attr': {'class': 'form-control', 'placeholder': 'Nouveau mot de passe'}}) }}
+                                <label for="{{ form.password.vars.id }}">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+                            </div>
+                            <div class="field-error">{{ form_errors(form.password) }}</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.imageFile.vars.id }}" class="form-label" style="font-weight:600;color:#0F4229;">Changer la photo de profil</label>
+                            {{ form_widget(form.imageFile, {'attr': {'class': 'form-control', 'accept': 'image/*'}}) }}
+                            <div class="field-error">{{ form_errors(form.imageFile) }}</div>
+                        </div>
+                        <div class="col-12 d-flex gap-3 mt-4">
+                            <button class="btn btn-primary py-3 px-4" type="submit">
+                                <i class="fas fa-save me-2"></i>Enregistrer les modifications
+                            </button>
+                            <a href="{{ path('app_profile') }}" class="btn btn-outline-secondary py-3 px-4">
+                                Annuler
+                            </a>
+                        </div>
+                    </div>
+                {{ form_end(form) }}
+            </div>
+
+            {# --- Current photo sidebar --- #}
+            <div class="col-lg-4 wow fadeIn" data-wow-delay="0.3s">
+                <div class="text-center p-4" style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.06);">
+                    {% if user.image %}
+                        <img src="data:image/jpeg;base64,{{ user.image }}" alt="Photo actuelle"
+                             style="width:150px;height:150px;border-radius:50%;object-fit:cover;border:4px solid #348E38;margin-bottom:20px;">
+                    {% else %}
+                        <img src="{{ asset('img/profile.webp') }}" alt="Photo par defaut"
+                             style="width:150px;height:150px;border-radius:50%;object-fit:cover;border:4px solid #348E38;margin-bottom:20px;">
+                    {% endif %}
+                    <h5 style="font-weight:700;color:#0F4229;">{{ user.prenom }} {{ user.nom }}</h5>
+                    <p class="text-muted mb-0" style="font-size:14px;">{{ user.email }}</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

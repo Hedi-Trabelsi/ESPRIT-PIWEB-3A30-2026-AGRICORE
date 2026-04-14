@@ -1,0 +1,163 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block navbar %}
+{% include 'front/partials/_tech_navbar.html.twig' %}
+{% endblock %}
+
+{% block title %}Interventions à traiter{% endblock %}
+
+{% block body %}
+<style>
+    .header-section {
+        margin-bottom: 2rem;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 20px;
+    }
+
+    .custom-card {
+        background-color: #ffffff;
+        border: 1px solid #f0f0f0;
+        border-radius: 0 70px 0 70px;
+        transition: all 0.4s ease;
+        min-height: 250px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 25px;
+        text-align: center;
+        position: relative;
+    }
+
+    .custom-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+    }
+
+   
+
+    .card-title-custom {
+        font-weight: 800;
+        font-size: 1.3rem;
+        text-transform: uppercase;
+        color: #0F4229;
+        margin-top: 10px;
+    }
+
+    .btn-plus {
+        background: transparent;
+        border: none;
+        border-bottom: 1.5px solid #000;
+        font-weight: 700;
+        font-size: 0.75rem;
+        letter-spacing: 1px;
+        margin-top: 20px;
+        cursor: pointer;
+        padding: 0 5px;
+        transition: 0.3s;
+    }
+    .btn-plus:hover {
+        color: #198754;
+        border-color: #198754;
+    }
+
+    .modal-content-custom {
+        background-color: #ffffff;
+        border-radius: 0 70px 0 70px !important;
+        border: none;
+        padding: 40px;
+    }
+
+    .detail-value {
+        color: #0F4229;
+        font-weight: 600;
+    }
+</style>
+
+<div class="container mt-5">
+    <div class="header-section text-center">
+        <h1 class="fw-bold m-0">Interventions à traiter</h1>
+    </div>
+
+    {% if listeMaintenances is empty %}
+        <div class="text-center py-5">
+            <p class="text-muted fs-5">Aucun résultat trouvé.</p>
+        </div>
+    {% else %}
+        <div class="row g-4 justify-content-center">
+            {% for m in listeMaintenances %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="custom-card shadow-sm">
+                        {# Affichage de la priorité #}
+                       
+                        <h5 class="card-title-custom">{{ m.nomMaintenance }}</h5>
+                        
+                        {# Affichage Equipement (sans icône) et Lieu #}
+                        <div class="small text-dark fw-bold mb-1">
+                            {{ m.Equipement }}
+                        </div>
+                        <div class="small text-muted mb-2">
+                            <i class="fas fa-map-marker-alt me-1"></i> {{ m.Lieu }}
+                        </div>
+
+                        <button type="button" class="btn-plus" data-bs-toggle="modal" data-bs-target="#detailModal{{ m.Id_maintenance }}">
+                            PLUS
+                        </button>
+                    </div>
+                </div>
+
+                {# Modale de détail #}
+                <div class="modal fade" id="detailModal{{ m.Id_maintenance }}" tabindex="-1">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content" style="background: transparent; border: none;">
+                            <div class="modal-content-custom shadow-lg text-start">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5 class="card-title-custom m-0">{{ m.nomMaintenance }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+
+                                <div class="row g-4">
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Équipement</small>
+                                        <span class="detail-value">{{ m.Equipement }}</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Localisation</small>
+                                        <span class="detail-value">{{ m.Lieu }}</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Priorité</small>
+                                        <span class="detail-value">{{ m.Priorite }}</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Date déclaration</small>
+                                        <span class="detail-value">{{ m.dateDeclaration|date('d/m/Y') }}</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Statut</small>
+                                        <span class="badge bg-light border text-dark">{{ m.Statut }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 pt-3 border-top">
+                                    <h6 class="fw-bold small text-muted text-uppercase mb-2">Description :</h6>
+                                    <p class="text-secondary mb-0">{{ m.Description|nl2br }}</p>
+                                </div>
+
+                                <div class="mt-4 d-flex justify-content-between align-items-center">
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ path('app_tache_new', {'id_maintenance': m.Id_maintenance}) }}" class="btn btn-sm btn-success rounded-pill px-4">
+                                            <i class="fas fa-calendar-check me-1"></i> Planifier l'intervention
+                                        </a>
+                                    </div>
+                             
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

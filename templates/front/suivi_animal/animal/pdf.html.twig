@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #1a1a1a; background: #fff; }
+
+  /* ── Cover band ── */
+  .cover {
+    background: linear-gradient(135deg, #27500A 0%, #3B6D11 55%, #639922 100%);
+    padding: 28px 36px 22px;
+    color: white;
+    margin-bottom: 24px;
+  }
+  .cover-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .cover-logo { font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+  .cover-logo span { opacity: .6; font-weight: 300; }
+  .cover-date { font-size: 10px; opacity: .75; text-align: right; }
+  .cover-title { margin-top: 14px; }
+  .cover-title h1 { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
+  .cover-title p { font-size: 11px; opacity: .8; margin-top: 3px; }
+  .cover-line { height: 3px; background: rgba(255,255,255,.3); border-radius: 2px; margin-top: 16px; }
+
+  /* ── Stats row ── */
+  .stats { display: flex; gap: 12px; margin: 0 36px 20px; }
+  .stat-box { flex: 1; background: #EAF3DE; border: 1px solid #C0DD97; border-radius: 10px; padding: 12px 14px; text-align: center; }
+  .stat-num { font-size: 22px; font-weight: 700; color: #27500A; }
+  .stat-label { font-size: 9px; color: #639922; text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+
+  /* ── Table ── */
+  .wrap { padding: 0 36px 36px; }
+  .section-title { font-size: 12px; font-weight: 700; color: #27500A; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: #C0DD97; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: #27500A; color: white; }
+  thead th { padding: 9px 12px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; text-align: left; }
+  thead th:first-child { border-radius: 8px 0 0 0; }
+  thead th:last-child  { border-radius: 0 8px 0 0; }
+
+  tbody tr:nth-child(even) { background: #F7FBF2; }
+  tbody tr:nth-child(odd)  { background: #ffffff; }
+  tbody td { padding: 8px 12px; border-bottom: 1px solid #EAF3DE; font-size: 10.5px; }
+
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 9.5px; font-weight: 600; }
+  .pill-male   { background: #DBEAFE; color: #1D4ED8; }
+  .pill-female { background: #FCE7F3; color: #9D174D; }
+  .code { color: #3B6D11; font-weight: 700; }
+
+  /* ── Footer ── */
+  .footer { margin-top: 24px; padding-top: 10px; border-top: 1px solid #C0DD97; display: flex; justify-content: space-between; font-size: 9px; color: #888; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-top">
+    <div class="cover-logo">Agri<span>Core</span></div>
+    <div class="cover-date">
+      Généré le {{ date|date('d/m/Y à H:i') }}<br>
+      Rapport officiel
+    </div>
+  </div>
+  <div class="cover-title">
+    <h1>Inventaire du Cheptel</h1>
+    <p>Liste complète des animaux enregistrés dans le système</p>
+  </div>
+  <div class="cover-line"></div>
+</div>
+
+{% set males   = animals|filter(a => a.sexe == 'Mâle')|length %}
+{% set femelles = animals|filter(a => a.sexe == 'Femelle')|length %}
+{% set especes = animals|map(a => a.espece)|reduce((carry, v) => v not in carry ? carry|merge([v]) : carry, [])|length %}
+
+<div class="stats">
+  <div class="stat-box">
+    <div class="stat-num">{{ animals|length }}</div>
+    <div class="stat-label">Total animaux</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num">{{ males }}</div>
+    <div class="stat-label">Mâles</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num">{{ femelles }}</div>
+    <div class="stat-label">Femelles</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num">{{ especes }}</div>
+    <div class="stat-label">Espèces</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="section-title">Détail des animaux</div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Code</th>
+        <th>Espèce</th>
+        <th>Race</th>
+        <th>Sexe</th>
+        <th>Date de naissance</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for animal in animals %}
+      <tr>
+        <td style="color:#aaa;">{{ loop.index }}</td>
+        <td><span class="code">{{ animal.codeAnimal }}</span></td>
+        <td>{{ animal.espece }}</td>
+        <td>{{ animal.race }}</td>
+        <td>
+          <span class="pill {{ animal.sexe == 'Mâle' ? 'pill-male' : 'pill-female' }}">
+            {{ animal.sexe }}
+          </span>
+        </td>
+        <td>{{ animal.dateNaissance ? animal.dateNaissance|date('d/m/Y') : '-' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="text-align:center;padding:20px;color:#aaa;">Aucun animal trouvé</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <span>AgriCore — Gestion du cheptel</span>
+    <span>{{ animals|length }} animal(aux) — {{ date|date('d/m/Y') }}</span>
+  </div>
+</div>
+
+</body>
+</html>

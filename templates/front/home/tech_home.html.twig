@@ -1,0 +1,205 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block navbar %}
+{% include 'front/partials/_tech_navbar.html.twig' %}
+{% endblock %}
+
+{% block body %}
+<!-- Navbar End -->
+
+<!-- Carousel Start -->
+<div class="container-fluid p-0 wow fadeIn" data-wow-delay="0.1s">
+    <div id="header-carousel" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-inner">
+
+            <!-- Slide 1 -->
+            <div class="carousel-item active" style="height: 400px;">
+                <img class="w-100" src="{{ asset('img/entrtien.jpg') }}" alt="Technicien intervenant sur un équipement"
+                     style="height: 100%; object-fit: cover;">
+                <div class="carousel-caption">
+                    <div class="container">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-8">
+                                <h2 class="text-white mb-3 animated slideInDown"
+                                    style="white-space: nowrap; font-size: 2rem;">
+                                    Gérez et suivez vos interventions de maintenance
+                                </h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 2 -->
+            <div class="carousel-item" style="height: 400px;">
+                <img class="w-100" src="{{ asset('img/tech.jpg') }}" alt="Technicien complétant un rapport"
+                     style="height: 100%; object-fit: cover;">
+                <div class="carousel-caption">
+                    <div class="container">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-8">
+                                <h2 class="text-white mb-3 animated slideInDown"
+                                    style="white-space: nowrap; font-size: 2rem;">
+                                    Accédez à l’historique et aux rapports de vos interventions
+                                </h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Controls -->
+        <button class="carousel-control-prev" type="button" data-bs-target="#header-carousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#header-carousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+    </div>
+</div>
+<!-- Carousel End -->
+
+<!-- About Start -->
+<div class="container-xxl py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center wow fadeInUp" data-wow-delay="0.1s">
+                <h1 class="display-5 mb-4">À propos d'Agricore</h1>
+                <p class="fs-5 mb-4">
+                    Agricore est la solution complète pour la gestion de votre ferme. 
+                    Suivi des équipements, des animaux, des ventes et dépenses, tout est centralisé dans une interface simple et intuitive.
+                </p>
+                <p class="mb-4">
+                    Que vous soyez un petit agriculteur ou une grande exploitation, Agricore vous aide à optimiser vos tâches quotidiennes et à améliorer la rentabilité de votre activité. 
+                    Vous pouvez également acheter des équipements agricoles directement via notre plateforme, facilement et en toute sécurité.
+                </p>
+                <a class="btn btn-primary py-3 px-4" href="{{ path('app_contact') }}">Contactez-nous</a>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- About End -->
+
+<!-- Facts Start -->
+<div class="container-fluid facts my-5 py-5" data-parallax="scroll" data-image-src="{{ asset('img/champ-image.jpg') }}">
+    <div class="container py-5">
+        <div class="row g-4 text-center">
+            <div class="col wow fadeIn" data-wow-delay="0.1s">
+                <h1 class="display-5 text-white" data-toggle="counter-up">150</h1>
+                <span class="text-light">Agriculteurs inscrits</span>
+            </div>
+            <div class="col wow fadeIn" data-wow-delay="0.3s">
+                <h1 class="display-5 text-white" data-toggle="counter-up">300</h1>
+                <span class="text-light">Maintenances effectuées</span>
+            </div>
+            <div class="col wow fadeIn" data-wow-delay="0.5s">
+                <h1 class="display-5 text-white" data-toggle="counter-up">45</h1>
+                <span class="text-light">Événements organisés</span>
+            </div>
+            <div class="col wow fadeIn" data-wow-delay="0.7s">
+                <h1 class="display-5 text-white" data-toggle="counter-up">120</h1>
+                <span class="text-light">Ventes d’équipements</span>
+            </div>
+            <div class="col wow fadeIn" data-wow-delay="0.9s">
+                <h1 class="display-5 text-white" data-toggle="counter-up">200</h1>
+                <span class="text-light">Animaux suivis</span>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Facts End -->
+
+<!-- Features Start -->
+<div class="container-xxl py-5">
+    <div class="container">
+        <div class="row g-5 align-items-center">
+            <div class="col-lg-6 wow fadeInUp" data-wow-delay="0.1s">
+                <p class="fs-5 fw-bold text-primary">Pourquoi choisir Agricore ?</p>
+                <h1 class="display-5 mb-4">La solution complète pour votre ferme</h1>
+                <p class="mb-4">
+                    Avec Agricore, toutes vos tâches agricoles sont centralisées : suivi des équipements, gestion des animaux, planification des événements et suivi des ventes et dépenses. 
+                    Notre interface intuitive vous fait gagner du temps et vous permet de prendre les meilleures décisions pour votre activité.
+                </p>
+            </div>
+            <div class="col-lg-6">
+                <div class="row g-4 align-items-center">
+                    <div class="col-md-6">
+                        <div class="row g-4">
+                            <div class="col-12 wow fadeIn" data-wow-delay="0.3s">
+                                <div class="text-center rounded py-5 px-4" style="box-shadow: 0 0 45px rgba(0,0,0,.08);">
+                                    <div class="btn-square bg-light rounded-circle mx-auto mb-4" style="width: 90px; height: 90px;">
+                                        <i class="fa fa-wrench fa-3x text-primary"></i>
+                                    </div>
+                                    <h4 class="mb-0">Maintenance des équipements</h4>
+                                </div>
+                            </div>
+                            <div class="col-12 wow fadeIn" data-wow-delay="0.5s">
+                                <div class="text-center rounded py-5 px-4" style="box-shadow: 0 0 45px rgba(0,0,0,.08);">
+                                    <div class="btn-square bg-light rounded-circle mx-auto mb-4" style="width: 90px; height: 90px;">
+                                        <i class="fa fa-paw fa-3x text-primary"></i>
+                                    </div>
+                                    <h4 class="mb-0">Suivi des animaux</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 wow fadeIn" data-wow-delay="0.7s">
+                        <div class="text-center rounded py-5 px-4" style="box-shadow: 0 0 45px rgba(0,0,0,.08);">
+                            <div class="btn-square bg-light rounded-circle mx-auto mb-4" style="width: 90px; height: 90px;">
+                                <i class="fa fa-calendar-alt fa-3x text-primary"></i>
+                            </div>
+                            <h4 class="mb-0">Événements agricoles</h4>
+                        </div>
+                        <div class="text-center rounded py-5 px-4 mt-4" style="box-shadow: 0 0 45px rgba(0,0,0,.08);">
+                            <div class="btn-square bg-light rounded-circle mx-auto mb-4" style="width: 90px; height: 90px;">
+                                <i class="fa fa-shopping-cart fa-3x text-primary"></i>
+                            </div>
+                            <h4 class="mb-0">Vente d’équipements</h4>
+                        </div>
+                        <div class="text-center rounded py-5 px-4 mt-4" style="box-shadow: 0 0 45px rgba(0,0,0,.08);">
+                            <div class="btn-square bg-light rounded-circle mx-auto mb-4" style="width: 90px; height: 90px;">
+                                <i class="fa fa-chart-line fa-3x text-primary"></i>
+                            </div>
+                            <h4 class="mb-0">Suivi des ventes & dépenses</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div><!-- Features End -->
+
+<!-- Service Start : Pour le technicien -->
+<div class="container-xxl py-5">
+    <div class="container">
+        <div class="text-center mx-auto wow fadeInUp" data-wow-delay="0.1s" style="max-width: 500px;">
+            <p class="fs-5 fw-bold text-primary">Vos outils</p>
+            <h1 class="display-5 mb-5">Gérez vos interventions de maintenance</h1>
+        </div>
+        <div class="row g-4 justify-content-center">
+            <!-- Maintenance -->
+            <div class="col-lg-6 col-md-8 wow fadeInUp" data-wow-delay="0.1s">
+                <div class="service-item rounded d-flex h-100">
+                    <div class="service-img rounded">
+                        <img class="img-fluid" src="{{ asset('img/entrtien_tracteur.jpg') }}" alt="Maintenance équipement">
+                    </div>
+                    <div class="service-text rounded p-5">
+                        <div class="btn-square rounded-circle mx-auto mb-3">
+                            <i class="fa fa-wrench fa-2x text-primary"></i>
+                        </div>
+                        <h4 class="mb-3">Maintenance des équipements</h4>
+                        <p class="mb-4">
+                            Planifiez et suivez vos interventions de maintenance. Notez vos tâches et assurez un suivi complet de chaque équipement.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

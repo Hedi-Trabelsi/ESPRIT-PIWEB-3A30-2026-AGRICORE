@@ -1,0 +1,56 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h4>Gestion des equipements</h4>
+
+        {% for message in app.flashes('admin_success') %}
+            <div class="alert alert-success">{{ message }}</div>
+        {% endfor %}
+
+        <a href="{{ path('back_equipement_new') }}" class="btn btn-success mb-3">+ Ajouter</a>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Nom</th>
+                    <th>Type</th>
+                    <th>Prix</th>
+                    <th>Stock</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for eq in equipements %}
+                <tr>
+                    <td>
+                        {% if eq.imageFilename %}
+                            <img src="{{ asset('uploads/equipements/' ~ eq.imageFilename) }}" width="50" alt="{{ eq.nom }}">
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ eq.nom }}</td>
+                    <td>{{ eq.type }}</td>
+                    <td>{{ eq.prix }} TND</td>
+                    <td>{{ eq.quantite }}</td>
+                    <td>
+                        <a href="{{ path('back_equipement_edit', {id: eq.id}) }}" class="btn btn-sm btn-warning">Modifier</a>
+                        <form method="post" action="{{ path('back_equipement_delete', {id: eq.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer ?')">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ eq.id) }}">
+                            <button class="btn btn-sm btn-danger">Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="6">Aucun equipement.</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

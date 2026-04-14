@@ -1,0 +1,209 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block content %}
+<style>
+    .btn-retour {
+        background-color: #fff;
+        border: 1px solid #e8e8e8;
+        color: #198754;
+        border-radius: 10px;
+        padding: 8px 20px;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-retour:hover {
+        background-color: #f8f9fa;
+        color: #146c43;
+    }
+    .btn-action {
+        background-color: #198754;
+        color: #fff;
+        border-radius: 10px;
+        padding: 8px 20px;
+        font-weight: 500;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-action:hover {
+        background-color: #146c43;
+        color: #fff;
+    }
+    .page-title {
+        font-weight: 700;
+        font-size: 1.5rem;
+        margin: 0;
+    }
+    .custom-card {
+        border-radius: 15px;
+        border: 1px solid #e8e8e8;
+        margin-bottom: 25px;
+        overflow: hidden;
+    }
+    .custom-card-header {
+        background-color: #f0fdf4;
+        padding: 15px 20px;
+        border-bottom: 1px solid #e8e8e8;
+    }
+    .custom-card-header h5 {
+        color: #198754;
+        margin: 0;
+        font-weight: 700;
+    }
+    .custom-card-body {
+        padding: 20px;
+        background-color: #fff;
+        min-height: 80px;
+    }
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: all 0.2s;
+        border: none;
+        color: #fff;
+        margin: 0 2px;
+    }
+    .btn-edit { background-color: #3182ce; }
+    .btn-edit:hover { background-color: #2b6cb0; }
+    .btn-delete { background-color: #e53e3e; }
+    .btn-delete:hover { background-color: #c53030; }
+</style>
+
+<div class="row">
+    <div class="col-12 d-flex justify-content-between align-items-center mb-5">
+        <div class="d-flex align-items-center gap-4">
+            <a href="{{ path('back_ventes_depenses') }}" class="btn-retour">
+                <i class="ti ti-arrow-left"></i> Retour
+            </a>
+            <h1 class="page-title">Utilisateur {{ user.nom ~ ' ' ~ user.prenom }}</h1>
+        </div>
+        <div class="d-flex gap-3">
+            <a href="{{ path('back_add_depense', {'id': user.id}) }}" class="btn-action">+ Dépense</a>
+            <a href="{{ path('back_add_vente', {'id': user.id}) }}" class="btn-action">+ Vente</a>
+        </div>
+    </div>
+
+    <div class="custom-card">
+        <div class="custom-card-header">
+            <h5>Dépenses</h5>
+        </div>
+        <div class="custom-card-body">
+            {% if depenses is not empty %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Montant</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for depense in depenses %}
+                            <tr>
+                                <td>{{ depense.date|date('d/m/Y') }}</td>
+                                <td>{{ depense.type }}</td>
+                                <td>{{ depense.montant|number_format(2, ',', ' ') }} DT</td>
+                                <td class="text-end">
+                                    <a href="{{ path('back_edit_depense', {'id': depense.idDepense}) }}" class="btn-icon btn-edit" title="Modifier">
+                                        <i class="ti ti-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn-icon btn-delete delete-btn" 
+                                            data-url="{{ path('back_delete_depense', {'id': depense.idDepense}) }}" 
+                                            title="Supprimer">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-muted m-0">Aucune dépense trouvée.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="custom-card">
+        <div class="custom-card-header">
+            <h5>Ventes</h5>
+        </div>
+        <div class="custom-card-body">
+            {% if ventes is not empty %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Produit</th>
+                            <th>Quantité</th>
+                            <th>Prix Unitaire</th>
+                            <th>Total</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vente in ventes %}
+                            <tr>
+                                <td>{{ vente.date|date('d/m/Y') }}</td>
+                                <td>{{ vente.produit }}</td>
+                                <td>{{ vente.quantite }}</td>
+                                <td>{{ vente.prixUnitaire|number_format(2, ',', ' ') }} DT</td>
+                                <td>{{ vente.chiffreAffaires|number_format(2, ',', ' ') }} DT</td>
+                                <td class="text-end">
+                                    <a href="{{ path('back_edit_vente', {'id': vente.idVente}) }}" class="btn-icon btn-edit" title="Modifier">
+                                        <i class="ti ti-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn-icon btn-delete delete-btn" 
+                                            data-url="{{ path('back_delete_vente', {'id': vente.idVente}) }}" 
+                                            title="Supprimer">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-muted m-0">Aucune vente trouvée.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+        
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const url = this.getAttribute('data-url');
+                
+                Swal.fire({
+                    title: 'Êtes-vous sûr ?',
+                    text: "Cette action est irréversible !",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e53e3e',
+                    cancelButtonColor: '#718096',
+                    confirmButtonText: 'Oui, supprimer !',
+                    cancelButtonText: 'Annuler',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = url;
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

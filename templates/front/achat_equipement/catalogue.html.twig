@@ -1,0 +1,81 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block body %}
+<div class="container mt-4">
+    <h1 class="mb-4">Catalogue d'equipements agricoles</h1>
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    {% endfor %}
+    {% for message in app.flashes('warning') %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    {% endfor %}
+    {% for message in app.flashes('error') %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    {% endfor %}
+
+    <form method="get" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Rechercher par nom ou type...">
+            <button class="btn btn-primary" type="submit">Rechercher</button>
+        </div>
+    </form>
+
+    <div class="mb-4 text-end">
+        <a href="{{ path('app_my_orders') }}" class="btn btn-outline-secondary me-2">Mes commandes</a>
+        <a href="{{ path('app_cart_show') }}" class="btn btn-outline-primary">Voir le panier</a>
+    </div>
+
+    <div class="row">
+        {% for eq in equipements %}
+            <div class="col-md-4 col-lg-3 mb-4">
+                <div class="card h-100 shadow-sm">
+                    {% if eq.imageFilename %}
+                        <img src="{{ asset('uploads/equipements/' ~ eq.imageFilename) }}" class="card-img-top" style="height: 180px; object-fit: cover;" alt="{{ eq.nom }}">
+                    {% else %}
+                        <div class="bg-light text-center py-5">Pas d'image</div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ eq.nom }}</h5>
+                        <p class="card-text"><strong>Type :</strong> {{ eq.type }}</p>
+                        <p class="card-text"><strong>Prix :</strong> {{ eq.prix }} TND</p>
+                        <p class="card-text">
+                            <strong>Stock :</strong>
+                            {% if eq.quantite > 0 %}
+                                <span class="badge bg-success">{{ eq.quantite }} disponible(s)</span>
+                            {% else %}
+                                <span class="badge bg-danger">Rupture</span>
+                            {% endif %}
+                        </p>
+
+                        {% if eq.quantite > 0 %}
+                            <form method="post" action="{{ path('app_add_to_cart', {id: eq.id}) }}">
+                                <div class="input-group mb-2">
+                                    <input type="number" name="quantity" value="1" min="1" max="{{ eq.quantite }}" class="form-control" style="max-width: 80px;">
+                                    <button class="btn btn-success" type="submit">Ajouter</button>
+                                </div>
+                            </form>
+                        {% else %}
+                            <button class="btn btn-secondary w-100" disabled>Indisponible</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="col-12 text-center">
+                <p class="lead">Aucun equipement trouve pour "{{ search }}".</p>
+                <a href="{{ path('app_equipement_catalogue') }}" class="btn btn-outline-primary">Voir tout le catalogue</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

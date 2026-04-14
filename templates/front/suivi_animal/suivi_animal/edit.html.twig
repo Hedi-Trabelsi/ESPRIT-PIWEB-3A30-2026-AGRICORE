@@ -1,0 +1,16 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Modifier Suivi{% endblock %}
+
+{% block body %}
+<h1>Modifier le suivi</h1>
+
+{{ include('front/suivi_animal/suivi_animal/_form.html.twig', {'button_label': 'Mettre à jour'}) }}
+
+{% if animalId is defined and animalId %}
+  <a href="{{ path('app_animal_show', {idAnimal: animalId}) }}">← Retour à la fiche animal</a>
+{% else %}
+  <a href="{{ path('app_suivi_animal_index') }}">← Retour à la liste</a>
+{% endif %}
+
+{{ include('front/suivi_animal/suivi_animal/_delete_form.html.twig') }}
+{% endblock %}

@@ -1,0 +1,310 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+<style>
+    :root {
+        --agri-dark: #061a14;
+        --agri-green: #10b981;
+        --agri-soft-green: #ecfdf5;
+        --glass-bg: rgba(255, 255, 255, 0.9);
+    }
+
+    body { 
+        background: linear-gradient(135deg, #f0f9f4 0%, #e8f5e9 100%);
+        background-attachment: fixed;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: var(--agri-dark);
+    }
+
+    .main-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border-radius: 35px;
+        border: 1px solid rgba(255, 255, 255, 1);
+        box-shadow: 0 25px 60px rgba(0,0,0,0.05);
+        overflow: hidden;
+        margin-bottom: 50px;
+    }
+
+    /* --- Header Glassmorphism --- */
+    .header-section {
+        background: white;
+        padding: 45px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .date-badge-pro {
+        background: var(--agri-dark);
+        color: white;
+        border-radius: 20px;
+        padding: 18px;
+        text-align: center;
+        min-width: 90px;
+        box-shadow: 0 10px 20px rgba(6, 26, 20, 0.2);
+    }
+    .date-day { font-size: 2rem; font-weight: 900; line-height: 1; }
+    .date-month { font-size: 0.85rem; text-transform: uppercase; font-weight: 700; opacity: 0.8; }
+
+    /* --- Stat Cards --- */
+    .stat-box {
+        background: white;
+        border-radius: 22px;
+        padding: 22px;
+        border: 1px solid #f1f5f9;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-align: center;
+    }
+    .stat-box:hover { transform: translateY(-7px); box-shadow: 0 15px 30px rgba(0,0,0,0.06); }
+    .stat-icon { font-size: 1.6rem; margin-bottom: 12px; display: block; }
+    .stat-label { font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px; }
+    .stat-value { font-size: 1.25rem; font-weight: 800; }
+
+    /* --- Participants Table --- */
+    .participant-row {
+        border-bottom: 1px solid #f8fafc;
+        transition: 0.2s;
+    }
+    .participant-row:hover { background-color: #fcfdfd; }
+    .avatar-circle {
+        width: 38px; height: 38px; border-radius: 12px;
+        background: var(--agri-soft-green);
+        color: var(--agri-green);
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 800; font-size: 0.8rem;
+    }
+
+    /* --- Map Style --- */
+    #map {
+        height: 420px;
+        width: 100%;
+        border-radius: 28px;
+        border: 10px solid white;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.04);
+    }
+
+    .progress { height: 10px; border-radius: 20px; background: #f1f5f9; }
+    .btn-action-pro {
+        padding: 14px 28px;
+        border-radius: 18px;
+        font-weight: 700;
+        transition: 0.3s;
+        font-size: 0.9rem;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="main-card animate__animated animate__fadeIn">
+        
+        <div class="header-section">
+            <div class="row align-items-center g-4">
+                <div class="col-md-auto">
+                    <div class="date-badge-pro animate__animated animate__pulse animate__infinite animate__slow">
+                        <div class="date-day">{{ evenement.date_debut|date('d') }}</div>
+                        <div class="date-month">{{ evenement.date_debut|date('M') }}</div>
+                    </div>
+                </div>
+                <div class="col-md">
+                    <span class="badge mb-2 px-3 py-2 rounded-pill" style="background: var(--agri-soft-green); color: var(--agri-green); font-weight: 800; font-size: 0.7rem;">
+                        <i class="fas fa-circle me-1 small"></i> {{ evenement.statut|upper }}
+                    </span>
+                    <h1 class="fw-bold mb-1" style="letter-spacing: -1.5px; font-size: 2.5rem;">{{ evenement.titre }}</h1>
+                    <p class="text-muted mb-0">
+                        <i class="far fa-clock me-2"></i>De {{ evenement.date_debut|date('H:i') }} à {{ evenement.date_fin|date('H:i') }} 
+                        <span class="mx-2 text-silver">|</span> 
+                        <i class="fas fa-calendar-alt me-2"></i>Fin le {{ evenement.date_fin|date('d/m/Y') }}
+                    </p>
+                </div>
+                <div class="col-md-auto text-md-end">
+                    <div class="d-flex gap-2">
+                        <a href="{{ path('back_evenements_edit', {id: evenement.id_ev}) }}" class="btn btn-success btn-action-pro">
+                            <i class="fas fa-edit me-2"></i>Modifier
+                        </a>
+                        <a href="{{ path('back_evenements_delete', {id: evenement.id_ev}) }}" class="btn btn-outline-danger btn-action-pro">
+                            <i class="fas fa-trash"></i>Supprimer
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 p-md-5">
+            <div class="row g-5">
+                
+                <div class="col-lg-7">
+                    
+                    <div class="row g-3 mb-5">
+                        <div class="col-sm-4">
+                            <div class="stat-box">
+                                <span class="stat-icon text-primary"><i class="fas fa-wallet"></i></span>
+                                <span class="stat-label">Tarif</span>
+                                <div class="stat-value text-primary">{{ evenement.frais_inscription }} <small>DT</small></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="stat-box">
+                                <span class="stat-icon text-success"><i class="fas fa-users-cog"></i></span>
+                                <span class="stat-label">Capacité</span>
+                                <div class="stat-value">{{ evenement.capacite_max }}</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="stat-box">
+                                <span class="stat-icon text-warning"><i class="fas fa-shield-heart"></i></span>
+                                <span class="stat-label">Dispo</span>
+                                <div class="stat-value text-warning">{{ 100 - tauxRemplissage }}%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-5 bg-white p-4 rounded-4 shadow-sm border border-light">
+                        <div class="d-flex justify-content-between align-items-end mb-3">
+                            <h6 class="fw-bold mb-0">Remplissage de l'événement</h6>
+                            <span class="text-success fw-bold small">{{ placesReservees }} / {{ evenement.capacite_max }} inscrits</span>
+                        </div>
+                        <div class="progress mb-2">
+                            {% if evenement.capacite_max > 0 %}
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: {{ tauxRemplissage }}%"></div>
+                            {% else %}
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-secondary" style="width: 0%"></div>
+                            {% endif %}
+                        </div>
+                        <p class="text-muted small mb-0">{{ placesRestantes }} place(s) restante(s).</p>
+                    </div>
+
+                    <div class="mb-5">
+                        <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+                            <h5 class="fw-bold mb-0">Participants récents</h5>
+                            <a href="#" class="btn btn-link text-success fw-bold text-decoration-none small p-0">Gérer la liste <i class="fas fa-external-link-alt ms-1"></i></a>
+                        </div>
+                        <div class="bg-white rounded-4 border overflow-hidden">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="small" style="background: #f8fafc;">
+                                    <tr>
+                                        <th class="ps-4 py-3 fw-bold">Participant</th>
+                                        <th class="fw-bold">Date d'inscription</th>
+                                        <th class="text-end pe-4 fw-bold">Montant payeé</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="small">
+                                    {% if participants|length > 0 %}
+                                        {% for participant in participants %}
+                                        <tr class="participant-row">
+                                            <td class="ps-4 py-3">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="avatar-circle">
+                                                        {% if participant.nom_participant %}
+                                                            {{ participant.nom_participant|slice(0, 1)|upper }}
+                                                        {% else %}
+                                                            ?
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="fw-bold">{{ participant.nom_participant }}</div>
+                                                </div>
+                                            </td>
+                                            <td class="text-muted">{{ participant.date_inscription|date('d/m/Y') }}</td>
+                                            <td class="text-end pe-4">
+                                                {% if participant.montant_payee|lower == 'payé' %}
+                                                    <span class="badge bg-success text-white rounded-pill">Payé</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning text-dark rounded-pill">{{ participant.montant_payee }}</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr class="participant-row">
+                                            <td colspan="3" class="text-center py-4 text-muted">
+                                                <i class="fas fa-users-slash me-2"></i>Aucun participant pour le moment
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold mb-3 px-2">Description détaillée</h5>
+                    <div class="bg-white p-4 rounded-4 border text-muted shadow-sm" style="line-height: 1.8;">
+                        {{ evenement.description|nl2br }}
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="sticky-top" style="top: 20px; z-index: 10;">
+                        <h5 class="fw-bold mb-3 d-flex align-items-center">
+                            <i class="fas fa-map-marked-alt text-danger me-2"></i> Localisation
+                        </h5>
+                        <div id="map"></div>
+                        
+                        <div class="mt-4 p-4 bg-white border rounded-4 d-flex align-items-start gap-4 shadow-sm">
+                            <div class="bg-soft-danger p-3 rounded-4" style="background: #fef2f2;">
+                                <i class="fas fa-location-dot text-danger fa-lg"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted small fw-bold text-uppercase mb-1">Adresse de l'événement</div>
+                                <div class="fw-bold text-dark fs-5">{{ evenement.lieu }}</div>
+                                <a href="https://www.google.com/maps/search/{{ evenement.lieu }}" target="_blank" class="btn btn-link text-danger p-0 small fw-bold text-decoration-none">
+                                    Ouvrir dans Google Maps <i class="fas fa-chevron-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="mt-5 pt-4 border-top d-flex justify-content-between align-items-center">
+                <a href="{{ path('back_evenements_list') }}" class="btn btn-light rounded-pill px-4 fw-bold">
+                    <i class="fas fa-arrow-left me-2"></i>Retour au Dashboard
+                </a>
+                <div class="text-muted small fw-medium">
+                    <i class="fas fa-history me-1"></i> Dernière modification : {{ "now"|date('H:i') }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialisation avec thème clair CartoDB
+        var map = L.map('map', { 
+            scrollWheelZoom: false,
+            zoomControl: false 
+        }).setView([36.8065, 10.1815], 13);
+        
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: 'AgriCore Map'
+        }).addTo(map);
+
+        // Geocoding dynamique via le nom du lieu
+        var address = "{{ evenement.lieu }}";
+        fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + address)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    var lat = data[0].lat;
+                    var lon = data[0].lon;
+                    map.setView([lat, lon], 16);
+                    
+                    var customIcon = L.divIcon({
+                        className: 'custom-div-icon',
+                        html: "<div style='background-color:#ef4444; width:15px; height:15px; border-radius:50%; border:3px solid white; box-shadow:0 0 10px rgba(0,0,0,0.2)'></div>",
+                        iconSize: [15, 15],
+                        iconAnchor: [7, 7]
+                    });
+
+                    L.marker([lat, lon], {icon: customIcon}).addTo(map)
+                        .bindPopup("<div class='fw-bold'>{{ evenement.titre }}</div><div class='small'>{{ evenement.lieu }}</div>")
+                        .openPopup();
+                }
+            });
+    });
+</script>
+{% endblock %}

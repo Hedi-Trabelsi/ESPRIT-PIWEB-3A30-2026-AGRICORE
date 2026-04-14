@@ -1,0 +1,131 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0">Tableau de Bord Analytique</h4>
+       
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-white-50 text-uppercase small fw-bold mb-1">Total Maintenances</h6>
+                            <h2 class="fw-bold mb-0 text-white">{{ total }}</h2>
+                        </div>
+                        <div class="bg-white-50 rounded-circle p-2">
+                            <i class="ti ti-settings fs-6 text-white"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title mb-4 fw-semibold">Demandes reçues par jour</h5>
+                    <canvas id="chartDaily" height="70"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title mb-4 fw-semibold text-center">Répartition par Statut</h5>
+                    <div style="max-height: 300px;">
+                        <canvas id="chartStatus"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title mb-4 fw-semibold text-center">Répartition par Priorité</h5>
+                    <div style="max-height: 300px;">
+                        <canvas id="chartPriority"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const rawData = {{ statsParJour|json_encode|raw }};
+
+    // Graphique Linéaire
+    new Chart(document.getElementById('chartDaily'), {
+        type: 'line',
+        data: {
+            labels: Object.keys(rawData),
+            datasets: [{
+                label: 'Nombre de demandes',
+                data: Object.values(rawData),
+                borderColor: '#5d87ff',
+                backgroundColor: 'rgba(93, 135, 255, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // Graphique Statuts
+    new Chart(document.getElementById('chartStatus'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Résolu', 'Attente', 'Planifié', 'Refusé'],
+            datasets: [{
+                data: [{{ statsStatut.Resolu }}, {{ statsStatut.Attente }}, {{ statsStatut.Planifie }}, {{ statsStatut.Refuse }}],
+                backgroundColor: ['#13deb9', '#ffae1f', '#5d87ff', '#fa896b']
+            }]
+        },
+        options: { 
+            cutout: '70%',
+            maintainAspectRatio: false
+        }
+    });
+
+ // --- Graphique Priorités (Pie / Camembert) CORRIGÉ ---
+new Chart(document.getElementById('chartPriority'), {
+    type: 'pie',
+    data: {
+        labels: ['Urgente', 'Normale', 'Faible'], // Noms corrigés ici
+        datasets: [{
+            data: [
+                {{ statsPriorite.Urgente }}, 
+                {{ statsPriorite.Normale }}, 
+                {{ statsPriorite.Faible }}
+            ],
+            backgroundColor: [
+                '#fa896b', // Rouge pour Urgente
+                '#5d87ff', // Bleu pour Normale
+                '#13deb9'  // Vert pour Faible
+            ]
+        }]
+    },
+    options: {
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom' // Place la légende en dessous pour plus de clarté
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

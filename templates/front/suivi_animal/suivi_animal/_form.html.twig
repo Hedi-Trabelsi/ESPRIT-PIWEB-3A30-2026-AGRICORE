@@ -1,0 +1,173 @@
+{{ form_start(form, {'attr': {'novalidate': 'novalidate', 'class': 'sa-form', 'id': 'suiviForm'}}) }}
+
+<style>
+  .sa-form table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+  .sa-form td { padding: 4px 8px; vertical-align: middle; }
+  .sa-form td:first-child { width: 180px; font-size: 13px; font-weight: 600; color: #27500A; }
+  .sa-form td:nth-child(2) { width: 220px; }
+  .sa-form td:nth-child(3) { padding-left: 12px; }
+
+  .sa-form input,
+  .sa-form select,
+  .sa-form textarea {
+    background: #EAF3DE;
+    border: 1px solid #C0DD97;
+    border-radius: 7px;
+    padding: 7px 11px;
+    font-size: 13px;
+    color: #27500A;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .sa-form input:focus,
+  .sa-form select:focus,
+  .sa-form textarea:focus {
+    border-color: #3B6D11;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(59,109,17,.08);
+  }
+  .sa-field-error {
+    border-color: #F87171 !important;
+    background: #FEF2F2 !important;
+  }
+</style>
+
+<table>
+  {# Ligne Animal #}
+  <tr>
+    <td><label style="font-size:13px;font-weight:600;color:#27500A;">Animal</label></td>
+    <td>
+      {% if animalCode is defined and animalCode %}
+        <input type="text" value="{{ animalCode }}" readonly
+               style="background:#f3f4f6;border:1px solid #C0DD97;border-radius:7px;padding:7px 11px;font-size:13px;color:#27500A;width:100%;cursor:not-allowed;">
+      {% elseif form.animal is defined %}
+        {{ form_widget(form.animal, {'attr': {'id': 'field_animal'}}) }}
+      {% endif %}
+    </td>
+    <td></td>
+  </tr>
+
+  <tr>
+    <td>{{ form_label(form.dateSuivi, 'Date du suivi') }}</td>
+    <td>{{ form_widget(form.dateSuivi, {'attr': {'id': 'field_dateSuivi'}}) }}</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>{{ form_label(form.temperature, 'Température (°C)') }}</td>
+    <td>{{ form_widget(form.temperature, {'attr': {'id': 'field_temperature'}}) }}</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>{{ form_label(form.poids, 'Poids (kg)') }}</td>
+    <td>{{ form_widget(form.poids, {'attr': {'id': 'field_poids'}}) }}</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>{{ form_label(form.rythmeCardiaque, 'Rythme cardiaque (bpm)') }}</td>
+    <td>{{ form_widget(form.rythmeCardiaque, {'attr': {'id': 'field_rythme'}}) }}</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>{{ form_label(form.niveauActivite, "Niveau d'activité") }}</td>
+    <td>{{ form_widget(form.niveauActivite, {'attr': {'id': 'field_activite'}}) }}</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>{{ form_label(form.etatSante, 'État de santé') }}</td>
+    <td>{{ form_widget(form.etatSante, {'attr': {'id': 'field_etat'}}) }}</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>{{ form_label(form.remarque, 'Remarque') }}</td>
+    <td>{{ form_widget(form.remarque, {'attr': {'id': 'field_remarque'}}) }}</td>
+    <td></td>
+  </tr>
+</table>
+
+<div style="margin-top:16px;">
+  <button type="submit" class="btn" style="background:#3B6D11;color:white;border:none;padding:9px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">
+    {{ button_label|default('Enregistrer') }}
+  </button>
+</div>
+
+{{ form_end(form) }}
+
+<script>
+document.getElementById('suiviForm').addEventListener('submit', function(e) {
+  var errors = [];
+
+  var animal   = document.getElementById('field_animal');
+  var date     = document.getElementById('field_dateSuivi');
+  var temp     = document.getElementById('field_temperature');
+  var poids    = document.getElementById('field_poids');
+  var rythme   = document.getElementById('field_rythme');
+  var activite = document.getElementById('field_activite');
+  var etat     = document.getElementById('field_etat');
+
+  // Reset styles
+  [animal, date, temp, poids, rythme, activite, etat].forEach(function(f) {
+    if (f) f.classList.remove('sa-field-error');
+  });
+
+  // Animal (seulement si le champ existe = pas fixé)
+  if (animal && !animal.value) {
+    errors.push('Veuillez choisir un animal.');
+    animal.classList.add('sa-field-error');
+  }
+
+  // Date
+  if (!date || !date.value) {
+    errors.push('La date du suivi est obligatoire.');
+    if (date) date.classList.add('sa-field-error');
+  }
+
+  // Température
+  var tempVal = parseFloat(temp ? temp.value : '');
+  if (!temp || temp.value === '') {
+    errors.push('La température est obligatoire.');
+    temp.classList.add('sa-field-error');
+  } else if (isNaN(tempVal) || tempVal < 30 || tempVal > 45) {
+    errors.push('La température doit être entre 30°C et 45°C.');
+    temp.classList.add('sa-field-error');
+  }
+
+  // Poids
+  var poidsVal = parseFloat(poids ? poids.value : '');
+  if (!poids || poids.value === '') {
+    errors.push('Le poids est obligatoire.');
+    poids.classList.add('sa-field-error');
+  } else if (isNaN(poidsVal) || poidsVal <= 0) {
+    errors.push('Le poids doit être un nombre positif.');
+    poids.classList.add('sa-field-error');
+  }
+
+  // Rythme cardiaque
+  var rythmeVal = parseInt(rythme ? rythme.value : '');
+  if (!rythme || rythme.value === '') {
+    errors.push('Le rythme cardiaque est obligatoire.');
+    rythme.classList.add('sa-field-error');
+  } else if (isNaN(rythmeVal) || rythmeVal < 20 || rythmeVal > 300) {
+    errors.push('Le rythme cardiaque doit être entre 20 et 300 bpm.');
+    rythme.classList.add('sa-field-error');
+  }
+
+  // Niveau d'activité
+  if (!activite || !activite.value) {
+    errors.push("Le niveau d'activité est obligatoire.");
+    if (activite) activite.classList.add('sa-field-error');
+  }
+
+  // État de santé
+  if (!etat || !etat.value) {
+    errors.push("L'état de santé est obligatoire.");
+    if (etat) etat.classList.add('sa-field-error');
+  }
+
+  if (errors.length > 0) {
+    e.preventDefault();
+    alert('Veuillez corriger les erreurs suivantes :\n\n' + errors.join('\n'));
+  }
+});
+</script>

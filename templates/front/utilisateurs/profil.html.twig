@@ -1,0 +1,185 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block title %}Mon Profil - Agricore{% endblock %}
+
+{% block body %}
+
+<link href="{{ asset('css/utilisateur/utilisateur.css') }}" rel="stylesheet">
+
+{# ===== Hero Section ===== #}
+<div class="profile-hero">
+    <div class="container">
+        {% if app.session.get('user') and app.session.get('user').image %}
+            <img src="data:image/jpeg;base64,{{ app.session.get('user').image }}" alt="Photo" class="profile-hero-avatar">
+        {% else %}
+            <img src="{{ asset('img/profile.webp') }}" alt="Photo" class="profile-hero-avatar">
+        {% endif %}
+
+        {% if app.session.get('user') %}
+            <h2>{{ app.session.get('user').prenom }} {{ app.session.get('user').nom }}</h2>
+            <p class="profile-hero-email"><i class="fas fa-envelope me-1"></i> {{ app.session.get('user').email }}</p>
+            {% if app.session.get('user').role == 0 %}
+                <span class="profile-hero-role role-admin"><i class="fas fa-user-shield me-1"></i> Administrateur</span>
+            {% elseif app.session.get('user').role == 1 %}
+                <span class="profile-hero-role role-agriculteur"><i class="fas fa-seedling me-1"></i> Agriculteur</span>
+            {% else %}
+                <span class="profile-hero-role role-technicien"><i class="fas fa-tools me-1"></i> Technicien</span>
+            {% endif %}
+        {% else %}
+            <h2>Utilisateur</h2>
+            <p class="profile-hero-email">Veuillez vous connecter</p>
+        {% endif %}
+    </div>
+</div>
+
+{# ===== Profile Content ===== #}
+<div class="container profile-content">
+
+    {% for msg in app.flashes('success') %}
+        <div class="auth-alert auth-alert-success mb-3">
+            <i class="fas fa-check-circle"></i> {{ msg }}
+        </div>
+    {% endfor %}
+
+    {% if app.session.get('user') %}
+    <div class="row g-4">
+
+        {# --- Main Info --- #}
+        <div class="col-lg-8">
+            <div class="p-card">
+                <div class="p-card-head">
+                    <i class="fas fa-id-card"></i>
+                    <h4>Informations personnelles</h4>
+                </div>
+                <div class="p-card-body">
+
+                    <div class="info-row">
+                        <div class="info-icon green"><i class="fas fa-user"></i></div>
+                        <div class="info-text">
+                            <div class="info-label">Nom complet</div>
+                            <div class="info-value">{{ app.session.get('user').prenom }} {{ app.session.get('user').nom }}</div>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-icon blue"><i class="fas fa-envelope"></i></div>
+                        <div class="info-text">
+                            <div class="info-label">Email</div>
+                            <div class="info-value">{{ app.session.get('user').email }}</div>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-icon amber"><i class="fas fa-phone-alt"></i></div>
+                        <div class="info-text">
+                            <div class="info-label">Telephone</div>
+                            <div class="info-value">{{ app.session.get('user').numeroT }}</div>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-icon purple"><i class="fas fa-map-marker-alt"></i></div>
+                        <div class="info-text">
+                            <div class="info-label">Adresse</div>
+                            <div class="info-value">{{ app.session.get('user').adresse }}</div>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-icon rose"><i class="fas fa-calendar-alt"></i></div>
+                        <div class="info-text">
+                            <div class="info-label">Date de naissance</div>
+                            <div class="info-value">
+                                {% if app.session.get('user').date %}
+                                    {{ app.session.get('user').date|date('d/m/Y') }}
+                                {% else %}
+                                    Non renseignee
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="info-icon teal"><i class="fas fa-venus-mars"></i></div>
+                        <div class="info-text">
+                            <div class="info-label">Genre</div>
+                            <div class="info-value">{{ app.session.get('user').genre }}</div>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+
+            <div class="profile-actions">
+                <a href="{{ path('app_profile_edit') }}" class="pbtn pbtn-green">
+                    <i class="fas fa-edit"></i> Modifier mon profil
+                </a>
+                <a href="{{ path('utilisateur_logout') }}" class="pbtn pbtn-outline">
+                    <i class="fas fa-sign-out-alt"></i> Deconnexion
+                </a>
+            </div>
+        </div>
+
+        {# --- Sidebar --- #}
+        <div class="col-lg-4">
+
+            <div class="sidebar-mini-card">
+                <h5><i class="fas fa-info-circle me-2"></i> Apercu du compte</h5>
+                <div class="sidebar-item">
+                    <i class="fas fa-user-tag"></i>
+                    <span>Role : <strong>{% if app.session.get('user').role == 0 %}Administrateur{% elseif app.session.get('user').role == 1 %}Agriculteur{% else %}Technicien{% endif %}</strong></span>
+                </div>
+                <div class="sidebar-item">
+                    <i class="fas fa-check-double"></i>
+                    <span>Profil : <strong>{% if app.session.get('user').profileComplete %}Complet{% else %}Incomplet{% endif %}</strong></span>
+                </div>
+                <div class="sidebar-item">
+                    <i class="fas fa-venus-mars"></i>
+                    <span>Genre : <strong>{{ app.session.get('user').genre }}</strong></span>
+                </div>
+            </div>
+
+            <div class="sidebar-mini-card">
+                <h5><i class="fas fa-chart-pie me-2"></i> Activite</h5>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <i class="fas fa-tractor"></i>
+                        <div class="stat-label">Equipements</div>
+                    </div>
+                    <div class="stat-box">
+                        <i class="fas fa-wrench"></i>
+                        <div class="stat-label">Maintenances</div>
+                    </div>
+                    <div class="stat-box">
+                        <i class="fas fa-coins"></i>
+                        <div class="stat-label">Ventes</div>
+                    </div>
+                    <div class="stat-box">
+                        <i class="fas fa-receipt"></i>
+                        <div class="stat-label">Depenses</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+    {% else %}
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="p-card">
+                    <div class="p-card-body profile-empty">
+                        <i class="fas fa-user-lock"></i>
+                        <p>Vous devez etre connecte pour acceder a votre profil.</p>
+                        <a href="{{ path('front_login') }}" class="pbtn pbtn-green" style="display:inline-flex;flex:none;padding:13px 32px;">
+                            <i class="fas fa-sign-in-alt"></i> Se connecter
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

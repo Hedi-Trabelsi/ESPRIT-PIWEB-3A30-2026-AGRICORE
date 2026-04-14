@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dashboard-Agricore{% endblock %}</title>
+  <link rel="shortcut icon" type="image/png" href="{{ asset('img/logoo.png') }}" />
+  <link rel="stylesheet" href="{{ asset('css/styles.min.css') }}" />
+  <style>
+  
+    .top-navbar-white {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background-color: #ffffff;
+      border-bottom: 1px solid #e8e8e8;
+      display: flex;
+      align-items: flex-start;
+      padding: 5px 30px;
+      z-index: 1030;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .body-wrapper {
+      margin-top: 48px;
+    }
+    .left-sidebar {
+      margin-top: 60px;
+      background-color: #ffffff;
+      border-right: 1px solid #e8e8e8;
+      width: 250px;
+      min-height: calc(100vh - 60px);
+      position: fixed;
+      top: 60px;
+      left: 0;
+      overflow-y: auto;
+    }
+    .page-wrapper {
+      margin-left: 0px;
+      margin-top: 0;
+    }
+    .sidebar-nav {
+      padding-top: 0px;
+    }
+
+    .sidebar-item {
+      margin-bottom: 10px;
+    }
+
+    .sidebar-link {
+      padding: 10px 15px;
+      border-radius: 8px;
+    }
+
+   .sidebar-link.active,
+.sidebar-link.active:hover,
+.sidebar-link.active:focus {
+    background-color: transparent !important; /* fond transparent */
+    color: inherit !important;                /* texte conserve sa couleur normale */
+    border-left-color: transparent !important; /* pas de couleur sur la bordure */
+}
+
+.sidebar-link.active i,
+.sidebar-link.active .hide-menu {
+    color: inherit !important;               /* icônes et texte secondaires restent normaux */
+}
+     </style> 
+
+</head>
+
+<body>
+  <!-- Body Wrapper -->
+  <div class="page-wrapper" id="main-wrapper" data-layout="vertical" data-navbarbg="skin6" data-sidebartype="full"
+    data-sidebar-position="fixed" data-header-position="fixed">
+
+    <!-- Navbar Blanche en haut (full width) -->
+    <div class="top-navbar-white">
+      <div class="navbar-brand d-flex align-items-center gap-3">
+        <a href="{{ path('back_dashboard') }}" class="d-flex align-items-center gap-2">
+          <img src="{{ asset('img/logo.png') }}" alt="Logo" style="height: 40px; width: auto;" />
+        </a>
+
+      </div>
+        <div class="user-info d-flex align-items-center gap-3">
+        <div class="dropdown position-relative">
+          <a class="nav-link" href="javascript:void(0)" id="drop1" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="ti ti-bell fs-5" style="color:#198754"></i>
+            <span class="notification"></span>
+          </a>
+          <div class="dropdown-menu dropdown-menu-end" aria-labelledby="drop1">
+           {% block notifications %}
+  <a href="#" class="notification-icon">
+    <i class="ti ti-bell"></i>
+  </a>
+{% endblock %}
+          </div>
+        </div>
+        <div>
+          <a class="d-flex align-items-center gap-2 text-decoration-none" href="{{ path('back_profile') }}" >
+            {% if app.session.get('user') and app.session.get('user').image %}
+              <img src="data:image/jpeg;base64,{{ app.session.get('user').image }}" alt="" width="40" height="40" class="rounded-circle" style="object-fit:cover;" />
+            {% else %}
+              <img src="{{ asset('img/profile.webp') }}" alt="" width="40" height="40" class="rounded-circle" />
+            {% endif %}
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Sidebar Start -->
+    <aside class="left-sidebar">
+      <div style="height: 100%; display: flex; flex-direction: column;">
+        
+        <!-- Sidebar navigation -->
+        <nav class="sidebar-nav scroll-sidebar" style="height: 100%; position: relative; display: flex; flex-direction: column;">
+          <div class="close-btn d-xl-none d-block sidebartoggler cursor-pointer" id="sidebarCollapse" style="position: absolute; top: 10px; right: 10px;">
+            <i class="ti ti-x fs-6"></i>
+          </div>
+          <ul id="sidebarnav" style="flex: 1; padding-top: 20px; display: flex; flex-direction: column; overflow-y: auto;">
+            <li class="nav-small-cap">
+              <iconify-icon icon="solar:menu-dots-linear" class="nav-small-cap-icon fs-4"></iconify-icon>
+            </li>
+            <!-- Dashboard -->
+            <li class="sidebar-item">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_dashboard' %} active{% endif %}" href="{{ path('back_dashboard') }}" aria-expanded="false">
+                <i class="ti ti-home"></i>
+                <span class="hide-menu">Dashboard</span>
+              </a>
+            </li>
+
+
+            <!-- Maintenance -->
+            <li class="sidebar-item">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_maintenance' %} active{% endif %}" href="{{ path('back_maintenance') }}" aria-expanded="false">
+                <i class="ti ti-tools"></i>
+                <span class="hide-menu">Maintenances</span>
+              </a>
+            </li>
+            <!-- Équipement avec Tracteur -->
+            <li class="sidebar-item">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_equipements' %} active{% endif %}" href="{{ path('back_equipements') }}" aria-expanded="false">
+                <i class="ti ti-tractor"></i>
+                <span class="hide-menu">Équipements</span>
+              </a>
+            </li>
+
+            <!-- Événements -->
+            <li class="sidebar-item">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_evenements_list' %} active{% endif %}" href="{{ path('back_evenements_list') }}" aria-expanded="false">
+                <i class="ti ti-calendar-event"></i>
+                <span class="hide-menu">Événements</span>
+              </a>
+            </li>
+
+            <!-- Animaux -->
+            <li class="sidebar-item">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') starts with 'back_animal' %} active{% endif %}" href="{{ path('back_animaux') }}" aria-expanded="false">
+                <i class="ti ti-paw"></i>
+                <span class="hide-menu">Animaux</span>
+              </a>
+            </li>
+
+            <!-- Suivis Animaux -->
+            <li class="sidebar-item">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') starts with 'back_suivi' %} active{% endif %}" href="{{ path('back_suivis') }}" aria-expanded="false">
+                <i class="ti ti-heartbeat"></i>
+                <span class="hide-menu">Suivis Animaux</span>
+              </a>
+            </li>
+
+            <!-- Ventes et dépenses -->
+            <li class="sidebar-item">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_ventes_depenses' %} active{% endif %}" href="{{ path('back_ventes_depenses') }}" aria-expanded="false">
+                <i class="ti ti-shopping-cart"></i>
+                <span class="hide-menu">Ventes et dépenses</span>
+              </a>
+            </li>
+            <!-- Utilisateurs -->
+            <li class="sidebar-item">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_utilisateurs' %} active{% endif %}" href="{{ path('back_utilisateurs') }}" aria-expanded="false">
+                <i class="ti ti-users"></i>
+                <span class="hide-menu">Utilisateurs</span>
+              </a>
+  <li class="sidebar-item" style="margin-top: auto; padding-bottom: 30px;">
+  <a class="sidebar-link d-flex align-items-center" href="{{ path('utilisateur_logout') }}" aria-expanded="false" style="padding-left: 1px;">
+    <i class="ti ti-logout me-0"></i>
+    <span class="hide-menu">Déconnexion</span>
+  </a>
+</li>
+          </ul>
+        </nav>
+      </div>
+    </aside>
+    <!-- Sidebar End -->
+    
+    <!-- Main Content -->
+    <div class="body-wrapper">
+      <div class="container-fluid">
+        {% block content %}
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-body">
+                <h4 class="card-title">Dashboard</h4>
+                <p>Bienvenue sur le Dashboard Agricore.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endblock %}
+      </div>
+    </div>
+    
+  </div>
+  
+  <script src="{{ asset('lib/jquery/dist/jquery.min.js') }}"></script>
+  <script src="{{ asset('lib/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
+  <script src="{{ asset('js/sidebarmenu.js') }}"></script>
+  <script src="{{ asset('js/app.min.js') }}"></script>
+  <script src="{{ asset('lib/simplebar/dist/simplebar.js') }}"></script>
+</body>
+
+</html>
