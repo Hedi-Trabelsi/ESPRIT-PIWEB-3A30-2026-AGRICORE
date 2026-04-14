@@ -221,6 +221,12 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 {% endfor %}
+{% for msg in app.flashes('info') %}
+    <div class="alert alert-warning alert-dismissible fade show position-fixed" style="top:20px;right:20px;z-index:10000;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.1);max-width:420px;" role="alert">
+        <i class="fas fa-envelope me-2"></i> {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endfor %}
 {% for msg in app.flashes('error') %}
     <div class="alert alert-danger alert-dismissible fade show position-fixed" style="top:20px;right:20px;z-index:10000;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.1);max-width:400px;" role="alert">
         <i class="fas fa-exclamation-circle me-2"></i> {{ msg }}
@@ -547,55 +553,95 @@ document.addEventListener('DOMContentLoaded', function() {
     const btn = document.getElementById('sttBtn');
     if (!btn) return;
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) { btn.style.display = 'none'; return; }
-
     const input = document.querySelector('input[name="nom_participant"]');
     if (!input) return;
 
-    // Build confirm bar and insert right after the input wrapper div
-    const wrapper = btn.parentElement; // the flex div containing input + btn
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { btn.style.display = 'none'; return; }
+
+    const wrapper = btn.parentElement;
+
+    const statusBar = document.createElement('div');
+    statusBar.style.cssText = 'display:none;align-items:center;gap:8px;margin-top:8px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;font-size:.82rem;color:#16a34a;font-weight:700;';
+    statusBar.innerHTML = '<i class="fas fa-circle" style="font-size:.5rem;animation:pulse 1s infinite;"></i> <span id="sttStatus">Parlez maintenant...</span>';
+    wrapper.parentElement.insertBefore(statusBar, wrapper.nextSibling);
+
     const confirmBar = document.createElement('div');
-    confirmBar.style.cssText = 'display:none;align-items:center;gap:8px;margin-top:8px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;font-size:.85rem;';
+    confirmBar.style.cssText = 'display:none;align-items:center;gap:8px;margin-top:6px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;font-size:.85rem;';
     confirmBar.innerHTML =
         '<i class="fas fa-check-circle" style="color:#16a34a;"></i>' +
         '<span id="sttPreviewText" style="flex:1;font-weight:600;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>' +
         '<button type="button" id="sttKeep" style="background:#16a34a;color:#fff;border:none;border-radius:10px;padding:5px 14px;font-weight:700;cursor:pointer;font-size:.8rem;white-space:nowrap;">Garder</button>' +
-        '<button type="button" id="sttDiscard" style="background:#fee2e2;color:#dc2626;border:none;border-radius:10px;padding:5px 14px;font-weight:700;cursor:pointer;font-size:.8rem;white-space:nowrap;">Annuler</button>';
-    wrapper.parentElement.insertBefore(confirmBar, wrapper.nextSibling);
+        '<button type="button" id="sttDiscard" style="background:#fee2e2;color:#dc2626;border:none;border-radius:10px;padding:5px 14px;font-weight:700;cursor:pointer;font-size:.8rem;white-space:nowrap;">Réessayer</button>';
+    wrapper.parentElement.insertBefore(confirmBar, statusBar.nextSibling);
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
     recognition.lang = 'fr-FR';
+    recognition.continuous = true;        // keep listening
+    recognition.interimResults = true;    // show partial results
+    recognition.maxAlternatives = 3;      // get multiple candidates
 
-    let listening = false;
-    let savedValue = '';
+    let listening = false, savedValue = '', bestTranscript = '', silenceTimer = null;
 
-    function setListening(on) {
-        listening = on;
+    function setBtn(on) {
         btn.style.background = on ? '#dc2626' : '#f0fdf4';
         btn.style.color = on ? '#fff' : '#16a34a';
         btn.innerHTML = on ? '<i class="fas fa-stop"></i>' : '<i class="fas fa-microphone"></i>';
+        btn.title = on ? 'Arrêter' : 'Dicter votre nom';
+    }
+
+    function stopListening() {
+        recognition.stop();
+        listening = false;
+        setBtn(false);
+        statusBar.style.display = 'none';
+        clearTimeout(silenceTimer);
+        if (bestTranscript.trim()) {
+            document.getElementById('sttPreviewText').textContent = bestTranscript.trim();
+            confirmBar.style.display = 'flex';
+        }
     }
 
     btn.addEventListener('click', function() {
-        if (listening) { recognition.stop(); return; }
+        if (listening) { stopListening(); return; }
         savedValue = input.value;
+        bestTranscript = '';
         confirmBar.style.display = 'none';
+        statusBar.style.display = 'flex';
+        document.getElementById('sttStatus').textContent = 'Parlez maintenant...';
         try { recognition.start(); } catch(e) {}
     });
 
-    recognition.onstart = function() { setListening(true); };
-    recognition.onend   = function() { setListening(false); };
-    recognition.onerror = function(e) { console.warn('STT:', e.error); setListening(false); };
+    recognition.onstart = () => { listening = true; setBtn(true); };
+    recognition.onerror = (e) => { listening = false; setBtn(false); statusBar.style.display = 'none'; };
 
-    recognition.onresult = function(e) {
-        const text = Array.from(e.results)
-            .map(r => r[0].transcript).join(' ').trim();
-        if (!text) return;
-        document.getElementById('sttPreviewText').textContent = text;
-        confirmBar.style.display = 'flex';
+    recognition.onresult = (e) => {
+        clearTimeout(silenceTimer);
+        let interim = '', final = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+            // Pick highest confidence alternative
+            let best = e.results[i][0].transcript;
+            for (let j = 1; j < e.results[i].length; j++) {
+                if (e.results[i][j].confidence > e.results[i][0].confidence) {
+                    best = e.results[i][j].transcript;
+                }
+            }
+            if (e.results[i].isFinal) { final += best; }
+            else { interim += best; }
+        }
+        if (final) bestTranscript = final;
+        const display = (bestTranscript + interim).trim();
+        if (display) document.getElementById('sttStatus').textContent = '🎤 ' + display;
+
+        // Auto-stop after 1.5s of silence
+        silenceTimer = setTimeout(() => stopListening(), 1500);
+    };
+
+    recognition.onend = () => {
+        if (listening) {
+            // Restart if still supposed to be listening (handles auto-stop by browser)
+            try { recognition.start(); } catch(e) { listening = false; setBtn(false); }
+        }
     };
 
     document.getElementById('sttKeep').addEventListener('click', function() {
@@ -606,6 +652,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('sttDiscard').addEventListener('click', function() {
         input.value = savedValue;
         confirmBar.style.display = 'none';
+        bestTranscript = '';
     });
 });
 </script>

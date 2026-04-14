@@ -317,7 +317,7 @@ public function participer(Evennementagricole $ev, Request $request, EntityManag
         $mailStatus = "(email non envoyé : " . $e->getMessage() . ")";
     }
 
-    $this->addFlash('success', "Inscription réussie pour " . $ev->getTitre() . " ! " . $mailStatus);
+    $this->addFlash('info', "Demande d'inscription envoyée ! Vérifiez votre email ($emailParticipant) et cliquez sur le lien de confirmation pour finaliser votre inscription.");
     return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
 }
     #[Route('/inscription/confirmer/{token}', name: 'app_confirmer_inscription')]

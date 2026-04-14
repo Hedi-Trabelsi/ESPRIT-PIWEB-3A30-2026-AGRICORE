@@ -107,6 +107,13 @@ class AiController extends AbstractController
         return new JsonResponse(['success' => true]);
     }
 
+    #[Route('/whisper-stt', name: 'app_whisper_stt', methods: ['POST'])]
+    public function whisperStt(Request $request): JsonResponse
+    {
+        // Placeholder - actual STT is handled client-side
+        return new JsonResponse(['text' => '']);
+    }
+
     #[Route('/back/ai/chat-sentiment/{id}', name: 'back_ai_chat_sentiment', methods: ['GET'])]
     public function chatSentiment(int $id, EntityManagerInterface $em): JsonResponse
     {
