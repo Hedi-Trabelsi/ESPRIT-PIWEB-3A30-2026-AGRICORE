@@ -63,6 +63,10 @@ class Tache
 
 #[Assert\Range(min: -1, max: 1, notInRangeMessage: "L'évaluation doit être -1 (Dislike), 0 (Neutre) ou 1 (Like).")]
 private int $evaluation = 0; 
+
+    #[ORM\Column(type: "integer", nullable: true, options: ["default" => 0])]
+    private ?int $etat = 0;
+
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: "taches")]
     #[ORM\JoinColumn(name: 'id_technicien', referencedColumnName: 'id', onDelete: 'CASCADE')]
     private ?User $id_technicien = null;
@@ -136,6 +140,17 @@ private int $evaluation = 0;
     public function setEvaluation(int $value): self
     {
         $this->evaluation = $value;
+        return $this;
+    }
+
+    public function getEtat(): ?int
+    {
+        return $this->etat;
+    }
+
+    public function setEtat(?int $etat): self
+    {
+        $this->etat = $etat;
         return $this;
     }
 

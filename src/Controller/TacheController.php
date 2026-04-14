@@ -9,6 +9,7 @@ use App\Form\TacheType;
 use App\Repository\MaintenanceRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,6 +24,7 @@ class TacheController extends AbstractController
 public function new(
     Request $request,
     EntityManagerInterface $em,
+    TacheRepository $tacheRepository,
     MaintenanceRepository $maintenanceRepository,
     MaintenancePlanningMailer $maintenancePlanningMailer,
     TwilioSmsApiService $twilioSmsApiService,
@@ -57,6 +59,16 @@ public function new(
 
     $form = $this->createForm(TacheType::class, $tache);
     $form->handleRequest($request);
+
+    if ($form->isSubmitted() && $form->isValid()) {
+        $datePrevue = $tache->getDatePrevue();
+        if ($datePrevue instanceof \DateTimeInterface) {
+            $plannedCount = $tacheRepository->countActiveTasksForTechnicianOnDate($technicien->getId(), $datePrevue);
+            if ($plannedCount >= 4) {
+                $form->get('date_prevue')->addError(new FormError('Ce jour est déjà complet (maximum 4 tâches planifiées).'));
+            }
+        }
+    }
 
     if ($form->isSubmitted() && $form->isValid()) {
         $maintenance = $tache->getIdMaintenance();
@@ -142,10 +154,30 @@ public function generateDescription(
     }
 }
     #[Route('/tache/modifier/{id_tache}', name: 'app_tache_edit')]
-    public function edit(Tache $tache, Request $request, EntityManagerInterface $em): Response
+    public function edit(Tache $tache, Request $request, EntityManagerInterface $em, TacheRepository $tacheRepository): Response
     {
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser instanceof User || $sessionUser->getRole() !== 2) {
+            return $this->redirectToRoute('front_login');
+        }
+
         $form = $this->createForm(TacheType::class, $tache);
         $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $datePrevue = $tache->getDatePrevue();
+            if ($datePrevue instanceof \DateTimeInterface) {
+                $plannedCount = $tacheRepository->countActiveTasksForTechnicianOnDate(
+                    (int) $sessionUser->getId(),
+                    $datePrevue,
+                    $tache->getId_tache()
+                );
+
+                if ($plannedCount >= 4) {
+                    $form->get('date_prevue')->addError(new FormError('Ce jour est déjà complet (maximum 4 tâches planifiées).'));
+                }
+            }
+        }
 
         if ($form->isSubmitted() && $form->isValid()) {
             $em->flush();
@@ -172,6 +204,41 @@ public function generateDescription(
 
             $this->addFlash('success', 'Tâche supprimée avec succès.');
         }
+
+        return $this->redirectToRoute('app_maintenance_taches', [
+            'id_maintenance' => $maintenanceId,
+        ]);
+    }
+
+    #[Route('/tache/terminer/{id_tache}', name: 'app_tache_complete', methods: ['POST'])]
+    public function completeTask(Request $request, Tache $tache, EntityManagerInterface $em): Response
+    {
+        $maintenanceId = $tache->getIdMaintenance()->getId_maintenance();
+
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser instanceof User || $sessionUser->getRole() !== 2) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        if (!$this->isCsrfTokenValid('complete'.$tache->getId_tache(), $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Action invalide.');
+            return $this->redirectToRoute('app_maintenance_taches', [
+                'id_maintenance' => $maintenanceId,
+            ]);
+        }
+
+        // Le technicien assigné peut marquer la tâche comme terminée.
+        if ($tache->getIdTechnicien() && $tache->getIdTechnicien()->getId() !== $sessionUser->getId()) {
+            $this->addFlash('danger', 'Vous ne pouvez pas modifier cette tâche.');
+            return $this->redirectToRoute('app_maintenance_taches', [
+                'id_maintenance' => $maintenanceId,
+            ]);
+        }
+
+        $tache->setEtat(1);
+        $em->flush();
+
+      
 
         return $this->redirectToRoute('app_maintenance_taches', [
             'id_maintenance' => $maintenanceId,
