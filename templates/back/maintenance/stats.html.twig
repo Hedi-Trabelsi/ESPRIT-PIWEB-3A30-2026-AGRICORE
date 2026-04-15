@@ -1,5 +1,9 @@
 {% extends 'back/base_back.html.twig' %}
 
+{% block notifications %}
+    {% include 'back/maintenance/_notifications_dropdown.html.twig' %}
+{% endblock %}
+
 {% block content %}
 
 <div class="container-fluid">
@@ -201,4 +205,5 @@ new Chart(document.getElementById('chartTechniciansPositive'), {
     }
 });
 </script>
+{% include 'back/maintenance/_notifications_ajax.html.twig' %}
 {% endblock %}

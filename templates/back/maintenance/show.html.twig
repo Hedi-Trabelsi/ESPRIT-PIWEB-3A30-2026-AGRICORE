@@ -2,6 +2,10 @@
 
 {% block title %}Détails de la maintenance - Admin{% endblock %}
 
+{% block notifications %}
+    {% include 'back/maintenance/_notifications_dropdown.html.twig' %}
+{% endblock %}
+
 {% block content %}
 <style>
     /* Section Titre */
@@ -289,4 +293,5 @@
         if (!isActive) element.classList.add('active');
     }
 </script>
+{% include 'back/maintenance/_notifications_ajax.html.twig' %}
 {% endblock %}

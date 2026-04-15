@@ -442,45 +442,38 @@ public function backList(
     MaintenanceRepository $repo
 ): Response
 {
-    $this->cleanReadNotificationIds($request, $repo);
     $search = $request->query->get('q');
     $status = $request->query->get('s');
     $priority = $request->query->get('p'); 
 
    
     $maintenances = $repo->findByFilters($search, $status, $priority);
-    $pendingNotifications = $repo->findBy(['statut' => 'En attente'], ['date_declaration' => 'DESC']);
-    $readNotificationIds = $this->getReadNotificationIds($request);
-    $unreadNotifications = array_values(array_filter(
-        $pendingNotifications,
-        static fn (Maintenance $maintenance): bool => !in_array((int) $maintenance->getId_maintenance(), $readNotificationIds, true)
-    ));
-
-    $pendingCount = count($pendingNotifications);
-    $unreadCount = count($unreadNotifications);
+    $notificationContext = $this->buildMaintenanceNotificationContext($repo);
 
     return $this->render('back/maintenance/maintenance.html.twig', [
         'maintenances' => $maintenances,
-        'pendingNotifications' => $pendingNotifications,
-        'readNotificationIds' => $readNotificationIds,
-        'pendingCount' => $pendingCount,
-        'unreadCount' => $unreadCount,
+        'pendingNotifications' => $notificationContext['pendingNotifications'],
+        'pendingCount' => $notificationContext['pendingCount'],
+        'unreadCount' => $notificationContext['unreadCount'],
     ]);
 }
 
 #[Route('/back/maintenance/detail/{id_maintenance}', name: 'app_maintenance_detail_back')]
-public function showBack(Maintenance $maintenance, Request $request): Response 
+public function showBack(Maintenance $maintenance, EntityManagerInterface $entityManager, MaintenanceRepository $repo): Response 
 {
-    $readIds = $this->getReadNotificationIds($request);
-    $maintenanceId = (int) $maintenance->getId_maintenance();
-    if (!in_array($maintenanceId, $readIds, true)) {
-        $readIds[] = $maintenanceId;
-        $this->saveReadNotificationIds($request, $readIds);
+    if (!$maintenance->isRead()) {
+        $maintenance->setIsRead(true);
+        $entityManager->flush();
     }
+
+    $notificationContext = $this->buildMaintenanceNotificationContext($repo);
 
    
     return $this->render('back/maintenance/show.html.twig', [
         'maintenance' => $maintenance,
+        'pendingNotifications' => $notificationContext['pendingNotifications'],
+        'pendingCount' => $notificationContext['pendingCount'],
+        'unreadCount' => $notificationContext['unreadCount'],
     ]);
 }
 #[Route('/back/maintenance/statistiques', name: 'app_maintenance_stats_back')]
@@ -521,6 +514,8 @@ public function statsBack(MaintenanceRepository $repo, TacheRepository $tacheRep
     // --- Stats Évaluations Négatives par Technicien ---
     $techniciansNegativeEval = $tacheRepo->getTechniciansWithNegativeEvaluations();
 $techniciansPositiveEval = $tacheRepo->getTechniciansWithPositiveEvaluations();
+    $notificationContext = $this->buildMaintenanceNotificationContext($repo);
+
     return $this->render('back/maintenance/stats.html.twig', [
         'total' => count($maintenances),
         'statsStatut' => $statsStatut,
@@ -529,49 +524,63 @@ $techniciansPositiveEval = $tacheRepo->getTechniciansWithPositiveEvaluations();
         'techniciansNegativeEval' => $techniciansNegativeEval,
         'techniciansNegativeEval' => $techniciansNegativeEval,
     'techniciansPositiveEval' => $techniciansPositiveEval,
+    'pendingNotifications' => $notificationContext['pendingNotifications'],
+    'pendingCount' => $notificationContext['pendingCount'],
+    'unreadCount' => $notificationContext['unreadCount'],
     ]);
 }
 #[Route('/back/maintenance/notifications', name: 'app_maintenance_notifications_back')]
-public function notifications(
-    Request $request,
-    MaintenanceRepository $repo
-): Response
+public function notifications(MaintenanceRepository $repo): Response
 {
-   
-$pendingNotifications = $repo->findBy(
-    ['statut' => 'En attente'], 
-    ['date_declaration' => 'DESC', 'id_maintenance' => 'DESC']
-);
-    $readNotificationIds = $this->getReadNotificationIds($request);
-    $unreadCount = count(array_filter(
-        $pendingNotifications,
-        static fn (Maintenance $maintenance): bool => !in_array((int) $maintenance->getId_maintenance(), $readNotificationIds, true)
-    ));
+    $notificationContext = $this->buildMaintenanceNotificationContext($repo);
 
     return $this->render('back/maintenance/notifications.html.twig', [
-        'notifications' => $pendingNotifications,
-        'readNotificationIds' => $readNotificationIds,
-        'pendingCount' => count($pendingNotifications),
-        'unreadCount' => $unreadCount,
+        'notifications' => $notificationContext['pendingNotifications'],
+        'pendingNotifications' => $notificationContext['pendingNotifications'],
+        'pendingCount' => $notificationContext['pendingCount'],
+        'unreadCount' => $notificationContext['unreadCount'],
+    ]);
+}
+
+#[Route('/back/maintenance/notifications/state', name: 'app_maintenance_notifications_state_back', methods: ['GET'])]
+public function notificationsState(MaintenanceRepository $repo): JsonResponse
+{
+    $notificationContext = $this->buildMaintenanceNotificationContext($repo);
+    $readMap = [];
+
+    foreach ($notificationContext['pendingNotifications'] as $maintenance) {
+        $readMap[(int) $maintenance->getId_maintenance()] = $maintenance->isRead();
+    }
+
+    return new JsonResponse([
+        'pendingCount' => $notificationContext['pendingCount'],
+        'unreadCount' => $notificationContext['unreadCount'],
+        'readMap' => $readMap,
     ]);
 }
 
 #[Route('/back/maintenance/notifications/mark-read/{id_maintenance}', name: 'app_maintenance_notification_mark_read_back', methods: ['POST'])]
-public function markNotificationReadBack(int $id_maintenance, Request $request): Response
+public function markNotificationReadBack(int $id_maintenance, MaintenanceRepository $repo, EntityManagerInterface $entityManager): Response
 {
-    $readIds = $this->getReadNotificationIds($request);
-    $readIds[] = (int) $id_maintenance;
-    $this->saveReadNotificationIds($request, $readIds);
+    $maintenance = $repo->find($id_maintenance);
+    if ($maintenance instanceof Maintenance && !$maintenance->isRead()) {
+        $maintenance->setIsRead(true);
+        $entityManager->flush();
+    }
 
     return $this->redirectToRoute('app_maintenance_notifications_back');
 }
 
 #[Route('/back/maintenance/notifications/mark-all-read', name: 'app_maintenance_notification_mark_all_read_back', methods: ['POST'])]
-public function markAllNotificationsReadBack(Request $request, MaintenanceRepository $repo): Response
+public function markAllNotificationsReadBack(MaintenanceRepository $repo, EntityManagerInterface $entityManager): Response
 {
     $pendingNotifications = $repo->findBy(['statut' => 'En attente'], ['date_declaration' => 'DESC']);
-    $ids = array_map(static fn (Maintenance $maintenance): int => (int) $maintenance->getId_maintenance(), $pendingNotifications);
-    $this->saveReadNotificationIds($request, $ids);
+    foreach ($pendingNotifications as $maintenance) {
+        if (!$maintenance->isRead()) {
+            $maintenance->setIsRead(true);
+        }
+    }
+    $entityManager->flush();
 
     return $this->redirectToRoute('app_maintenance_notifications_back');
 }
@@ -590,10 +599,32 @@ public function refuseBack(Maintenance $maintenance, EntityManagerInterface $em)
 
 public function countPendingNotifications(MaintenanceRepository $repo): Response
 {
-    
-    $count = $repo->count(['statut' => 'En attente']);
+    $notificationContext = $this->buildMaintenanceNotificationContext($repo);
+    $count = $notificationContext['unreadCount'];
 
     return new Response($count);
+}
+
+/**
+ * @return array{pendingNotifications: Maintenance[], pendingCount: int, unreadCount: int}
+ */
+private function buildMaintenanceNotificationContext(MaintenanceRepository $repo): array
+{
+    $pendingNotifications = $repo->findBy(
+        ['statut' => 'En attente'],
+        ['date_declaration' => 'DESC', 'id_maintenance' => 'DESC']
+    );
+
+    $unreadCount = count(array_filter(
+        $pendingNotifications,
+        static fn (Maintenance $maintenance): bool => !$maintenance->isRead()
+    ));
+
+    return [
+        'pendingNotifications' => $pendingNotifications,
+        'pendingCount' => count($pendingNotifications),
+        'unreadCount' => $unreadCount,
+    ];
 }
 
 #[Route('/tache/evaluer/{id}/{note}', name: 'app_tache_evaluer')]
@@ -601,60 +632,6 @@ public function evaluer(Tache $tache, int $note, EntityManagerInterface $em) {
     $tache->setEvaluation($note);
     $em->flush();
     return $this->redirectToRoute('app_maintenance_show', ['id' => $tache->getMaintenance()->getId()]);
-}
-
-/**
- * @return int[]
- */
-private function getReadNotificationIds(Request $request): array
-{
-    $session = $request->getSession();
-    $userSuffix = $this->resolveSessionUserKey($request);
-    $key = 'maintenance_notifications_read_' . $userSuffix;
-    $ids = $session->get($key, []);
-
-    if (!is_array($ids)) {
-        return [];
-    }
-
-    return array_values(array_unique(array_map('intval', $ids)));
-}
-
-/**
- * @param int[] $ids
- */
-private function saveReadNotificationIds(Request $request, array $ids): void
-{
-    $session = $request->getSession();
-    $userSuffix = $this->resolveSessionUserKey($request);
-    $key = 'maintenance_notifications_read_' . $userSuffix;
-    $session->set($key, array_values(array_unique(array_map('intval', $ids))));
-}
-
-private function resolveSessionUserKey(Request $request): string
-{
-    $sessionUser = $request->getSession()->get('user');
-
-    if (is_object($sessionUser) && method_exists($sessionUser, 'getId')) {
-        return (string) $sessionUser->getId();
-    }
-
-    if (is_scalar($sessionUser)) {
-        return (string) $sessionUser;
-    }
-
-    return 'anonymous';
-}
- private function cleanReadNotificationIds(Request $request, MaintenanceRepository $repo): void
-{
-    $allPending = $repo->findBy(['statut' => 'En attente']);
-    $currentPendingIds = array_map(fn($m) => (int)$m->getId_maintenance(), $allPending);
-    
-    $readIds = $this->getReadNotificationIds($request);
-    // On ne garde que les IDs qui sont toujours en attente
-    $validReadIds = array_values(array_intersect($readIds, $currentPendingIds));
-    
-    $this->saveReadNotificationIds($request, $validReadIds);
 }
 
 private function buildCalendarTaskData(Tache $task, string $todayKey): array

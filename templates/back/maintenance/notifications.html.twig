@@ -1,15 +1,14 @@
 {% extends 'back/base_back.html.twig' %}
 
+{% block notifications %}
+    {% include 'back/maintenance/_notifications_dropdown.html.twig' %}
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold mb-0">Notifications</h4>
         <div class="d-flex gap-2">
-            {% if unreadCount > 0 %}
-                <span class="badge bg-danger">{{ unreadCount }} non lue(s)</span>
-            {% else %}
-                <span class="badge bg-success">Tout est lu</span>
-            {% endif %}
             {% if pendingCount > 0 %}
                 <form method="post" action="{{ path('app_maintenance_notification_mark_all_read_back') }}">
                     <button type="submit" class="btn btn-sm btn-outline-primary">Tout marquer comme lu</button>
@@ -30,10 +29,10 @@
                             <div class="flex-grow-1">
                                 <h6 class="mb-1 fw-semibold">
                                     Nouvelle demande : {{ notif.nomMaintenance }}
-                                    {% if notif.id_maintenance in readNotificationIds %}
-                                        <span class="text-muted small">(lu)</span>
+                                    {% if notif.isRead %}
+                                        <span class="text-muted small maintenance-notif-list-state" data-id="{{ notif.id_maintenance }}">(lu)</span>
                                     {% else %}
-                                        <span class="text-danger small">(non lu)</span>
+                                        <span class="text-danger small maintenance-notif-list-state" data-id="{{ notif.id_maintenance }}">(non lu)</span>
                                     {% endif %}
                                 </h6>
                                 <p class="mb-0 text-muted small">L'équipement <strong>{{ notif.Equipement }}</strong> nécessite une intervention (Priorité : {{ notif.Priorite }}).</p>
@@ -52,4 +51,5 @@
         </div>
     </div>
 </div>
+{% include 'back/maintenance/_notifications_ajax.html.twig' %}
 {% endblock %}

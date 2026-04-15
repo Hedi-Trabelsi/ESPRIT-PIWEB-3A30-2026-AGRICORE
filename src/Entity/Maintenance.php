@@ -62,6 +62,9 @@ private string $lieu;
     #[ORM\Column(type: "string", length: 20)]
     private string $priorite;
 
+    #[ORM\Column(type: "boolean", options: ["default" => false], nullable: true)]
+    private ?bool $is_read = false;
+
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: "maintenances")]
     #[ORM\JoinColumn(name: 'id_agriculteur', referencedColumnName: 'id', onDelete: 'CASCADE')]
     private ?User $id_agriculteur = null;
@@ -166,6 +169,17 @@ private string $lieu;
     public function setPriorite(string $value): self
     {
         $this->priorite = $value;
+        return $this;
+    }
+
+    public function isRead(): bool
+    {
+        return (bool) $this->is_read;
+    }
+
+    public function setIsRead(bool $value): self
+    {
+        $this->is_read = $value;
         return $this;
     }
 
