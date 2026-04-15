@@ -131,7 +131,7 @@
         display: block; font-size: 13px; font-weight: 700;
         color: #475569; margin-bottom: 6px;
     }
-    .particip-field input {
+    .particip-field input, .particip-field-input {
         width: 100%; padding: 12px 16px;
         border: 2px solid #e2e8f0; border-radius: 14px;
         font-size: 14px; transition: .2s; background: #f8fafc;
@@ -379,10 +379,25 @@
                                 <i class="fas fa-bolt text-warning me-2"></i>
                                 Dépêchez-vous, il ne reste que <b>{{ placesRestantes }}</b> places !
                             </div>
+                            {% if onWaitlist %}
+                                <div class="alert border-0 rounded-4 py-2 mb-3" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+                                    <i class="fas fa-check-circle text-success me-1"></i>
+                                    <small style="color:#16a34a;font-weight:700;">Une place s'est libérée — inscrivez-vous !</small>
+                                </div>
+                            {% endif %}
                             {% if app.session.get('user') %}
-                                <button type="button" class="cta-btn btn w-100 mb-3" onclick="document.getElementById('participModal').style.display='flex'">
+                                <button type="button" class="cta-btn btn w-100 mb-3"
+                                    onclick="{% if conflictingEvent %}openConflictModal(){% else %}document.getElementById('participModal').style.display='flex'{% endif %}">
                                     <i class="fas fa-check-circle me-2"></i> Confirmer l'inscription
                                 </button>
+                                {% if onWaitlist %}
+                                <form method="post" action="{{ path('app_waitlist_annuler', {'id': evenement.id_ev}) }}">
+                                    <button type="submit" class="btn w-100"
+                                        style="background:#fee2e2;color:#dc2626;border:none;border-radius:20px;padding:12px;font-weight:700;font-size:.85rem;">
+                                        <i class="fas fa-times me-1"></i> Quitter la liste d'attente
+                                    </button>
+                                </form>
+                                {% endif %}
                             {% else %}
                                 <a href="{{ path('front_login') }}" class="cta-btn btn w-100 mb-3">
                                     <i class="fas fa-sign-in-alt me-2"></i> Connectez-vous pour participer
@@ -392,7 +407,26 @@
                             <div class="alert alert-danger rounded-4 mb-4">
                                 <i class="fas fa-info-circle me-2"></i> Complet
                             </div>
-                            <button class="cta-btn btn w-100" disabled>Complet</button>
+                            {% if onWaitlist %}
+                                <div class="alert border-0 rounded-4 py-3 mb-3" style="background:#fffbeb;border-left:4px solid #f59e0b !important;">
+                                    <i class="fas fa-clock me-2" style="color:#f59e0b;"></i>
+                                    <strong style="color:#b45309;">Sur la liste d'attente</strong><br>
+                                    <small class="text-muted">Vous serez notifié par email si une place se libère.</small>
+                                </div>
+                                <form method="post" action="{{ path('app_waitlist_annuler', {'id': evenement.id_ev}) }}">
+                                    <button type="submit" class="btn w-100"
+                                        style="background:#fee2e2;color:#dc2626;border:none;border-radius:20px;padding:14px;font-weight:700;">
+                                        <i class="fas fa-times-circle me-2"></i> Quitter la liste d'attente
+                                    </button>
+                                </form>
+                            {% elseif app.session.get('user') and not isPast %}
+                                <button type="button" class="cta-btn btn w-100" style="background:#f59e0b;"
+                                    onclick="document.getElementById('waitlistModal').style.display='flex'">
+                                    <i class="fas fa-bell me-2"></i> Rejoindre la liste d'attente
+                                </button>
+                            {% else %}
+                                <button class="cta-btn btn w-100" disabled>Complet</button>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
@@ -422,7 +456,9 @@
 
 {# ===== Participation Modal ===== #}
 {% if app.session.get('user') and placesRestantes > 0 and not dejaInscrit %}
-<div class="particip-overlay" id="participModal" style="display: {{ showParticipationModal ? 'flex' : 'none' }}" onclick="if(event.target===this)this.style.display='none'">
+<div class="particip-overlay" id="participModal"
+     style="display: {{ showParticipationModal ? 'flex' : 'none' }}"
+     onclick="if(event.target===this)this.style.display='none'">
     <div class="particip-modal">
         <button class="modal-close" onclick="document.getElementById('participModal').style.display='none'">
             <i class="fas fa-times"></i>
@@ -430,41 +466,51 @@
         <h4><i class="fas fa-ticket-alt me-2" style="color:var(--agri-green)"></i> Inscription</h4>
         <p>Remplissez vos informations pour participer à <strong>{{ evenement.titre }}</strong></p>
 
-        <form method="post" action="{{ path('app_participer', {'id': evenement.id_ev}) }}">
+        {% if form.vars.submitted and not form.vars.valid %}
+        <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:.85rem;color:#dc2626;">
+            <i class="fas fa-exclamation-circle me-2"></i>Veuillez corriger les erreurs ci-dessous.
+        </div>
+        {% endif %}
+
+        {{ form_start(form, {'attr': {'novalidate': 'novalidate', 'style': 'margin:0'}}) }}
+
             <div class="particip-field">
-                <label>Votre nom complet</label>
+                {{ form_label(form.nom_participant, 'Votre nom complet') }}
                 <div style="display:flex;gap:8px;align-items:center;">
-                    <input type="text" name="nom_participant" value="{{ app.session.get('user').prenom ~ ' ' ~ app.session.get('user').nom }}" placeholder="Entrez votre nom" required>
+                    {{ form_widget(form.nom_participant, {'attr': {'class': 'particip-field-input', 'placeholder': 'Entrez votre nom', 'value': app.session.get('user').prenom ~ ' ' ~ app.session.get('user').nom}}) }}
                     <button type="button" id="sttBtn" title="Dicter votre nom"
-                        style="width:42px;height:42px;flex-shrink:0;border:none;border-radius:12px;background:#f0fdf4;color:#16a34a;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:.2s;">
+                        style="width:42px;height:42px;flex-shrink:0;border:none;border-radius:12px;background:#f0fdf4;color:#16a34a;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;">
                         <i class="fas fa-microphone"></i>
                     </button>
                 </div>
+                <div class="text-danger small mt-1">{{ form_errors(form.nom_participant) }}</div>
             </div>
+
             <div class="particip-field">
-                <label>Adresse email <span style="color:#dc2626;">*</span></label>
-                <input type="email" name="email_participant" placeholder="votre@email.com" required
-                    style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:14px;font-size:14px;transition:.2s;background:#f8fafc;"
-                    onfocus="this.style.borderColor='#16a34a';this.style.background='#fff'"
-                    onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc'">
+                {{ form_label(form.email, 'Adresse email') }}
+                {{ form_widget(form.email, {'attr': {'class': 'particip-field-input', 'placeholder': 'votre@email.com'}}) }}
                 <small style="color:#94a3b8;font-size:.72rem;margin-top:4px;display:block;"><i class="fas fa-lock me-1"></i>Un email de confirmation sera envoyé à cette adresse.</small>
+                <div class="text-danger small mt-1">{{ form_errors(form.email) }}</div>
             </div>
+
             <div class="particip-field">
-                <label>Nombre de places (max {{ placesRestantes }})</label>
-                <input type="number" name="nbr_places" value="1" min="1" max="{{ placesRestantes }}" required>
+                {{ form_label(form.nbr_places, 'Nombre de places (max ' ~ placesRestantes ~ ')') }}
+                {{ form_widget(form.nbr_places, {'attr': {'class': 'particip-field-input', 'min': 1, 'id': 'nbr_places_input', 'oninput': "document.getElementById('total_display').textContent=(this.value*" ~ evenement.frais_inscription ~ ").toFixed(2)+' DT'"}}) }}
+                <div class="text-danger small mt-1">{{ form_errors(form.nbr_places) }}</div>
             </div>
 
             <div class="mb-4 p-3 rounded-4 bg-light border d-flex justify-content-between align-items-center">
                 <span class="small fw-bold text-muted">Total à payer :</span>
-                <span class="h5 mb-0 fw-black text-success" id="display_total">0.00 DT</span>
+                <span class="h5 mb-0 fw-black text-success" id="total_display">
+                    {{ (1 * evenement.frais_inscription)|number_format(2) }} DT
+                </span>
             </div>
-
-            <input type="hidden" name="montant_payee" id="montant_payee_hidden" value="0">
 
             <button type="submit" class="particip-submit">
                 <i class="fas fa-check-circle me-2"></i> Confirmer mon inscription
             </button>
-        </form>
+
+        {{ form_end(form) }}
     </div>
 </div>
 {% endif %}
@@ -669,4 +715,58 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+{% if conflictingEvent %}
+<div id="conflictModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:10000;align-items:center;justify-content:center;"
+     onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:#fff;border-radius:28px;padding:40px 36px;max-width:440px;width:90%;box-shadow:0 30px 60px rgba(0,0,0,.2);animation:modalIn .3s ease;">
+        <div style="width:64px;height:64px;background:#fff7ed;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:1.8rem;">⚠️</div>
+        <h4 style="font-weight:800;color:#0f172a;text-align:center;margin-bottom:10px;">Conflit de dates détecté</h4>
+        <p style="color:#64748b;font-size:.9rem;text-align:center;line-height:1.6;margin-bottom:8px;">
+            Vous êtes déjà inscrit à <strong style="color:#f97316;">{{ conflictingEvent.titre }}</strong>
+            du <strong>{{ conflictingEvent.date_debut|date('d/m/Y') }}</strong>
+            au <strong>{{ conflictingEvent.date_fin|date('d/m/Y') }}</strong>,
+            ce qui chevauche cet événement.
+        </p>
+        <p style="color:#94a3b8;font-size:.82rem;text-align:center;margin-bottom:28px;">Voulez-vous quand même vous inscrire ?</p>
+        <div class="d-flex gap-3">
+            <button onclick="document.getElementById('conflictModal').style.display='none'"
+                style="flex:1;padding:13px;background:#f1f5f9;color:#475569;border:none;border-radius:16px;font-weight:700;cursor:pointer;">
+                Annuler
+            </button>
+            <button onclick="document.getElementById('conflictModal').style.display='none';document.getElementById('participModal').style.display='flex';"
+                style="flex:1;padding:13px;background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border:none;border-radius:16px;font-weight:800;cursor:pointer;">
+                Continuer quand même
+            </button>
+        </div>
+    </div>
+</div>
+<script>function openConflictModal(){ document.getElementById('conflictModal').style.display='flex'; }</script>
+{% endif %}
+
+{% if app.session.get('user') and not isPast and not onWaitlist %}
+<div id="waitlistModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:10000;align-items:center;justify-content:center;"
+     onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:#fff;border-radius:28px;padding:40px 36px;max-width:420px;width:90%;box-shadow:0 30px 60px rgba(0,0,0,.2);animation:modalIn .3s ease;">
+        <div style="width:64px;height:64px;background:#fff7ed;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:1.8rem;">🔔</div>
+        <h4 style="font-weight:800;color:#0f172a;text-align:center;margin-bottom:8px;">Liste d'attente</h4>
+        <p style="color:#64748b;font-size:.88rem;text-align:center;line-height:1.6;margin-bottom:28px;">
+            Vous serez notifié dès qu'une place se libère pour <strong>{{ evenement.titre }}</strong>.
+        </p>
+        <form method="post" action="{{ path('app_waitlist', {'id': evenement.id_ev}) }}">
+            <div class="d-flex gap-3">
+                <button type="button" onclick="document.getElementById('waitlistModal').style.display='none'"
+                    style="flex:1;padding:13px;background:#f1f5f9;color:#475569;border:none;border-radius:16px;font-weight:700;cursor:pointer;">
+                    Annuler
+                </button>
+                <button type="submit"
+                    style="flex:1;padding:13px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;border:none;border-radius:16px;font-weight:800;cursor:pointer;">
+                    <i class="fas fa-bell me-2"></i>M'inscrire
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}

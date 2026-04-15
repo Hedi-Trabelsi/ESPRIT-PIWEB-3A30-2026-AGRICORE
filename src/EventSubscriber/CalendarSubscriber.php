@@ -53,7 +53,9 @@ class CalendarSubscriber implements EventSubscriberInterface
                 ->createQueryBuilder('p')
                 ->select('SUM(p.nbr_places)')
                 ->where('p.evenement = :ev')
+                ->andWhere('p.statut_participation != :waitlist')
                 ->setParameter('ev', $ev)
+                ->setParameter('waitlist', 'waitlist')
                 ->getQuery()
                 ->getSingleScalarResult() ?: 0;
 

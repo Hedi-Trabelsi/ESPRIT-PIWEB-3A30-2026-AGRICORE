@@ -19,7 +19,7 @@ class EvenementBackController extends AbstractController
     // LIST
     // =========================
     #[Route('/back/evenements', name: 'back_evenements_list')]
-    public function index(Request $request, EvennementagricoleRepository $repo, ActionLogRepository $logsRepo): Response
+    public function index(Request $request, EvennementagricoleRepository $repo, ActionLogRepository $logsRepo, EntityManagerInterface $em): Response
     {
         $search = $request->query->get('search', '');
         $filter = $request->query->get('filter', 'TOUT');
@@ -55,6 +55,19 @@ class EvenementBackController extends AbstractController
 
         $events = $qb->getQuery()->getResult();
 
+        // Count waitlist per event
+        $waitlistCounts = [];
+        foreach ($events as $ev) {
+            $count = $em->getRepository(\App\Entity\Participants::class)
+                ->createQueryBuilder('p')
+                ->select('COUNT(p.id_participant)')
+                ->where('p.evenement = :ev AND p.statut_participation = :ws')
+                ->setParameter('ev', $ev)
+                ->setParameter('ws', 'waitlist')
+                ->getQuery()->getSingleScalarResult();
+            if ($count > 0) $waitlistCounts[$ev->getIdEv()] = (int)$count;
+        }
+
         $logs = $logsRepo->createQueryBuilder('al')
             ->orderBy('al.created_at', 'DESC')
             ->setMaxResults(50)
@@ -62,10 +75,11 @@ class EvenementBackController extends AbstractController
             ->getResult();
 
         return $this->render('back/evenements/evenements.html.twig', [
-            'evenements' => $events,
-            'search' => $search,
-            'filter' => $filter,
-            'action_logs' => $logs
+            'evenements'     => $events,
+            'search'         => $search,
+            'filter'         => $filter,
+            'action_logs'    => $logs,
+            'waitlistCounts' => $waitlistCounts,
         ]);
     }
 
@@ -75,7 +89,14 @@ class EvenementBackController extends AbstractController
     #[Route('/back/evenements/{id}/participants', name: 'back_evenements_participants', requirements: ['id' => '\\d+'])]
     public function participants(Evennementagricole $event, ParticipantsRepository $participantsRepo): Response
     {
-        $participants = $participantsRepo->findBy(['evenement' => $event]);
+        $participants = $participantsRepo->createQueryBuilder('p')
+            ->where('p.evenement = :ev')
+            ->andWhere('p.confirmation != :pending')
+            ->setParameter('ev', $event)
+            ->setParameter('pending', 'pending')
+            ->getQuery()
+            ->getResult();
+
         return $this->render('back/evenements/participants.html.twig', [
             'evenement'    => $event,
             'participants' => $participants,
@@ -199,7 +220,7 @@ class EvenementBackController extends AbstractController
     // EDIT (FIXED WITH FORM + isValid)
     // =========================
     #[Route('/back/evenements/edit/{id}', name: 'back_evenements_edit', methods: ['GET', 'POST'])]
-    public function edit(Evennementagricole $event, Request $request, EntityManagerInterface $em): Response
+    public function edit(Evennementagricole $event, Request $request, EntityManagerInterface $em, ParticipantsRepository $participantsRepo): Response
     {
         $oldTitle = $event->getTitre();
 
@@ -208,25 +229,32 @@ class EvenementBackController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
 
-            $em->flush();
+            // Validate capacity >= current confirmed participants
+            $placesReservees = $participantsRepo->countPlacesByEvent($event->getId_ev());
+            if ($event->getCapaciteMax() < $placesReservees) {
+                $form->get('capacite_max')->addError(
+                    new \Symfony\Component\Form\FormError(
+                        "Impossible : {$placesReservees} place(s) sont déjà réservées. La capacité minimale est {$placesReservees}."
+                    )
+                );
+            } else {
+                $em->flush();
 
-            // LOG UPDATE
-            $sessionUser = $request->getSession()->get('user');
+                $sessionUser = $request->getSession()->get('user');
+                $log = new \App\Entity\ActionLog();
+                $log->setAction_type('UPDATE');
+                $log->setTarget_table('evennementagricole');
+                $log->setTarget_id($event->getId_ev());
+                $log->setDescription('Modification de l\'événement : "' . $event->getTitre() . '"');
+                $log->setOld_value(json_encode(['titre' => $oldTitle]));
+                $log->setNew_value(json_encode(['titre' => $event->getTitre()]));
+                $log->setUser_id($sessionUser ? $sessionUser->getId() : 0);
+                $log->setCreated_at(new \DateTime());
+                $em->persist($log);
+                $em->flush();
 
-            $log = new \App\Entity\ActionLog();
-            $log->setAction_type('UPDATE');
-            $log->setTarget_table('evennementagricole');
-            $log->setTarget_id($event->getId_ev());
-            $log->setDescription('Modification de l\'événement : "' . $event->getTitre() . '"');
-            $log->setOld_value(json_encode(['titre' => $oldTitle]));
-            $log->setNew_value(json_encode(['titre' => $event->getTitre()]));
-            $log->setUser_id($sessionUser ? $sessionUser->getId() : 0);
-            $log->setCreated_at(new \DateTime());
-
-            $em->persist($log);
-            $em->flush();
-
-            return $this->redirectToRoute('back_evenements_list');
+                return $this->redirectToRoute('back_evenements_list');
+            }
         }
 
         return $this->render('back/evenements/edit.html.twig', [

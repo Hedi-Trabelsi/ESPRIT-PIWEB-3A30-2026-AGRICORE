@@ -15,32 +15,35 @@ class ParticipantsType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $maxPlaces = $options['max_places'];
+
         $builder
             ->add('nom_participant', TextType::class, [
                 'required' => false,
                 'constraints' => [
-                    new Assert\NotBlank(['message' => ' ya shiii Le nom du participant est obligatoire.']),
+                    new Assert\NotBlank(['message' => 'Le nom du participant est obligatoire.']),
                     new Assert\Length([
                         'min' => 3,
                         'minMessage' => 'Le nom doit contenir au moins {{ limit }} caractères.',
-                    ])
-                ]
-            ])
-            ->add('nbr_places', IntegerType::class, [
-                'constraints' => [
-                    new Assert\NotNull(['message' => 'ya shii Nombre de places obligatoire']),
-                    new Assert\GreaterThanOrEqual([
-                        'value' => 1,
-                        'message' => 'Minimum 1 place'
-                    ])
-                ]
+                    ]),
+                ],
             ])
             ->add('email', EmailType::class, [
                 'required' => false,
                 'constraints' => [
                     new Assert\NotBlank(['message' => "L'adresse email est obligatoire."]),
                     new Assert\Email(['message' => "L'adresse email n'est pas valide."]),
-                ]
+                ],
+            ])
+            ->add('nbr_places', IntegerType::class, [
+                'constraints' => [
+                    new Assert\NotNull(['message' => 'Le nombre de places est obligatoire.']),
+                    new Assert\GreaterThanOrEqual(['value' => 1, 'message' => 'Minimum 1 place.']),
+                    new Assert\LessThanOrEqual([
+                        'value' => $maxPlaces,
+                        'message' => "Seulement {{ compared_value }} place(s) disponible(s).",
+                    ]),
+                ],
             ]);
     }
 
@@ -48,6 +51,7 @@ class ParticipantsType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Participants::class,
+            'max_places' => 999,
         ]);
     }
 }

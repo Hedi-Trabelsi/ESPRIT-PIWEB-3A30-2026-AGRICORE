@@ -586,26 +586,33 @@ body { background: #f8fafc; }
             banner.innerHTML = '';
 
             data.forEach((n, i) => {
-                const isUrgent = n.timeLabel.includes('min') && !n.timeLabel.includes('h');
-                const key = 'ev_notif_' + n.id;
-                if (sessionStorage.getItem(key)) return; // already shown this session
+                const isUrgent = n.type === 'waitlist' || (n.timeLabel.includes('min') && !n.timeLabel.includes('h'));
+                const key = 'ev_notif_' + n.id + '_' + (n.type || 'reminder');
+                if (sessionStorage.getItem(key)) return;
 
                 const card = document.createElement('div');
                 card.className = 'ev-reminder-card' + (isUrgent ? ' urgent' : '');
                 card.style.animationDelay = (i * 120) + 'ms';
+
+                const icon = n.type === 'waitlist' ? 'fa-bell' : 'fa-calendar-alt';
+                const label = n.type === 'waitlist'
+                    ? `🎉 Place disponible — ${n.titre}`
+                    : `📅 ${n.titre}`;
+                const timeLine = n.type === 'waitlist'
+                    ? `<i class="fas fa-check-circle me-1"></i>${n.timeLabel} — inscrivez-vous vite !`
+                    : `<i class="fas fa-bell"></i> Commence ${n.timeLabel}`;
+
                 card.innerHTML = `
-                    <div class="ev-reminder-icon"><i class="fas fa-calendar-alt"></i></div>
+                    <div class="ev-reminder-icon"><i class="fas ${icon}"></i></div>
                     <a href="${n.url}" class="ev-reminder-link" style="flex:1;">
-                        <div class="ev-reminder-title">📅 ${n.titre}</div>
+                        <div class="ev-reminder-title">${label}</div>
                         <div class="ev-reminder-meta">
                             <i class="fas fa-map-marker-alt me-1"></i>${n.lieu || ''}<br>
                             <i class="fas fa-clock me-1"></i>${n.start}
                         </div>
-                        <div class="ev-reminder-time">
-                            <i class="fas fa-bell"></i> Commence ${n.timeLabel}
-                        </div>
+                        <div class="ev-reminder-time">${timeLine}</div>
                     </a>
-                    <button class="ev-reminder-close" onclick="dismissReminder(this,'${n.id}')">×</button>
+                    <button class="ev-reminder-close" onclick="dismissReminder(this,'${n.id}_${n.type || 'reminder'}')">×</button>
                 `;
                 banner.appendChild(card);
 

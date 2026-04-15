@@ -30,26 +30,55 @@ class NotificationController extends AbstractController
             $ev = $p->getEvenement();
             if (!$ev) continue;
 
-            $start = $ev->getDateDebut();
-            if (!$start) continue;
+            // ── 24h reminder for confirmed participants ──
+            if ($p->getStatutParticipation() !== 'waitlist') {
+                $start = $ev->getDateDebut();
+                if ($start && $start > $now && $start <= $in24h) {
+                    $diff  = $now->diff($start);
+                    $hours = ($diff->days * 24) + $diff->h;
+                    $mins  = $diff->i;
+                    $timeLabel = $hours > 0
+                        ? "dans {$hours}h" . ($mins > 0 ? "{$mins}min" : '')
+                        : "dans {$mins} min";
 
-            if ($start > $now && $start <= $in24h) {
-                $diff  = $now->diff($start);
-                $hours = ($diff->days * 24) + $diff->h;
-                $mins  = $diff->i;
+                    $notifications[] = [
+                        'id'        => $ev->getIdEv(),
+                        'type'      => 'reminder',
+                        'titre'     => $ev->getTitre(),
+                        'lieu'      => $ev->getLieu(),
+                        'start'     => $start->format('d/m/Y H:i'),
+                        'timeLabel' => $timeLabel,
+                        'url'       => '/evenement/' . $ev->getIdEv(),
+                    ];
+                }
+            }
 
-                $timeLabel = $hours > 0
-                    ? "dans {$hours}h" . ($mins > 0 ? "{$mins}min" : '')
-                    : "dans {$mins} min";
+            // ── Waitlist spot available notification ──
+            if ($p->getStatutParticipation() === 'waitlist') {
+                // Count real reserved places (excluding waitlist)
+                $reserved = (int) $em->getRepository(Participants::class)
+                    ->createQueryBuilder('p2')
+                    ->select('SUM(p2.nbr_places)')
+                    ->where('p2.evenement = :ev')
+                    ->andWhere('p2.statut_participation != :ws')
+                    ->setParameter('ev', $ev)
+                    ->setParameter('ws', 'waitlist')
+                    ->getQuery()->getSingleScalarResult() ?: 0;
 
-                $notifications[] = [
-                    'id'        => $ev->getIdEv(),
-                    'titre'     => $ev->getTitre(),
-                    'lieu'      => $ev->getLieu(),
-                    'start'     => $start->format('d/m/Y H:i'),
-                    'timeLabel' => $timeLabel,
-                    'url'       => '/evenement/' . $ev->getIdEv(),
-                ];
+                $placesLibres = $ev->getCapaciteMax() - $reserved;
+
+                if ($placesLibres > 0) {
+                    $notifications[] = [
+                        'id'          => $ev->getIdEv(),
+                        'type'        => 'waitlist',
+                        'titre'       => $ev->getTitre(),
+                        'lieu'        => $ev->getLieu(),
+                        'start'       => $ev->getDateDebut()?->format('d/m/Y H:i'),
+                        'placesLibres'=> $placesLibres,
+                        'timeLabel'   => $placesLibres . ' place' . ($placesLibres > 1 ? 's' : '') . ' disponible' . ($placesLibres > 1 ? 's' : ''),
+                        'url'         => '/evenement/' . $ev->getIdEv(),
+                    ];
+                }
             }
         }
 
