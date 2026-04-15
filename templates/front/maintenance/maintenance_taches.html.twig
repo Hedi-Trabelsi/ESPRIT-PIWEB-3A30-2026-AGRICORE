@@ -192,7 +192,7 @@
                                 </form>
                             {% endif %}
 
-                            {% if not is_resolved and not is_past and tache.etat != 1 %}
+                            {% if not is_resolved and tache.etat != 1 %}
                                 <a href="{{ path('app_tache_edit', {'id_tache': tache.id_tache}) }}" class="btn-action-simple btn-edit-text p-0 pe-2" onclick="event.stopPropagation();">
                                     <i class="fas fa-edit small"></i> Modifier
                                 </a>

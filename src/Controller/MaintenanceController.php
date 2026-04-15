@@ -10,6 +10,7 @@ use App\Repository\MaintenanceRepository;
 use App\Repository\TacheRepository;
 use App\Service\MaintenanceRecommendationService;
 use App\Service\MaintenanceProximityService;
+use App\Service\MaintenanceDateChangeNotificationStore;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -343,10 +344,63 @@ public function index(Request $request, MaintenanceRepository $repo): Response
     }
 
     #[Route('/maintenance/detail/{id_maintenance}', name: 'app_maintenance_detail')]
-    public function detail(Maintenance $maintenance): Response
+    public function detail(Maintenance $maintenance, Request $request, MaintenanceDateChangeNotificationStore $notificationStore): Response
     {
+        $sessionUser = $request->getSession()->get('user');
+        $sessionUserId = is_object($sessionUser) && method_exists($sessionUser, 'getId')
+            ? (int) $sessionUser->getId()
+            : (is_array($sessionUser) && isset($sessionUser['id']) ? (int) $sessionUser['id'] : (is_numeric($sessionUser) ? (int) $sessionUser : null));
+
+        $dateChangeNotifications = [];
+        if ($sessionUserId !== null && $maintenance->getId_agriculteur()?->getId() === $sessionUserId) {
+            $dateChangeNotifications = array_values(array_filter(
+                $notificationStore->getUnreadForFarmer($sessionUserId),
+                static fn (array $notification): bool => (int) ($notification['maintenance_id'] ?? 0) === $maintenance->getId_maintenance()
+            ));
+
+            foreach ($dateChangeNotifications as &$notification) {
+                $notification['detail_url'] = $this->generateUrl('app_maintenance_detail', [
+                    'id_maintenance' => $maintenance->getId_maintenance(),
+                ]);
+            }
+            unset($notification);
+
+            if ($dateChangeNotifications !== []) {
+                $notificationStore->markMaintenanceSeen($sessionUserId, $maintenance->getId_maintenance());
+            }
+        }
+
         return $this->render('front/maintenance/maintenance_tache_detail.html.twig', [
             'maintenance' => $maintenance,
+            'dateChangeNotifications' => $dateChangeNotifications,
+        ]);
+    }
+
+    #[Route('/maintenance/date-change-notifications', name: 'app_maintenance_date_change_notifications', methods: ['GET'])]
+    public function dateChangeNotifications(Request $request, MaintenanceDateChangeNotificationStore $notificationStore): JsonResponse
+    {
+        $sessionUser = $request->getSession()->get('user');
+        $sessionUserId = is_object($sessionUser) && method_exists($sessionUser, 'getId')
+            ? (int) $sessionUser->getId()
+            : (is_array($sessionUser) && isset($sessionUser['id']) ? (int) $sessionUser['id'] : (is_numeric($sessionUser) ? (int) $sessionUser : null));
+
+        if ($sessionUserId === null) {
+            return new JsonResponse(['success' => false], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $notifications = $notificationStore->getUnreadForFarmer($sessionUserId);
+        foreach ($notifications as &$notification) {
+            $notification['detail_url'] = $this->generateUrl('app_maintenance_detail', [
+                'id_maintenance' => (int) ($notification['maintenance_id'] ?? 0),
+            ]);
+        }
+        unset($notification);
+
+        return new JsonResponse([
+            'success' => true,
+            'count' => count($notifications),
+            'notification' => $notifications[0] ?? null,
+            'notifications' => $notifications,
         ]);
     }
 

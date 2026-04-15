@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Repository\TacheRepository;
 use App\Service\MaintenancePlanningMailer;
+use App\Service\MaintenanceDateChangeNotificationStore;
 use App\Service\TaskDescriptionAiService;
 use App\Service\TwilioSmsApiService;
 class TacheController extends AbstractController
@@ -192,17 +193,47 @@ public function generateDescription(
     }
 }
     #[Route('/tache/modifier/{id_tache}', name: 'app_tache_edit')]
-    public function edit(Tache $tache, Request $request, EntityManagerInterface $em): Response
+    public function edit(Tache $tache, Request $request, EntityManagerInterface $em, MaintenanceDateChangeNotificationStore $notificationStore): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser instanceof User || $sessionUser->getRole() !== 2) {
-            return $this->redirectToRoute('front_login');
-        }
+
+        $originalDatePrevue = $tache->getDatePrevue() instanceof \DateTimeInterface
+            ? \DateTimeImmutable::createFromInterface($tache->getDatePrevue())
+            : null;
 
         $form = $this->createForm(TacheType::class, $tache);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            $newDatePrevue = $tache->getDatePrevue() instanceof \DateTimeInterface
+                ? \DateTimeImmutable::createFromInterface($tache->getDatePrevue())
+                : null;
+
+            if ($originalDatePrevue?->format('Y-m-d') !== $newDatePrevue?->format('Y-m-d')) {
+                $maintenance = $tache->getIdMaintenance();
+                $owner = $maintenance?->getId_agriculteur();
+
+                if ($maintenance && $owner && $owner->getId() !== null) {
+                    $technicianName = $sessionUser instanceof User
+                        ? trim(($sessionUser->getPrenom() ?? '') . ' ' . ($sessionUser->getNom() ?? ''))
+                        : null;
+
+                    $notificationStore->addChangeNotification([
+                        'id' => uniqid('maintenance_date_change_', true),
+                        'farmer_id' => (int) $owner->getId(),
+                        'maintenance_id' => $maintenance->getId_maintenance(),
+                        'maintenance_name' => $maintenance->getNomMaintenance(),
+                        'task_id' => $tache->getId_tache(),
+                        'task_name' => $tache->getNomTache(),
+                        'previous_date' => $originalDatePrevue?->format('d/m/Y'),
+                        'new_date' => $newDatePrevue?->format('d/m/Y'),
+                        'technician_name' => $technicianName !== '' ? $technicianName : null,
+                        'seen_at' => null,
+                        'created_at' => (new \DateTimeImmutable())->format(DATE_ATOM),
+                    ]);
+                }
+            }
+
             $em->flush();
 
             return $this->redirectToRoute('app_maintenance_taches', [
@@ -251,7 +282,7 @@ public function generateDescription(
         }
 
         // Le technicien assigné peut marquer la tâche comme terminée.
-        if ($tache->getIdTechnicien() && $tache->getIdTechnicien()->getId() !== $sessionUser->getId()) {
+        if ($tache->getIdTechnicien() && $tache->getIdTechnicien()->getId() !== $sessionUserId) {
             $this->addFlash('danger', 'Vous ne pouvez pas modifier cette tâche.');
             return $this->redirectToRoute('app_maintenance_taches', [
                 'id_maintenance' => $maintenanceId,
