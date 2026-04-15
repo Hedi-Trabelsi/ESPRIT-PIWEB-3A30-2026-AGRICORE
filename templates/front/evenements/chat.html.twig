@@ -1,0 +1,761 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block title %}Chat - {{ evenement.titre }}{% endblock %}
+
+{% block body %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<style>
+    :root {
+        --green: #16a34a;
+        --green-light: #22c55e;
+        --green-dark: #14532d;
+        --green-glow: rgba(22,163,74,0.25);
+        --dark: #0f172a;
+        --surface: #ffffff;
+        --muted: #94a3b8;
+        --bg: #f0fdf4;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 40%, #f0f9ff 100%);
+        min-height: 100vh;
+        margin: 0;
+    }
+
+    /* ── Page layout ── */
+    .chat-page {
+        max-width: 820px;
+        margin: 0 auto;
+        padding: 24px 16px 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ── Back link ── */
+    .back-link {
+        display: inline-flex; align-items: center; gap: 8px;
+        color: var(--green); text-decoration: none;
+        font-size: 0.82rem; font-weight: 700;
+        letter-spacing: 0.3px;
+        margin-bottom: 14px;
+        transition: gap 0.2s;
+    }
+    .back-link:hover { gap: 12px; color: var(--green-dark); }
+
+    /* ── Header ── */
+    .chat-header {
+        background: var(--surface);
+        border-radius: 24px 24px 0 0;
+        padding: 18px 28px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        position: relative;
+        overflow: hidden;
+    }
+    .chat-header::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: linear-gradient(90deg, rgba(22,163,74,0.04) 0%, transparent 60%);
+        pointer-events: none;
+    }
+    .header-avatar {
+        width: 52px; height: 52px;
+        background: linear-gradient(135deg, var(--green), var(--green-light));
+        border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-size: 1.4rem;
+        box-shadow: 0 8px 20px var(--green-glow);
+        flex-shrink: 0;
+    }
+    .header-info h5 {
+        margin: 0 0 2px;
+        font-weight: 800;
+        font-size: 1rem;
+        color: var(--dark);
+    }
+    .header-info small { color: var(--muted); font-size: 0.78rem; }
+    .header-live {
+        margin-left: auto;
+        display: flex; align-items: center; gap: 6px;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--green);
+    }
+    .live-dot {
+        width: 7px; height: 7px;
+        background: var(--green-light);
+        border-radius: 50%;
+        animation: livePulse 1.5s ease-in-out infinite;
+    }
+    @keyframes livePulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    /* ── Messages area ── */
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        background: var(--surface);
+        padding: 28px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        scroll-behavior: smooth;
+    }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: #d1fae5; border-radius: 4px; }
+
+    /* ── Empty state ── */
+    .empty-chat {
+        flex: 1;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 14px; color: #cbd5e1;
+        animation: fadeIn 0.6s ease;
+    }
+    .empty-icon {
+        width: 80px; height: 80px;
+        background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2rem; color: #86efac;
+    }
+    .empty-chat p { font-size: 0.9rem; font-weight: 600; }
+
+    /* ── Bubble group ── */
+    .bubble-group {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin-bottom: 10px;
+        animation: bubbleIn 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    .bubble-group.mine { align-items: flex-end; }
+    .bubble-group.other { align-items: flex-start; }
+
+    @keyframes bubbleIn {
+        from { opacity: 0; transform: translateY(16px) scale(0.95); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .bubble-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+    }
+    .bubble-group.mine .bubble-row { flex-direction: row-reverse; }
+
+    /* Avatar */
+    .bubble-avatar {
+        width: 34px; height: 34px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.72rem; font-weight: 800;
+        flex-shrink: 0;
+        color: white;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        overflow: hidden;
+        background: #e2e8f0;
+    }
+    .bubble-avatar img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+    .bubble-group.mine .bubble-avatar {
+        background: linear-gradient(135deg, var(--green), var(--green-light));
+    }
+    .bubble-group.other .bubble-avatar {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    }
+
+    /* Sender name */
+    .bubble-sender {
+        font-size: 0.7rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+        padding: 0 6px;
+        letter-spacing: 0.2px;
+    }
+    .bubble-group.mine .bubble-sender { color: var(--green); text-align: right; }
+    .bubble-group.other .bubble-sender { color: #6366f1; }
+
+    /* Text bubble */
+    .msg-text {
+        padding: 11px 16px;
+        font-size: 0.91rem;
+        line-height: 1.55;
+        word-break: break-word;
+        max-width: 380px;
+        position: relative;
+    }
+    .bubble-group.mine .msg-text {
+        background: linear-gradient(135deg, var(--green), var(--green-light));
+        color: white;
+        border-radius: 20px 20px 4px 20px;
+        box-shadow: 0 6px 20px var(--green-glow);
+    }
+    .bubble-group.other .msg-text {
+        background: #f8fafc;
+        color: var(--dark);
+        border-radius: 20px 20px 20px 4px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    /* Audio bubble */
+    .msg-audio {
+        padding: 10px 14px;
+        border-radius: 20px;
+        display: flex; align-items: center; gap: 10px;
+        max-width: 300px;
+    }
+    .bubble-group.mine .msg-audio {
+        background: linear-gradient(135deg, var(--green), var(--green-light));
+        box-shadow: 0 6px 20px var(--green-glow);
+        border-radius: 20px 20px 4px 20px;
+    }
+    .bubble-group.other .msg-audio {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px 20px 20px 4px;
+    }
+    .msg-audio audio {
+        height: 32px;
+        width: 200px;
+        border-radius: 8px;
+        outline: none;
+        filter: invert(0);
+    }
+    .bubble-group.mine .msg-audio audio { filter: brightness(10); }
+
+    /* Timestamp */
+    .msg-time {
+        font-size: 0.65rem;
+        color: var(--muted);
+        padding: 0 6px;
+        margin-top: 3px;
+    }
+    .bubble-group.mine .msg-time { text-align: right; }
+
+    /* ── Input area ── */
+    .chat-input-area {
+        background: var(--surface);
+        border-radius: 0 0 24px 24px;
+        padding: 14px 18px;
+        border-top: 1px solid #f1f5f9;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        box-shadow: 0 -4px 24px rgba(0,0,0,0.05);
+    }
+
+    .chat-input-area input {
+        flex: 1;
+        border: 2px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 12px 20px;
+        font-size: 0.91rem;
+        outline: none;
+        transition: 0.25s;
+        background: #f8fafc;
+        color: var(--dark);
+    }
+    .chat-input-area input:focus {
+        border-color: var(--green);
+        background: white;
+        box-shadow: 0 0 0 4px rgba(22,163,74,0.08);
+    }
+
+    .btn-action {
+        width: 46px; height: 46px;
+        border: none; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.05rem;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+        flex-shrink: 0;
+    }
+    .btn-action:hover { transform: scale(1.08); }
+    .btn-action:active { transform: scale(0.95); }
+
+    .btn-send {
+        background: linear-gradient(135deg, var(--green), var(--green-light));
+        color: white;
+        box-shadow: 0 6px 16px var(--green-glow);
+    }
+    .btn-send:hover { box-shadow: 0 8px 24px var(--green-glow); }
+
+    .btn-mic {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+    .btn-mic:hover { background: #fee2e2; color: #dc2626; }
+    .btn-mic.recording {
+        background: linear-gradient(135deg, #dc2626, #ef4444);
+        color: white;
+        box-shadow: 0 0 0 0 rgba(220,38,38,0.4);
+        animation: recPulse 1s infinite;
+    }
+    @keyframes recPulse {
+        0%   { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
+        70%  { box-shadow: 0 0 0 10px rgba(220,38,38,0); }
+        100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+    }
+
+    /* Recording bar */
+    .recording-bar {
+        display: none; flex: 1;
+        align-items: center; gap: 12px;
+        background: #fef2f2;
+        border: 2px solid #fca5a5;
+        border-radius: 20px;
+        padding: 10px 18px;
+        font-size: 0.83rem; font-weight: 700; color: #dc2626;
+        animation: fadeIn 0.2s ease;
+    }
+    .recording-bar.active { display: flex; }
+
+    .waveform {
+        display: flex; align-items: center; gap: 3px;
+    }
+    .waveform span {
+        display: block;
+        width: 3px;
+        background: #dc2626;
+        border-radius: 3px;
+        animation: wave 0.8s ease-in-out infinite;
+    }
+    .waveform span:nth-child(1) { height: 8px;  animation-delay: 0s; }
+    .waveform span:nth-child(2) { height: 16px; animation-delay: 0.1s; }
+    .waveform span:nth-child(3) { height: 22px; animation-delay: 0.2s; }
+    .waveform span:nth-child(4) { height: 14px; animation-delay: 0.3s; }
+    .waveform span:nth-child(5) { height: 20px; animation-delay: 0.15s; }
+    .waveform span:nth-child(6) { height: 10px; animation-delay: 0.25s; }
+    @keyframes wave {
+        0%, 100% { transform: scaleY(1); }
+        50%       { transform: scaleY(0.3); }
+    }
+
+    /* Preview bar */
+    .preview-bar {
+        display: none; flex: 1;
+        align-items: center; gap: 10px;
+        background: #f0fdf4;
+        border: 2px solid #86efac;
+        border-radius: 20px;
+        padding: 8px 14px;
+        animation: fadeIn 0.25s ease;
+    }
+    .preview-bar.active { display: flex; }
+    .preview-bar audio { flex: 1; height: 32px; min-width: 0; }
+
+    .btn-preview-send {
+        width: 38px; height: 38px;
+        background: linear-gradient(135deg, var(--green), var(--green-light));
+        color: white; border: none; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: 0.2s; flex-shrink: 0;
+        box-shadow: 0 4px 12px var(--green-glow);
+    }
+    .btn-preview-send:hover { transform: scale(1.08); }
+
+    .btn-preview-delete {
+        width: 38px; height: 38px;
+        background: #fee2e2; color: #dc2626;
+        border: none; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: 0.2s; flex-shrink: 0;
+    }
+    .btn-preview-delete:hover { background: #fca5a5; transform: scale(1.08); }
+
+    /* Admin bubble — gold/royal style */
+    .bubble-group.admin-msg { align-items: center; }
+    .bubble-group.admin-msg .bubble-row { justify-content: center; }
+    .bubble-group.admin-msg .bubble-sender { text-align: center; color: #b45309; }
+    .bubble-group.admin-msg .bubble-avatar {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        box-shadow: 0 4px 14px rgba(245,158,11,0.4);
+    }
+    .bubble-group.admin-msg .msg-text {
+        background: linear-gradient(135deg, #78350f, #b45309);
+        color: #fef3c7;
+        border-radius: 20px;
+        box-shadow: 0 6px 20px rgba(180,83,9,0.3);
+        border: 1px solid rgba(251,191,36,0.3);
+        text-align: center;
+        max-width: 460px;
+    }
+    .bubble-group.admin-msg .msg-audio {
+        background: linear-gradient(135deg, #78350f, #b45309);
+        border-radius: 20px;
+        box-shadow: 0 6px 20px rgba(180,83,9,0.3);
+    }
+    .bubble-group.admin-msg .msg-audio audio { filter: brightness(10); }
+    .bubble-group.admin-msg .msg-time { text-align: center; }
+    .admin-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: #78350f;
+        font-size: 0.65rem; font-weight: 800;
+        padding: 2px 8px; border-radius: 20px;
+        letter-spacing: 0.5px; text-transform: uppercase;
+        margin-left: 6px;
+    }
+
+    /* Admin input area highlight */
+    .admin-input-bar {
+        background: linear-gradient(135deg, #fffbeb, #fef3c7) !important;
+        border-top: 2px solid #fde68a !important;
+    }
+    .admin-input-bar input {
+        border-color: #fde68a !important;
+        background: #fffbeb !important;
+    }
+    .admin-input-bar input:focus {
+        border-color: #f59e0b !important;
+        box-shadow: 0 0 0 4px rgba(245,158,11,0.12) !important;
+    }
+    .btn-send-admin {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
+        box-shadow: 0 6px 16px rgba(245,158,11,0.35) !important;
+        color: #78350f !important;
+    }
+    .admin-header-badge {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: #78350f;
+        font-size: 0.72rem; font-weight: 800;
+        padding: 6px 14px; border-radius: 20px;
+        letter-spacing: 0.3px;
+        display: flex; align-items: center; gap: 6px;
+    }
+    /* Date separator */
+    .date-sep {
+        display: flex; align-items: center; gap: 10px;
+        margin: 8px 0 16px; font-size: 0;
+    }
+    .date-sep::before, .date-sep::after {
+        content: ''; flex: 1;
+        height: 1px; background: #e2e8f0;
+    }
+    .date-sep span {
+        background: #f0fdf4; color: var(--green);
+        border: 1px solid #bbf7d0; border-radius: 20px;
+        padding: 3px 12px; font-size: 0.68rem; font-weight: 700;
+        white-space: nowrap;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<div class="chat-page">
+    <a href="{{ path('app_evenement_show', {'id': evenement.id_ev}) }}" class="back-link">
+        <i class="fas fa-arrow-left"></i> Retour à l'événement
+    </a>
+
+    <div class="chat-header">
+        <div class="header-avatar"><i class="fas fa-seedling"></i></div>
+        <div class="header-info">
+            <h5>{{ evenement.titre }}</h5>
+            <small><i class="fas fa-users me-1"></i> Chat des participants inscrits</small>
+        </div>
+        <div class="header-live">
+            <span class="live-dot"></span> En direct
+        </div>
+        {% if isAdmin %}
+            <div class="admin-header-badge">
+                👑 Mode Admin
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+        {% if messages|length == 0 %}
+            <div class="empty-chat" id="emptyState">
+                <div class="empty-icon"><i class="fas fa-comment-dots"></i></div>
+                <p>Soyez le premier à écrire un message !</p>
+            </div>
+        {% else %}
+            <div class="date-sep"><span>Aujourd'hui</span></div>
+            {% for msg in messages %}
+                {% set isAdminMsg = msg.sender_id == 0 %}
+                {% set isMine = (not isAdminMsg and msg.sender_id == currentUser.id) or (isAdmin and isAdminMsg) %}
+                {% set senderName = isAdminMsg ? '👑 Admin' : (names[msg.sender_id] ?? 'Participant') %}
+                {% set initials = isAdminMsg ? '👑' : (senderName|slice(0,1)|upper) %}
+                {% set avatarSrc = isAdminMsg ? null : (isMine ? myAvatar : (avatars[msg.sender_id] ?? null)) %}
+                <div class="bubble-group {{ isMine ? 'mine' : 'other' }} {{ isAdminMsg ? 'admin-msg' : '' }}" data-id="{{ msg.id }}">
+                    <span class="bubble-sender">
+                        {{ (isMine and not isAdminMsg) ? 'Vous' : senderName }}
+                        {% if isAdminMsg %}<span class="admin-badge">Admin</span>{% endif %}
+                    </span>
+                    <div class="bubble-row">
+                        <div class="bubble-avatar">
+                            {% if avatarSrc %}
+                                <img src="{{ avatarSrc }}" alt="{{ senderName }}">
+                            {% else %}
+                                {{ initials }}
+                            {% endif %}
+                        </div>
+                        <div>
+                            {% if msg.content starts with '[AUDIO_B64]:' %}
+                                <div class="msg-audio">
+                                    <i class="fas fa-microphone" style="font-size:0.85rem; opacity:0.8;"></i>
+                                    <audio controls src="{{ msg.content|slice(12) }}"></audio>
+                                </div>
+                            {% elseif msg.content starts with '[AUDIO]:' %}
+                                <div class="msg-audio">
+                                    <i class="fas fa-microphone" style="font-size:0.85rem; opacity:0.8;"></i>
+                                    <audio controls src="/{{ msg.content|slice(8) }}"></audio>
+                                </div>
+                            {% else %}
+                                <div class="msg-text">{{ msg.content }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span class="msg-time">{{ msg.timestamp|date('H:i', 'Africa/Tunis') }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <div class="chat-input-area {{ isAdmin ? 'admin-input-bar' : '' }}" id="inputArea">
+        <button class="btn-action btn-mic" id="micBtn" title="Message vocal">
+            <i class="fas fa-microphone"></i>
+        </button>
+        <div class="recording-bar" id="recordingBar">
+            <div class="waveform">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <span id="recTimer">0:00</span>
+            <span style="flex:1">Enregistrement...</span>
+            <span style="font-size:0.75rem;opacity:0.7">Cliquez stop pour terminer</span>
+        </div>
+        <div class="preview-bar" id="previewBar">
+            <i class="fas fa-microphone" style="color:var(--green);font-size:0.9rem;flex-shrink:0;"></i>
+            <audio id="previewAudio" controls></audio>
+            <button class="btn-preview-send" id="previewSend" title="Envoyer">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+            <button class="btn-preview-delete" id="previewDelete" title="Supprimer">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <input type="text" id="msgInput" placeholder="Écrire un message..." autocomplete="off" maxlength="500" />
+        <button class="btn-action btn-send {{ isAdmin ? 'btn-send-admin' : '' }}" id="sendBtn" title="Envoyer">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+</div>
+
+<img id="myAvatarImg" data-src="{{ myAvatar ?? '' }}" style="display:none" alt="">
+
+<script>
+    const currentUserId = {{ currentUser.id }};
+    const isAdmin = {{ isAdmin ? 'true' : 'false' }};
+    const myAvatarEl = document.getElementById('myAvatarImg');
+    const myAvatar = (myAvatarEl && myAvatarEl.getAttribute('data-src')) ? myAvatarEl.getAttribute('data-src') : null;
+    const sendUrl = "{{ path('app_event_chat_send', {'id': evenement.id_ev}) }}";
+    const pollUrl = "{{ path('app_event_chat_poll', {'id': evenement.id_ev}) }}";
+
+    const messagesDiv = document.getElementById('chatMessages');
+    const input      = document.getElementById('msgInput');
+    const sendBtn    = document.getElementById('sendBtn');
+    const micBtn     = document.getElementById('micBtn');
+    const recordingBar = document.getElementById('recordingBar');
+    const recTimer   = document.getElementById('recTimer');
+    const previewBar = document.getElementById('previewBar');
+    const previewAudio = document.getElementById('previewAudio');
+    const previewSend   = document.getElementById('previewSend');
+    const previewDelete = document.getElementById('previewDelete');
+
+    let lastId = {{ messages|length > 0 ? messages|last.id : 0 }};
+    let mediaRecorder = null, audioChunks = [], recInterval = null, recSeconds = 0, pendingBlob = null;
+
+    function scrollBottom() { messagesDiv.scrollTop = messagesDiv.scrollHeight; }
+
+    function avatarColor(name) {
+        const colors = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#06b6d4','#10b981'];
+        let h = 0;
+        for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+        return colors[Math.abs(h) % colors.length];
+    }
+
+    function buildBubble(msg) {
+        document.getElementById('emptyState')?.remove();
+
+        const isAdminMsg = msg.is_admin || msg.sender_id === 0;
+        const isMine = isAdminMsg ? isAdmin : msg.is_mine;
+
+        const group = document.createElement('div');
+        group.className = 'bubble-group ' + (isMine ? 'mine' : 'other') + (isAdminMsg ? ' admin-msg' : '');
+        group.dataset.id = msg.id;
+
+        const initials = isAdminMsg ? '👑' : (msg.sender_name || 'P').charAt(0).toUpperCase();
+        const senderLabel = isAdminMsg
+            ? '👑 Admin <span class="admin-badge">Admin</span>'
+            : (isMine ? 'Vous' : escapeHtml(msg.sender_name));
+
+        // Avatar: use profile picture if available, else initials
+        let avatarHtml;
+        const avatarSrc = msg.sender_avatar;
+        if (isAdminMsg) {
+            avatarHtml = `<div class="bubble-avatar">${initials}</div>`;
+        } else if (avatarSrc) {
+            avatarHtml = `<div class="bubble-avatar"><img src="${avatarSrc}" alt="${escapeHtml(msg.sender_name)}"></div>`;
+        } else {
+            const bgStyle = isMine ? '' : `style="background:${avatarColor(msg.sender_name || '')}"`;
+            avatarHtml = `<div class="bubble-avatar" ${bgStyle}>${initials}</div>`;
+        }
+
+        let body;
+        if (msg.content.startsWith('[AUDIO_B64]:')) {
+            const src = msg.content.slice(12);
+            body = `<div class="msg-audio"><i class="fas fa-microphone" style="font-size:.85rem;opacity:.8;"></i><audio controls src="${src}"></audio></div>`;
+        } else if (msg.content.startsWith('[AUDIO]:')) {
+            const src = '/' + msg.content.slice(8);
+            body = `<div class="msg-audio"><i class="fas fa-microphone" style="font-size:.85rem;opacity:.8;"></i><audio controls src="${src}"></audio></div>`;
+        } else {
+            body = `<div class="msg-text">${escapeHtml(msg.content)}</div>`;
+        }
+
+        group.innerHTML = `
+            <span class="bubble-sender">${senderLabel}</span>
+            <div class="bubble-row">
+                ${avatarHtml}
+                <div>${body}</div>
+            </div>
+            <span class="msg-time">${msg.timestamp}</span>`;
+
+        messagesDiv.appendChild(group);
+        scrollBottom();
+    }
+
+    function escapeHtml(t) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(t));
+        return d.innerHTML;
+    }
+
+    function resetToNormal() {
+        recordingBar.classList.remove('active');
+        previewBar.classList.remove('active');
+        previewAudio.src = '';
+        input.style.display = '';
+        sendBtn.style.display = '';
+        micBtn.style.display = '';
+        micBtn.classList.remove('recording');
+        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+        pendingBlob = null;
+    }
+
+    async function sendMessage() {
+        const content = input.value.trim();
+        if (!content) return;
+        input.value = '';
+        sendBtn.disabled = true;
+        const form = new FormData();
+        form.append('content', content);
+        if (isAdmin) form.append('is_admin', '1');
+        try {
+            const res = await fetch(sendUrl, { method: 'POST', body: form });
+            const msg = await res.json();
+            if (msg.id) {
+                msg.is_mine = true;
+                msg.sender_avatar = myAvatar;
+                buildBubble(msg); lastId = msg.id;
+            }
+        } catch (e) { console.error(e); }
+        sendBtn.disabled = false;
+        input.focus();
+    }
+
+    async function sendAudio(blob) {
+        const form = new FormData();
+        form.append('audio', blob, 'voice.webm');
+        if (isAdmin) form.append('is_admin', '1');
+        try {
+            const res = await fetch(sendUrl, { method: 'POST', body: form });
+            const msg = await res.json();
+            if (msg.id) {
+                msg.is_mine = true;
+                msg.sender_avatar = myAvatar;
+                buildBubble(msg); lastId = msg.id;
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    micBtn.addEventListener('click', async () => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop(); return;
+        }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioChunks = [];
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                stream.getTracks().forEach(t => t.stop());
+                clearInterval(recInterval);
+                recSeconds = 0; recTimer.textContent = '0:00';
+                pendingBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                previewAudio.src = URL.createObjectURL(pendingBlob);
+                recordingBar.classList.remove('active');
+                previewBar.classList.add('active');
+                micBtn.style.display = 'none';
+            };
+            mediaRecorder.start();
+            input.style.display = 'none';
+            sendBtn.style.display = 'none';
+            recordingBar.classList.add('active');
+            micBtn.classList.add('recording');
+            micBtn.innerHTML = '<i class="fas fa-stop"></i>';
+            recInterval = setInterval(() => {
+                recSeconds++;
+                recTimer.textContent = `${Math.floor(recSeconds/60)}:${String(recSeconds%60).padStart(2,'0')}`;
+            }, 1000);
+        } catch (err) { alert('Microphone non accessible. Vérifiez les permissions.'); }
+    });
+
+    previewSend.addEventListener('click', async () => {
+        if (!pendingBlob) return;
+        const blob = pendingBlob;
+        resetToNormal();
+        await sendAudio(blob);
+    });
+
+    previewDelete.addEventListener('click', () => resetToNormal());
+
+    async function pollMessages() {
+        try {
+            const res = await fetch(pollUrl + '?since=' + lastId);
+            const msgs = await res.json();
+            msgs.forEach(msg => {
+                if (!document.querySelector('[data-id="' + msg.id + '"]')) {
+                    buildBubble(msg);
+                    lastId = Math.max(lastId, msg.id);
+                }
+            });
+        } catch (e) {}
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+    scrollBottom();
+    setInterval(pollMessages, 3000);
+</script>
+{% endblock %}

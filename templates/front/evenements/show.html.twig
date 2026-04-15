@@ -31,6 +31,8 @@
         padding-bottom: 60px;
         color: white;
         clip-path: ellipse(150% 100% at 50% 0%);
+        position: relative;
+        overflow: hidden;
     }
 
     /* --- Glass Cards & Description --- */
@@ -129,7 +131,7 @@
         display: block; font-size: 13px; font-weight: 700;
         color: #475569; margin-bottom: 6px;
     }
-    .particip-field input {
+    .particip-field input, .particip-field-input {
         width: 100%; padding: 12px 16px;
         border: 2px solid #e2e8f0; border-radius: 14px;
         font-size: 14px; transition: .2s; background: #f8fafc;
@@ -188,11 +190,40 @@
         transition: .3s; width: 100%;
     }
     .btn-cancel-back:hover { background: #e2e8f0; }
+
+    /* Participant chips */
+    .participant-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: #f8fafc; border: 1px solid #e2e8f0;
+        border-radius: 50px; padding: 4px 12px 4px 4px;
+        transition: .2s; cursor: default;
+    }
+    .participant-chip:hover { background: #f0fdf4; border-color: #bbf7d0; }
+    .chip-avatar {
+        width: 26px; height: 26px; border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white; font-size: .65rem; font-weight: 800;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden; flex-shrink: 0;
+    }
+    .chip-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .chip-name { font-size: .78rem; font-weight: 700; color: #1e293b; }
+    .chip-places {
+        font-size: .68rem; font-weight: 800;
+        background: #16a34a; color: white;
+        border-radius: 50px; padding: 1px 6px;
+    }
 </style>
 
 {% for msg in app.flashes('success') %}
     <div class="alert alert-success alert-dismissible fade show position-fixed" style="top:20px;right:20px;z-index:10000;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.1);max-width:400px;" role="alert">
         <i class="fas fa-check-circle me-2"></i> {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+{% endfor %}
+{% for msg in app.flashes('info') %}
+    <div class="alert alert-warning alert-dismissible fade show position-fixed" style="top:20px;right:20px;z-index:10000;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.1);max-width:420px;" role="alert">
+        <i class="fas fa-envelope me-2"></i> {{ msg }}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 {% endfor %}
@@ -209,7 +240,11 @@
     </a>
 
     <div class="detail-hero">
-        <div class="container">
+        {% if evenement.image %}
+            <img src="{{ evenement.image|raw }}" alt="{{ evenement.titre }}"
+                 style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:.45;">
+        {% endif %}
+        <div class="container" style="position:relative;z-index:1;">
             <div class="animate__animated animate__fadeInLeft">
                 <span class="badge bg-success rounded-pill px-3 py-2 mb-3">Événement Certifié AgriCore</span>
                 <h1 class="display-3 fw-black">{{ evenement.titre }}</h1>
@@ -251,6 +286,32 @@
                             </div>
                         </div>
                     </div>
+
+                    {% if participants|length > 0 %}
+                    <div class="mt-4 pt-4 border-top">
+                        <h6 class="fw-bold mb-3 text-muted" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;">
+                            <i class="fas fa-users me-1 text-success"></i> Participants inscrits
+                        </h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for p in participants %}
+                                {% set initials = p.nom_participant|slice(0,1)|upper %}
+                                <div class="participant-chip" title="{{ p.nom_participant }} — {{ p.nbr_places }} place{{ p.nbr_places > 1 ? 's' : '' }}">
+                                    <div class="chip-avatar">
+                                        {% if p.avatar %}
+                                            <img src="{{ p.avatar }}" alt="{{ p.nom_participant }}">
+                                        {% else %}
+                                            {{ initials }}
+                                        {% endif %}
+                                    </div>
+                                    <span class="chip-name">{{ p.nom_participant|split(' ')|first }}</span>
+                                    {% if p.nbr_places > 1 %}
+                                        <span class="chip-places">×{{ p.nbr_places }}</span>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="animate__animated animate__fadeInUp animate__delay-1s">
@@ -268,25 +329,75 @@
 
                         <h5 class="fw-bold mb-4 mt-2">Réserver ma place</h5>
                         
-                        {% if dejaInscrit %}
-                            <div class="alert alert-success border-0 shadow-sm rounded-4 py-3 mb-4">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                Vous participez déjà.
+                        {% if dejaInscrit and isPast %}
+                            <div class="alert border-0 shadow-sm rounded-4 py-3 mb-4" style="background:#f8fafc;border-left:4px solid #94a3b8 !important;">
+                                <i class="fas fa-history me-2 text-muted"></i>
+                                <strong style="color:#64748b;">Événement terminé</strong><br>
+                                <small class="text-muted">Vous avez participé à cet événement.</small>
                             </div>
+                            {% if participantConfirmation == 'confirmed' %}
+                            <a href="{{ path('app_event_chat', {'id': evenement.id_ev}) }}"
+                               class="btn w-100 mb-3"
+                               style="background:#64748b;color:white;border-radius:20px;padding:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;transition:0.4s;border:none;text-decoration:none;display:block;text-align:center;">
+                                <i class="fas fa-comments me-2"></i> Chat communauté
+                            </a>
+                            {% endif %}
+                        {% elseif dejaInscrit %}
+                            {% if participantConfirmation == 'confirmed' %}
+                            <div class="alert border-0 shadow-sm rounded-4 py-3 mb-4" style="background:#f0fdf4;border-left:4px solid #16a34a !important;">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <strong style="color:#16a34a;">Participation confirmée</strong><br>
+                                <small class="text-muted">Votre code d'entrée vous a été envoyé par email.</small>
+                            </div>
+                            <a href="{{ path('app_event_chat', {'id': evenement.id_ev}) }}"
+                               class="btn w-100 mb-3"
+                               style="background:var(--agri-green);color:white;border-radius:20px;padding:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;transition:0.4s;border:none;text-decoration:none;display:block;text-align:center;">
+                                <i class="fas fa-comments me-2"></i> Chat des participants
+                            </a>
+                            {% else %}
+                            <div class="alert border-0 shadow-sm rounded-4 py-3 mb-4" style="background:#fffbeb;border-left:4px solid #f59e0b !important;">
+                                <i class="fas fa-clock me-2" style="color:#f59e0b;"></i>
+                                <strong style="color:#b45309;">En attente de confirmation</strong><br>
+                                <small class="text-muted">Vérifiez votre email et cliquez sur le lien de confirmation pour accéder au chat.</small>
+                            </div>
+                            {% endif %}
                             <button type="button" class="btn w-100 mb-3"
                                 style="background:#dc2626;color:white;border-radius:20px;padding:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;transition:0.4s;border:none;"
                                 onclick="openCancelModal()">
                                 <i class="fas fa-times-circle me-2"></i> Annuler mon inscription
+                            </button>
+                        {% elseif isPast %}
+                            <div class="alert alert-secondary border-0 rounded-4 py-3 mb-4">
+                                <i class="fas fa-calendar-times me-2"></i>
+                                Cet événement est <strong>terminé</strong>.
+                            </div>
+                            <button class="cta-btn btn w-100" disabled>
+                                <i class="fas fa-lock me-2"></i> Inscription fermée
                             </button>
                         {% elseif placesRestantes > 0 %}
                             <div class="alert alert-light border-0 shadow-sm rounded-4 py-3 mb-4">
                                 <i class="fas fa-bolt text-warning me-2"></i>
                                 Dépêchez-vous, il ne reste que <b>{{ placesRestantes }}</b> places !
                             </div>
+                            {% if onWaitlist %}
+                                <div class="alert border-0 rounded-4 py-2 mb-3" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+                                    <i class="fas fa-check-circle text-success me-1"></i>
+                                    <small style="color:#16a34a;font-weight:700;">Une place s'est libérée — inscrivez-vous !</small>
+                                </div>
+                            {% endif %}
                             {% if app.session.get('user') %}
-                                <button type="button" class="cta-btn btn w-100 mb-3" onclick="document.getElementById('participModal').style.display='flex'">
+                                <button type="button" class="cta-btn btn w-100 mb-3"
+                                    onclick="{% if conflictingEvent %}openConflictModal(){% else %}document.getElementById('participModal').style.display='flex'{% endif %}">
                                     <i class="fas fa-check-circle me-2"></i> Confirmer l'inscription
                                 </button>
+                                {% if onWaitlist %}
+                                <form method="post" action="{{ path('app_waitlist_annuler', {'id': evenement.id_ev}) }}">
+                                    <button type="submit" class="btn w-100"
+                                        style="background:#fee2e2;color:#dc2626;border:none;border-radius:20px;padding:12px;font-weight:700;font-size:.85rem;">
+                                        <i class="fas fa-times me-1"></i> Quitter la liste d'attente
+                                    </button>
+                                </form>
+                                {% endif %}
                             {% else %}
                                 <a href="{{ path('front_login') }}" class="cta-btn btn w-100 mb-3">
                                     <i class="fas fa-sign-in-alt me-2"></i> Connectez-vous pour participer
@@ -296,7 +407,26 @@
                             <div class="alert alert-danger rounded-4 mb-4">
                                 <i class="fas fa-info-circle me-2"></i> Complet
                             </div>
-                            <button class="cta-btn btn w-100" disabled>Complet</button>
+                            {% if onWaitlist %}
+                                <div class="alert border-0 rounded-4 py-3 mb-3" style="background:#fffbeb;border-left:4px solid #f59e0b !important;">
+                                    <i class="fas fa-clock me-2" style="color:#f59e0b;"></i>
+                                    <strong style="color:#b45309;">Sur la liste d'attente</strong><br>
+                                    <small class="text-muted">Vous serez notifié par email si une place se libère.</small>
+                                </div>
+                                <form method="post" action="{{ path('app_waitlist_annuler', {'id': evenement.id_ev}) }}">
+                                    <button type="submit" class="btn w-100"
+                                        style="background:#fee2e2;color:#dc2626;border:none;border-radius:20px;padding:14px;font-weight:700;">
+                                        <i class="fas fa-times-circle me-2"></i> Quitter la liste d'attente
+                                    </button>
+                                </form>
+                            {% elseif app.session.get('user') and not isPast %}
+                                <button type="button" class="cta-btn btn w-100" style="background:#f59e0b;"
+                                    onclick="document.getElementById('waitlistModal').style.display='flex'">
+                                    <i class="fas fa-bell me-2"></i> Rejoindre la liste d'attente
+                                </button>
+                            {% else %}
+                                <button class="cta-btn btn w-100" disabled>Complet</button>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
@@ -306,7 +436,7 @@
 </div>
 
 {# ===== Cancel Modal ===== #}
-{% if dejaInscrit %}
+{% if dejaInscrit and not isPast %}
 <div class="cancel-overlay" id="cancelModal" onclick="if(event.target===this)closeCancelModal()">
     <div class="cancel-modal" id="cancelModalBox">
         <div class="cancel-icon"><i class="fas fa-calendar-times"></i></div>
@@ -326,7 +456,9 @@
 
 {# ===== Participation Modal ===== #}
 {% if app.session.get('user') and placesRestantes > 0 and not dejaInscrit %}
-<div class="particip-overlay" id="participModal" style="display: {{ showParticipationModal ? 'flex' : 'none' }}" onclick="if(event.target===this)this.style.display='none'">
+<div class="particip-overlay" id="participModal"
+     style="display: {{ showParticipationModal ? 'flex' : 'none' }}"
+     onclick="if(event.target===this)this.style.display='none'">
     <div class="particip-modal">
         <button class="modal-close" onclick="document.getElementById('participModal').style.display='none'">
             <i class="fas fa-times"></i>
@@ -334,38 +466,50 @@
         <h4><i class="fas fa-ticket-alt me-2" style="color:var(--agri-green)"></i> Inscription</h4>
         <p>Remplissez vos informations pour participer à <strong>{{ evenement.titre }}</strong></p>
 
-        {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+        {% if form.vars.submitted and not form.vars.valid %}
+        <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:.85rem;color:#dc2626;">
+            <i class="fas fa-exclamation-circle me-2"></i>Veuillez corriger les erreurs ci-dessous.
+        </div>
+        {% endif %}
+
+        {{ form_start(form, {'attr': {'novalidate': 'novalidate', 'style': 'margin:0'}}) }}
+
             <div class="particip-field">
                 {{ form_label(form.nom_participant, 'Votre nom complet') }}
-                {{ form_widget(form.nom_participant, {
-                    'attr': {
-                        'class': 'particip-field-input',
-                        'placeholder': 'Entrez votre nom',
-                        'value': app.session.get('user').prenom ~ ' ' ~ app.session.get('user').nom
-                    }
-                }) }}
-                <div class="text-danger small">{{ form_errors(form.nom_participant) }}</div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    {{ form_widget(form.nom_participant, {'attr': {'class': 'particip-field-input', 'placeholder': 'Entrez votre nom', 'value': app.session.get('user').prenom ~ ' ' ~ app.session.get('user').nom}}) }}
+                    <button type="button" id="sttBtn" title="Dicter votre nom"
+                        style="width:42px;height:42px;flex-shrink:0;border:none;border-radius:12px;background:#f0fdf4;color:#16a34a;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                </div>
+                <div class="text-danger small mt-1">{{ form_errors(form.nom_participant) }}</div>
             </div>
+
+            <div class="particip-field">
+                {{ form_label(form.email, 'Adresse email') }}
+                {{ form_widget(form.email, {'attr': {'class': 'particip-field-input', 'placeholder': 'votre@email.com'}}) }}
+                <small style="color:#94a3b8;font-size:.72rem;margin-top:4px;display:block;"><i class="fas fa-lock me-1"></i>Un email de confirmation sera envoyé à cette adresse.</small>
+                <div class="text-danger small mt-1">{{ form_errors(form.email) }}</div>
+            </div>
+
             <div class="particip-field">
                 {{ form_label(form.nbr_places, 'Nombre de places (max ' ~ placesRestantes ~ ')') }}
-                {{ form_widget(form.nbr_places, {
-                    'attr': {
-                        'class': 'particip-field-input'
-                    }
-                }) }}
-                <div class="text-danger small">{{ form_errors(form.nbr_places) }}</div>
+                {{ form_widget(form.nbr_places, {'attr': {'class': 'particip-field-input', 'min': 1, 'id': 'nbr_places_input', 'oninput': "document.getElementById('total_display').textContent=(this.value*" ~ evenement.frais_inscription ~ ").toFixed(2)+' DT'"}}) }}
+                <div class="text-danger small mt-1">{{ form_errors(form.nbr_places) }}</div>
             </div>
 
             <div class="mb-4 p-3 rounded-4 bg-light border d-flex justify-content-between align-items-center">
                 <span class="small fw-bold text-muted">Total à payer :</span>
-                <span class="h5 mb-0 fw-black text-success" id="display_total">0.00 DT</span>
+                <span class="h5 mb-0 fw-black text-success" id="total_display">
+                    {{ (1 * evenement.frais_inscription)|number_format(2) }} DT
+                </span>
             </div>
-
-            <div class="text-danger small mb-3">{{ form_errors(form) }}</div>
 
             <button type="submit" class="particip-submit">
                 <i class="fas fa-check-circle me-2"></i> Confirmer mon inscription
             </button>
+
         {{ form_end(form) }}
     </div>
 </div>
@@ -392,8 +536,9 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         // --- LOGIQUE DE CALCUL DU MONTANT ---
-        const nbrPlacesInput = document.getElementById('{{ form.nbr_places.vars.id }}');
+        const nbrPlacesInput = document.querySelector('input[name="nbr_places"]');
         const displayTotal = document.getElementById('display_total');
+        const montantHidden = document.getElementById('montant_payee_hidden');
         const prixUnitaire = parseFloat("{{ evenement.frais_inscription }}") || 0;
 
         function updatePrice() {
@@ -401,6 +546,7 @@
                 let qty = parseInt(nbrPlacesInput.value) || 0;
                 let total = (qty * prixUnitaire).toFixed(2);
                 if (displayTotal) displayTotal.innerText = total + " DT";
+                if (montantHidden) montantHidden.value = total;
             }
         }
 
@@ -411,17 +557,6 @@
         }
 
         // --- LOGIQUE DE LA CARTE ---
-                    let qty = parseInt(nbrPlacesInput.value) || 0;
-                    let total = (qty * prixUnitaire).toFixed(2);
-                    if (displayTotal) displayTotal.innerText = total + " DT";
-                }
-            }
-
-            if (nbrPlacesInput) {
-                nbrPlacesInput.addEventListener('input', updatePrice);
-                nbrPlacesInput.addEventListener('change', updatePrice);
-
-        // --- LOGIQUE DE LA CARTE ---
         var lieu = "{{ evenement.lieu|e('js') }}";
         var coordRegex = /^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/;
         var match = lieu.match(coordRegex);
@@ -430,16 +565,29 @@
             var lat = parseFloat(match[1]);
             var lng = parseFloat(match[2]);
             initMap(lat, lng, lieu);
-        } else {
-            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(lieu))
+        } else if (lieu && lieu.trim() !== '') {
+            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(lieu) + '&countrycodes=tn&limit=1')
                 .then(r => r.json())
                 .then(data => {
                     if (data.length > 0) {
                         initMap(parseFloat(data[0].lat), parseFloat(data[0].lon), data[0].display_name);
                     } else {
-                        document.getElementById('map').innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-muted">Localisation non trouvée</div>';
+                        // Try without country restriction
+                        return fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(lieu) + '&limit=1')
+                            .then(r => r.json())
+                            .then(data2 => {
+                                if (data2.length > 0) {
+                                    initMap(parseFloat(data2[0].lat), parseFloat(data2[0].lon), data2[0].display_name);
+                                } else {
+                                    // Fallback: show Tunisia center with a note
+                                    initMap(36.8065, 10.1815, lieu + ' (position approximative)');
+                                }
+                            });
                     }
-                });
+                })
+                .catch(() => initMap(36.8065, 10.1815, lieu));
+        } else {
+            initMap(36.8065, 10.1815, 'Tunisie');
         }
 
         function initMap(lat, lng, placeName) {
@@ -458,4 +606,167 @@
         }
     });
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('sttBtn');
+    if (!btn) return;
+
+    const input = document.querySelector('input[name="participants[nom_participant]"]');
+    if (!input) return;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { btn.style.display = 'none'; return; }
+
+    const wrapper = btn.parentElement;
+
+    const statusBar = document.createElement('div');
+    statusBar.style.cssText = 'display:none;align-items:center;gap:8px;margin-top:8px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;font-size:.82rem;color:#16a34a;font-weight:700;';
+    statusBar.innerHTML = '<i class="fas fa-circle" style="font-size:.5rem;animation:pulse 1s infinite;"></i> <span id="sttStatus">Parlez maintenant...</span>';
+    wrapper.parentElement.insertBefore(statusBar, wrapper.nextSibling);
+
+    const confirmBar = document.createElement('div');
+    confirmBar.style.cssText = 'display:none;align-items:center;gap:8px;margin-top:6px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;font-size:.85rem;';
+    confirmBar.innerHTML =
+        '<i class="fas fa-check-circle" style="color:#16a34a;"></i>' +
+        '<span id="sttPreviewText" style="flex:1;font-weight:600;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>' +
+        '<button type="button" id="sttKeep" style="background:#16a34a;color:#fff;border:none;border-radius:10px;padding:5px 14px;font-weight:700;cursor:pointer;font-size:.8rem;white-space:nowrap;">Garder</button>' +
+        '<button type="button" id="sttDiscard" style="background:#fee2e2;color:#dc2626;border:none;border-radius:10px;padding:5px 14px;font-weight:700;cursor:pointer;font-size:.8rem;white-space:nowrap;">Réessayer</button>';
+    wrapper.parentElement.insertBefore(confirmBar, statusBar.nextSibling);
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = true;        // keep listening
+    recognition.interimResults = true;    // show partial results
+    recognition.maxAlternatives = 3;      // get multiple candidates
+
+    let listening = false, savedValue = '', bestTranscript = '', silenceTimer = null;
+
+    function setBtn(on) {
+        btn.style.background = on ? '#dc2626' : '#f0fdf4';
+        btn.style.color = on ? '#fff' : '#16a34a';
+        btn.innerHTML = on ? '<i class="fas fa-stop"></i>' : '<i class="fas fa-microphone"></i>';
+        btn.title = on ? 'Arrêter' : 'Dicter votre nom';
+    }
+
+    function stopListening() {
+        recognition.stop();
+        listening = false;
+        setBtn(false);
+        statusBar.style.display = 'none';
+        clearTimeout(silenceTimer);
+        if (bestTranscript.trim()) {
+            document.getElementById('sttPreviewText').textContent = bestTranscript.trim();
+            confirmBar.style.display = 'flex';
+        }
+    }
+
+    btn.addEventListener('click', function() {
+        if (listening) { stopListening(); return; }
+        savedValue = input.value;
+        bestTranscript = '';
+        confirmBar.style.display = 'none';
+        statusBar.style.display = 'flex';
+        document.getElementById('sttStatus').textContent = 'Parlez maintenant...';
+        try { recognition.start(); } catch(e) {}
+    });
+
+    recognition.onstart = () => { listening = true; setBtn(true); };
+    recognition.onerror = (e) => { listening = false; setBtn(false); statusBar.style.display = 'none'; };
+
+    recognition.onresult = (e) => {
+        clearTimeout(silenceTimer);
+        let interim = '', final = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+            // Pick highest confidence alternative
+            let best = e.results[i][0].transcript;
+            for (let j = 1; j < e.results[i].length; j++) {
+                if (e.results[i][j].confidence > e.results[i][0].confidence) {
+                    best = e.results[i][j].transcript;
+                }
+            }
+            if (e.results[i].isFinal) { final += best; }
+            else { interim += best; }
+        }
+        if (final) bestTranscript = final;
+        const display = (bestTranscript + interim).trim();
+        if (display) document.getElementById('sttStatus').textContent = '🎤 ' + display;
+
+        // Auto-stop after 1.5s of silence
+        silenceTimer = setTimeout(() => stopListening(), 1500);
+    };
+
+    recognition.onend = () => {
+        if (listening) {
+            // Restart if still supposed to be listening (handles auto-stop by browser)
+            try { recognition.start(); } catch(e) { listening = false; setBtn(false); }
+        }
+    };
+
+    document.getElementById('sttKeep').addEventListener('click', function() {
+        input.value = document.getElementById('sttPreviewText').textContent;
+        confirmBar.style.display = 'none';
+    });
+
+    document.getElementById('sttDiscard').addEventListener('click', function() {
+        input.value = savedValue;
+        confirmBar.style.display = 'none';
+        bestTranscript = '';
+    });
+});
+</script>
+
+{% if conflictingEvent %}
+<div id="conflictModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:10000;align-items:center;justify-content:center;"
+     onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:#fff;border-radius:28px;padding:40px 36px;max-width:440px;width:90%;box-shadow:0 30px 60px rgba(0,0,0,.2);animation:modalIn .3s ease;">
+        <div style="width:64px;height:64px;background:#fff7ed;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:1.8rem;">⚠️</div>
+        <h4 style="font-weight:800;color:#0f172a;text-align:center;margin-bottom:10px;">Conflit de dates détecté</h4>
+        <p style="color:#64748b;font-size:.9rem;text-align:center;line-height:1.6;margin-bottom:8px;">
+            Vous êtes déjà inscrit à <strong style="color:#f97316;">{{ conflictingEvent.titre }}</strong>
+            du <strong>{{ conflictingEvent.date_debut|date('d/m/Y') }}</strong>
+            au <strong>{{ conflictingEvent.date_fin|date('d/m/Y') }}</strong>,
+            ce qui chevauche cet événement.
+        </p>
+        <p style="color:#94a3b8;font-size:.82rem;text-align:center;margin-bottom:28px;">Voulez-vous quand même vous inscrire ?</p>
+        <div class="d-flex gap-3">
+            <button onclick="document.getElementById('conflictModal').style.display='none'"
+                style="flex:1;padding:13px;background:#f1f5f9;color:#475569;border:none;border-radius:16px;font-weight:700;cursor:pointer;">
+                Annuler
+            </button>
+            <button onclick="document.getElementById('conflictModal').style.display='none';document.getElementById('participModal').style.display='flex';"
+                style="flex:1;padding:13px;background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border:none;border-radius:16px;font-weight:800;cursor:pointer;">
+                Continuer quand même
+            </button>
+        </div>
+    </div>
+</div>
+<script>function openConflictModal(){ document.getElementById('conflictModal').style.display='flex'; }</script>
+{% endif %}
+
+{% if app.session.get('user') and not isPast and not onWaitlist %}
+<div id="waitlistModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:10000;align-items:center;justify-content:center;"
+     onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:#fff;border-radius:28px;padding:40px 36px;max-width:420px;width:90%;box-shadow:0 30px 60px rgba(0,0,0,.2);animation:modalIn .3s ease;">
+        <div style="width:64px;height:64px;background:#fff7ed;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:1.8rem;">🔔</div>
+        <h4 style="font-weight:800;color:#0f172a;text-align:center;margin-bottom:8px;">Liste d'attente</h4>
+        <p style="color:#64748b;font-size:.88rem;text-align:center;line-height:1.6;margin-bottom:28px;">
+            Vous serez notifié dès qu'une place se libère pour <strong>{{ evenement.titre }}</strong>.
+        </p>
+        <form method="post" action="{{ path('app_waitlist', {'id': evenement.id_ev}) }}">
+            <div class="d-flex gap-3">
+                <button type="button" onclick="document.getElementById('waitlistModal').style.display='none'"
+                    style="flex:1;padding:13px;background:#f1f5f9;color:#475569;border:none;border-radius:16px;font-weight:700;cursor:pointer;">
+                    Annuler
+                </button>
+                <button type="submit"
+                    style="flex:1;padding:13px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;border:none;border-radius:16px;font-weight:800;cursor:pointer;">
+                    <i class="fas fa-bell me-2"></i>M'inscrire
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}

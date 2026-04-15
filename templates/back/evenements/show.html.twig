@@ -101,10 +101,15 @@
         <div class="header-section">
             <div class="row align-items-center g-4">
                 <div class="col-md-auto">
-                    <div class="date-badge-pro animate__animated animate__pulse animate__infinite animate__slow">
-                        <div class="date-day">{{ evenement.date_debut|date('d') }}</div>
-                        <div class="date-month">{{ evenement.date_debut|date('M') }}</div>
-                    </div>
+                    {% if evenement.image %}
+                        <img src="{{ evenement.image|raw }}" alt="{{ evenement.titre }}"
+                             style="width:90px;height:90px;object-fit:cover;border-radius:20px;box-shadow:0 10px 20px rgba(0,0,0,.15);">
+                    {% else %}
+                        <div class="date-badge-pro animate__animated animate__pulse animate__infinite animate__slow">
+                            <div class="date-day">{{ evenement.date_debut|date('d') }}</div>
+                            <div class="date-month">{{ evenement.date_debut|date('M') }}</div>
+                        </div>
+                    {% endif %}
                 </div>
                 <div class="col-md">
                     <span class="badge mb-2 px-3 py-2 rounded-pill" style="background: var(--agri-soft-green); color: var(--agri-green); font-weight: 800; font-size: 0.7rem;">
@@ -119,6 +124,10 @@
                 </div>
                 <div class="col-md-auto text-md-end">
                     <div class="d-flex gap-2">
+                        <a href="{{ path('back_event_chat', {id: evenement.id_ev}) }}" class="btn btn-action-pro"
+                           style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;">
+                            <i class="fas fa-comments me-2"></i>Chat
+                        </a>
                         <a href="{{ path('back_evenements_edit', {id: evenement.id_ev}) }}" class="btn btn-success btn-action-pro">
                             <i class="fas fa-edit me-2"></i>Modifier
                         </a>
@@ -176,8 +185,11 @@
 
                     <div class="mb-5">
                         <div class="d-flex justify-content-between align-items-center mb-3 px-2">
-                            <h5 class="fw-bold mb-0">Participants récents</h5>
-                            <a href="#" class="btn btn-link text-success fw-bold text-decoration-none small p-0">Gérer la liste <i class="fas fa-external-link-alt ms-1"></i></a>
+                            <h5 class="fw-bold mb-0">Participants</h5>
+                            <a href="{{ path('back_evenements_participants', {id: evenement.id_ev}) }}"
+                               class="btn btn-link text-success fw-bold text-decoration-none small p-0">
+                                Gérer la liste <i class="fas fa-external-link-alt ms-1"></i>
+                            </a>
                         </div>
                         <div class="bg-white rounded-4 border overflow-hidden">
                             <table class="table table-hover align-middle mb-0">
@@ -185,38 +197,61 @@
                                     <tr>
                                         <th class="ps-4 py-3 fw-bold">Participant</th>
                                         <th class="fw-bold">Date d'inscription</th>
-                                        <th class="text-end pe-4 fw-bold">Montant payeé</th>
+                                        <th class="fw-bold">Montant</th>
+                                        <th class="fw-bold text-center">Présence</th>
+                                        {% if evenement.statut == 'EN_COURS' %}
+                                        <th class="fw-bold text-center pe-4">Vérifier code</th>
+                                        {% endif %}
                                     </tr>
                                 </thead>
                                 <tbody class="small">
                                     {% if participants|length > 0 %}
                                         {% for participant in participants %}
-                                        <tr class="participant-row">
+                                        <tr class="participant-row" id="row-{{ participant.id_participant }}">
                                             <td class="ps-4 py-3">
                                                 <div class="d-flex align-items-center gap-3">
                                                     <div class="avatar-circle">
-                                                        {% if participant.nom_participant %}
-                                                            {{ participant.nom_participant|slice(0, 1)|upper }}
-                                                        {% else %}
-                                                            ?
-                                                        {% endif %}
+                                                        {{ participant.nom_participant ? participant.nom_participant|slice(0,1)|upper : '?' }}
                                                     </div>
                                                     <div class="fw-bold">{{ participant.nom_participant }}</div>
                                                 </div>
                                             </td>
                                             <td class="text-muted">{{ participant.date_inscription|date('d/m/Y') }}</td>
-                                            <td class="text-end pe-4">
-                                                {% if participant.montant_payee|lower == 'payé' %}
-                                                    <span class="badge bg-success text-white rounded-pill">Payé</span>
+                                            <td>
+                                                <span class="badge rounded-pill" style="background:#f1f5f9;color:#475569;">{{ participant.montant_payee }} DT</span>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if participant.confirmation == 'attended' %}
+                                                    <span class="badge bg-success rounded-pill px-3"><i class="fas fa-check me-1"></i>Présent</span>
+                                                {% elseif participant.confirmation == 'confirmed' %}
+                                                    <span class="badge rounded-pill px-3" style="background:#fffbeb;color:#b45309;border:1px solid #fde68a;"><i class="fas fa-clock me-1"></i>Inscrit</span>
                                                 {% else %}
-                                                    <span class="badge bg-warning text-dark rounded-pill">{{ participant.montant_payee }}</span>
+                                                    <span class="badge rounded-pill px-3" style="background:#f1f5f9;color:#94a3b8;"><i class="fas fa-envelope me-1"></i>En attente</span>
                                                 {% endif %}
                                             </td>
+                                            {% if evenement.statut == 'EN_COURS' %}
+                                            <td class="text-center pe-4">
+                                                {% if participant.confirmation != 'attended' %}
+                                                <div class="d-flex gap-2 justify-content-center align-items-center">
+                                                    <input type="number" id="code-{{ participant.id_participant }}"
+                                                        placeholder="Code..."
+                                                        style="width:100px;padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.82rem;text-align:center;">
+                                                    <button onclick="verifyCode({{ participant.id_participant }}, {{ participant.entry_code }})"
+                                                        style="background:#16a34a;color:#fff;border:none;border-radius:10px;padding:6px 14px;font-weight:700;font-size:.8rem;cursor:pointer;">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                </div>
+                                                <div id="msg-{{ participant.id_participant }}" style="font-size:.72rem;margin-top:4px;"></div>
+                                                {% else %}
+                                                    <span style="color:#16a34a;font-size:.8rem;font-weight:700;"><i class="fas fa-check-circle me-1"></i>Validé</span>
+                                                {% endif %}
+                                            </td>
+                                            {% endif %}
                                         </tr>
                                         {% endfor %}
                                     {% else %}
-                                        <tr class="participant-row">
-                                            <td colspan="3" class="text-center py-4 text-muted">
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4 text-muted">
                                                 <i class="fas fa-users-slash me-2"></i>Aucun participant pour le moment
                                             </td>
                                         </tr>
@@ -229,6 +264,27 @@
                     <h5 class="fw-bold mb-3 px-2">Description détaillée</h5>
                     <div class="bg-white p-4 rounded-4 border text-muted shadow-sm" style="line-height: 1.8;">
                         {{ evenement.description|nl2br }}
+                    </div>
+
+                    {# ── AI Chat Sentiment ── #}
+                    <div class="mt-5">
+                        <div class="d-flex align-items-center justify-content-between mb-3 px-2">
+                            <h5 class="fw-bold mb-0">
+                                <i class="fas fa-robot me-2 text-purple" style="color:#8b5cf6;"></i>
+                                Analyse IA du Chat
+                            </h5>
+                            <button id="sentimentBtn" onclick="loadSentiment()"
+                                style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:10px 22px;font-weight:700;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:8px;">
+                                <i class="fas fa-magic"></i> Analyser le chat
+                            </button>
+                        </div>
+                        <div id="sentimentPanel" style="display:none;">
+                            <div id="sentimentLoading" style="display:none;text-align:center;padding:30px;">
+                                <div style="width:40px;height:40px;border:4px solid #f1f5f9;border-top-color:#8b5cf6;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;"></div>
+                                <p style="color:#64748b;font-size:.85rem;font-weight:600;">Analyse en cours...</p>
+                            </div>
+                            <div id="sentimentResult"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -259,8 +315,7 @@
             <div class="mt-5 pt-4 border-top d-flex justify-content-between align-items-center">
                 <a href="{{ path('back_evenements_list') }}" class="btn btn-light rounded-pill px-4 fw-bold">
                     <i class="fas fa-arrow-left me-2"></i>Retour au Dashboard
-                </a>
-                <div class="text-muted small fw-medium">
+                </a>                <div class="text-muted small fw-medium">
                     <i class="fas fa-history me-1"></i> Dernière modification : {{ "now"|date('H:i') }}
                 </div>
             </div>
@@ -270,8 +325,37 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialisation avec thème clair CartoDB
+async function verifyCode(participantId, correctCode) {
+    const input = document.getElementById('code-' + participantId);
+    const msg   = document.getElementById('msg-' + participantId);
+    const entered = parseInt(input.value.trim());
+
+    if (entered !== correctCode) {
+        msg.style.color = '#dc2626';
+        msg.textContent = '❌ Code incorrect';
+        input.style.borderColor = '#dc2626';
+        return;
+    }
+
+    try {
+        const res = await fetch('/back/participants/' + participantId + '/attend', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            const row = document.getElementById('row-' + participantId);
+            // Update presence badge
+            row.querySelector('td:nth-child(4)').innerHTML =
+                '<span class="badge bg-success rounded-pill px-3"><i class="fas fa-check me-1"></i>Présent</span>';
+            // Update verify cell
+            row.querySelector('td:nth-child(5)').innerHTML =
+                '<span style="color:#16a34a;font-size:.8rem;font-weight:700;"><i class="fas fa-check-circle me-1"></i>Validé</span>';
+        }
+    } catch(e) {
+        msg.style.color = '#dc2626';
+        msg.textContent = '❌ Erreur serveur';
+    }
+}
+
+    document.addEventListener('DOMContentLoaded', function() {        // Initialisation avec thème clair CartoDB
         var map = L.map('map', { 
             scrollWheelZoom: false,
             zoomControl: false 
@@ -307,4 +391,116 @@
             });
     });
 </script>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+.sentiment-card { border-radius: 20px; padding: 24px; margin-bottom: 16px; }
+.sentiment-positive { background: linear-gradient(135deg,#f0fdf4,#dcfce7); border: 1px solid #86efac; }
+.sentiment-negative { background: linear-gradient(135deg,#fef2f2,#fee2e2); border: 1px solid #fca5a5; }
+.sentiment-mixed    { background: linear-gradient(135deg,#fffbeb,#fef3c7); border: 1px solid #fde68a; }
+.sentiment-empty    { background: #f8fafc; border: 1px solid #e2e8f0; }
+.bad-msg-item { background: #fff; border-left: 3px solid #dc2626; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: .83rem; color: #1e293b; }
+.good-msg-item { background: #fff; border-left: 3px solid #16a34a; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: .83rem; color: #1e293b; }
+
+/* ── Animated CSS Faces ── */
+.css-face { width:80px;height:80px;border-radius:50%;position:relative;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;flex-direction:column; }
+.face-happy { background:linear-gradient(135deg,#fde68a,#fbbf24);box-shadow:0 8px 24px rgba(251,191,36,.4);animation:bounce 1.2s ease-in-out infinite; }
+.face-happy .eyes,.face-sad .eyes,.face-mixed .eyes,.face-empty .eyes { display:flex;gap:14px;margin-bottom:8px; }
+.face-happy .eye { width:10px;height:10px;background:#78350f;border-radius:50%;animation:blink 3s ease-in-out infinite; }
+.face-happy .mouth { width:30px;height:15px;border-bottom:4px solid #78350f;border-radius:0 0 30px 30px; }
+.face-sad { background:linear-gradient(135deg,#bfdbfe,#93c5fd);box-shadow:0 8px 24px rgba(147,197,253,.5);animation:wobble 1.5s ease-in-out infinite; }
+.face-sad .eye { width:10px;height:10px;background:#1e3a5f;border-radius:50%;position:relative; }
+.face-sad .eye::after { content:'';position:absolute;bottom:-6px;left:3px;width:4px;height:0;background:#60a5fa;border-radius:0 0 4px 4px;animation:drip 2s ease-in-out infinite; }
+.face-sad .mouth { width:28px;height:14px;border-top:4px solid #1e3a5f;border-radius:30px 30px 0 0;margin-top:4px; }
+.face-mixed { background:linear-gradient(135deg,#d9f99d,#bef264);box-shadow:0 8px 24px rgba(190,242,100,.4);animation:tilt 2s ease-in-out infinite; }
+.face-mixed .eye { width:10px;height:10px;background:#365314;border-radius:50%; }
+.face-mixed .eye.left { animation:lookLeft 2s ease-in-out infinite; }
+.face-mixed .eye.right { animation:lookRight 2s ease-in-out infinite; }
+.face-mixed .mouth { width:28px;height:4px;background:#365314;border-radius:4px; }
+.face-empty { background:linear-gradient(135deg,#e2e8f0,#cbd5e1);box-shadow:0 8px 24px rgba(0,0,0,.08);animation:float 3s ease-in-out infinite; }
+.face-empty .eye { width:10px;height:3px;background:#475569;border-radius:4px; }
+.face-empty .mouth { width:20px;height:3px;background:#475569;border-radius:4px; }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes blink { 0%,90%,100%{transform:scaleY(1)} 95%{transform:scaleY(0.1)} }
+@keyframes wobble { 0%,100%{transform:rotate(-3deg)} 50%{transform:rotate(3deg)} }
+@keyframes drip { 0%,40%{height:0;opacity:0} 70%{height:10px;opacity:1} 100%{height:0;opacity:0} }
+@keyframes tilt { 0%,100%{transform:rotate(-5deg)} 50%{transform:rotate(5deg)} }
+@keyframes lookLeft { 0%,100%{transform:translateX(-2px)} 50%{transform:translateX(2px)} }
+@keyframes lookRight { 0%,100%{transform:translateX(2px)} 50%{transform:translateX(-2px)} }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+</style>
+
+<script>
+async function loadSentiment() {
+    const btn    = document.getElementById('sentimentBtn');
+    const panel  = document.getElementById('sentimentPanel');
+    const loading= document.getElementById('sentimentLoading');
+    const result = document.getElementById('sentimentResult');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse...';
+    panel.style.display = 'block';
+    loading.style.display = 'block';
+    result.innerHTML = '';
+
+    try {
+        const res  = await fetch('{{ path('back_ai_chat_sentiment', {id: evenement.id_ev}) }}');
+        const data = await res.json();
+        loading.style.display = 'none';
+
+        if (data.error) {
+            result.innerHTML = `<div class="sentiment-card sentiment-empty"><p style="color:#dc2626;">❌ ${data.error}</p></div>`;
+            return;
+        }
+
+        const isPos  = data.status === 'positive';
+        const isNeg  = data.status === 'negative';
+        const isEmpty= data.status === 'empty';
+
+        const faceHtml = isEmpty
+            ? `<div class="css-face face-empty"><div class="eyes"><div class="eye"></div><div class="eye"></div></div><div class="mouth"></div></div>`
+            : isPos
+            ? `<div class="css-face face-happy"><div class="eyes"><div class="eye"></div><div class="eye"></div></div><div class="mouth"></div></div>`
+            : isNeg
+            ? `<div class="css-face face-sad"><div class="eyes"><div class="eye"></div><div class="eye"></div></div><div class="mouth"></div></div>`
+            : `<div class="css-face face-mixed"><div class="eyes"><div class="eye left"></div><div class="eye right"></div></div><div class="mouth"></div></div>`;
+
+        const cls    = isEmpty ? 'sentiment-empty' : isPos ? 'sentiment-positive' : isNeg ? 'sentiment-negative' : 'sentiment-mixed';
+        const label  = isEmpty ? 'Chat vide' : isPos ? 'Ambiance positive' : isNeg ? 'Contenu problématique détecté' : 'Ambiance mitigée';
+        const labelColor = isNeg ? '#dc2626' : isPos ? '#16a34a' : '#b45309';
+
+        let html = `
+            <div class="sentiment-card ${cls}" style="text-align:center;">
+                ${faceHtml}
+                <div style="font-weight:800;font-size:1.1rem;color:${labelColor};margin-bottom:8px;">${label}</div>
+                <p style="font-size:.88rem;color:#475569;margin:0;text-align:left;">${data.summary}</p>
+            </div>`;
+
+        if (data.bad && data.bad.length > 0) {
+            html += `<h6 style="font-weight:800;color:#dc2626;margin-bottom:10px;"><i class="fas fa-exclamation-triangle me-2"></i>Messages problématiques (${data.bad.length})</h6>`;
+            data.bad.forEach(m => { html += `<div class="bad-msg-item"><i class="fas fa-times-circle me-2" style="color:#dc2626;"></i>${escapeHtml(m)}</div>`; });
+        }
+
+        if (data.good && data.good.length > 0) {
+            html += `<h6 style="font-weight:800;color:#16a34a;margin:16px 0 10px;"><i class="fas fa-thumbs-up me-2"></i>Messages positifs</h6>`;
+            data.good.forEach(m => { html += `<div class="good-msg-item"><i class="fas fa-check-circle me-2" style="color:#16a34a;"></i>${escapeHtml(m)}</div>`; });
+        }
+
+        result.innerHTML = html;
+    } catch(e) {
+        loading.style.display = 'none';
+        result.innerHTML = `<div class="sentiment-card sentiment-empty"><p style="color:#dc2626;">❌ Erreur réseau.</p></div>`;
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-magic"></i> Analyser le chat';
+}
+
+function escapeHtml(t) {
+    const d = document.createElement('div');
+    d.appendChild(document.createTextNode(t));
+    return d.innerHTML;
+}
+</script>
+
 {% endblock %}
