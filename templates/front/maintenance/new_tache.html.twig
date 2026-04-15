@@ -39,8 +39,14 @@
                     Date prévue
                     <span class="required-star">*</span>
                 </label>
-                {{ form_widget(form.date_prevue, {'attr': {'class': 'form-control'}}) }}
+                {{ form_widget(form.date_prevue, {'attr': {'class': 'form-control', 'data-task-load-url': path('app_tache_day_load')}}) }}
                 <div class="text-danger small">{{ form_errors(form.date_prevue) }}</div>
+                <div id="day-task-load" class="mt-2">
+                    <span class="load-inner text-muted" style="font-size:.82rem;">
+                        <i class="fas fa-calendar-alt me-1 opacity-50"></i>
+                        Choisissez une date pour voir le nombre de tâches déjà planifiées.
+                    </span>
+                </div>
             </div>
 
             <div class="col-md-6 mb-3">
@@ -103,6 +109,63 @@ select.filled + .required-star {
 {#       IA FIX ONLY        #}
 {# ========================= #}
 <script>
+function initTaskDayLoad() {
+    const dateField = document.querySelector('[name*="datePrevue"], [name*="date_prevue"]');
+    const loadBox = document.getElementById('day-task-load');
+
+    if (!dateField || !loadBox) {
+        return;
+    }
+
+    if (dateField.dataset.loadBound === '1') {
+        return;
+    }
+
+    dateField.dataset.loadBound = '1';
+
+    const loadUrl = dateField.dataset.taskLoadUrl;
+
+    const updateLoadMessage = async () => {
+        const selectedDate = dateField.value;
+
+        if (!selectedDate) {
+            loadBox.innerHTML = '<span class="load-inner text-muted" style="font-size:.82rem;"><i class="fas fa-calendar-alt me-1 opacity-50"></i>Choisissez une date pour voir le nombre de tâches déjà planifiées.</span>';
+            return;
+        }
+
+        loadBox.innerHTML = '<span class="load-inner text-muted" style="font-size:.82rem;"><i class="fas fa-spinner fa-spin me-1"></i>Chargement...</span>';
+
+        try {
+            const response = await fetch(`${loadUrl}?date=${encodeURIComponent(selectedDate)}`, {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error || 'Impossible de charger.');
+
+            const isOverloaded = data.isOverloaded;
+            const icon    = isOverloaded ? 'fa-exclamation-triangle' : 'fa-check-circle';
+            const color   = isOverloaded ? '#dc3545' : '#198754';
+            const bg      = isOverloaded ? '#fff5f5' : '#f0fff6';
+            const border  = isOverloaded ? '#f5c6cb' : '#c3e6cb';
+
+            loadBox.innerHTML = '<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:0 12px 0 12px;background:' + bg + ';border:1px solid ' + border + ';border-left:3px solid ' + color + ';">'
+                + '<i class="fas ' + icon + '" style="color:' + color + ';font-size:.85rem;"></i>'
+                + '<span style="font-size:.82rem;font-weight:600;color:' + color + ';">' + data.message + '</span>'
+                + '</div>';
+
+        } catch (error) {
+            loadBox.innerHTML = '<span style="font-size:.82rem;color:#dc3545;"><i class="fas fa-times-circle me-1"></i>' + error.message + '</span>';
+        }
+    };
+
+    dateField.addEventListener('change', updateLoadMessage);
+    dateField.addEventListener('input', updateLoadMessage);
+    updateLoadMessage();
+}
+
 function initAiDescriptionGenerator() {
     const generateButton = document.getElementById('generate-description-btn');
     const errorBox = document.getElementById('ai-description-error');
@@ -112,14 +175,6 @@ function initAiDescriptionGenerator() {
     const maintenanceField = document.querySelector('[name*="idMaintenance"], [name*="id_maintenance"]');
 
     const generateUrl = '{{ path('app_tache_generate_description') }}';
-
-    console.log({
-        generateButton,
-        descriptionField,
-        taskNameField,
-        maintenanceField,
-        errorBox
-    });
 
     if (!generateButton || !descriptionField || !taskNameField || !maintenanceField || !errorBox) {
         console.error("Erreur : champs IA introuvables.");
@@ -181,6 +236,8 @@ function initAiDescriptionGenerator() {
     });
 }
 
+document.addEventListener('DOMContentLoaded', initTaskDayLoad);
+document.addEventListener('turbo:load', initTaskDayLoad);
 document.addEventListener('DOMContentLoaded', initAiDescriptionGenerator);
 document.addEventListener('turbo:load', initAiDescriptionGenerator);
 </script>

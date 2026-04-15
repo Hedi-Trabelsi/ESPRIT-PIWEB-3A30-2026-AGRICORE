@@ -242,7 +242,7 @@ public function index(Request $request, MaintenanceRepository $repo): Response
             $dayLoad = count(array_filter($dayTasks, static fn (array $task): bool => ($task['etat'] ?? 0) !== 1));
             $isCurrentMonth = $day->format('Y-m') === $monthStart->format('Y-m');
             $isPast = $dayKey < $todayKey;
-            $isOverloaded = $isCurrentMonth && $dayLoad >= $threshold;
+            $isOverloaded = $isCurrentMonth && $dayLoad > $threshold;
 
             $dayPayload = [
                 'date' => $day,
@@ -640,6 +640,7 @@ private function buildCalendarTaskData(Tache $task, string $todayKey): array
         'maintenanceId' => $maintenance?->getId_maintenance(),
         'taskName' => $task->getNomTache(),
         'maintenanceName' => $maintenance?->getNomMaintenance() ?? 'Maintenance',
+        'maintenanceLieu' => $maintenance?->getLieu() ?? 'Lieu inconnu',
         'maintenanceStatus' => $maintenanceStatus,
         'description' => $task->getDescription(),
         'technicianName' => $task->getIdTechnicien()

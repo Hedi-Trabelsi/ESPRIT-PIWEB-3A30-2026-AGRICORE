@@ -163,6 +163,30 @@
     }
     .today-item:last-child { border-bottom: none; }
 
+    .today-item-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .today-item-name {
+        font-size: .85rem;
+        font-weight: 700;
+        color: #0F4229;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .today-item-place {
+        font-size: .72rem;
+        font-weight: 700;
+        color: #6b7280;
+        text-align: right;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
     .overload-row {
         display: flex;
         justify-content: space-between;
@@ -297,7 +321,7 @@
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
                         <div class="panel-label">Retards</div>
-                        <div class="panel-title">Tâches anciennes</div>
+                        <div class="panel-title">Tâches en retard</div>
                     </div>
                     <i class="fas fa-hourglass-half text-muted"></i>
                 </div>
@@ -331,7 +355,10 @@
                     {% for task in todayTasks %}
                     <a href="{{ path('app_maintenance_taches', {'id_maintenance': task.maintenanceId}) }}" class="overdue-link">
                         <div class="today-item">
-                            <div style="font-size:.85rem;font-weight:700;color:#0F4229;">{{ task.taskName }}</div>
+                            <div class="today-item-row">
+                                <div class="today-item-name">{{ task.taskName }}</div>
+                                <div class="today-item-place">{{ task.maintenanceLieu }}</div>
+                            </div>
                             <div class="text-muted" style="font-size:.75rem;margin-top:2px;">{{ task.maintenanceName }}</div>
                             <div class="text-muted" style="font-size:.7rem;">{{ task.stateLabel }}</div>
                         </div>

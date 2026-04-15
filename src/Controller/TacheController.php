@@ -9,7 +9,6 @@ use App\Form\TacheType;
 use App\Repository\MaintenanceRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,11 +19,12 @@ use App\Service\TaskDescriptionAiService;
 use App\Service\TwilioSmsApiService;
 class TacheController extends AbstractController
 {
+    private const DAILY_TASK_OVERLOAD_THRESHOLD = 4;
+
     #[Route('/tache/nouvelle/{id_maintenance}', name: 'app_tache_new', defaults: ['id_maintenance' => null])]
 public function new(
     Request $request,
     EntityManagerInterface $em,
-    TacheRepository $tacheRepository,
     MaintenanceRepository $maintenanceRepository,
     MaintenancePlanningMailer $maintenancePlanningMailer,
     TwilioSmsApiService $twilioSmsApiService,
@@ -61,16 +61,6 @@ public function new(
     $form->handleRequest($request);
 
     if ($form->isSubmitted() && $form->isValid()) {
-        $datePrevue = $tache->getDatePrevue();
-        if ($datePrevue instanceof \DateTimeInterface) {
-            $plannedCount = $tacheRepository->countActiveTasksForTechnicianOnDate($technicien->getId(), $datePrevue);
-            if ($plannedCount >= 4) {
-                $form->get('date_prevue')->addError(new FormError('Ce jour est déjà complet (maximum 4 tâches planifiées).'));
-            }
-        }
-    }
-
-    if ($form->isSubmitted() && $form->isValid()) {
         $maintenance = $tache->getIdMaintenance();
         if ($maintenance && $maintenance->getStatut() !== 'Planifiée' && $maintenance->getStatut() !== 'Résolue') {
             $maintenance->setStatut('Planifiée');
@@ -103,6 +93,54 @@ public function new(
         'maintenanceId' => $id_maintenance,
     ]);
 }
+
+    #[Route('/tache/jour-charge', name: 'app_tache_day_load', methods: ['GET'])]
+    public function dayLoad(Request $request, EntityManagerInterface $em, TacheRepository $tacheRepository): JsonResponse
+    {
+        $sessionUser = $request->getSession()->get('user');
+        $userId = null;
+        $userRole = null;
+
+        if ($sessionUser instanceof User) {
+            $userId = $sessionUser->getId();
+            $userRole = $sessionUser->getRole();
+        } elseif (is_array($sessionUser)) {
+            $userId = isset($sessionUser['id']) ? (int) $sessionUser['id'] : null;
+            $userRole = isset($sessionUser['role']) ? (int) $sessionUser['role'] : null;
+        }
+
+        if (!$userId || (int) $userRole !== 2) {
+            return new JsonResponse(['error' => 'Session invalide'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $dateValue = trim((string) $request->query->get('date', ''));
+        if ($dateValue === '') {
+            return new JsonResponse(['error' => 'Date manquante'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('Y-m-d', $dateValue);
+        $dateErrors = \DateTimeImmutable::getLastErrors();
+        if (!$date || ($dateErrors !== false && (($dateErrors['warning_count'] ?? 0) > 0 || ($dateErrors['error_count'] ?? 0) > 0))) {
+            return new JsonResponse(['error' => 'Date invalide'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $technician = $em->getRepository(User::class)->find($userId);
+        if (!$technician) {
+            return new JsonResponse(['error' => 'Technicien introuvable'], Response::HTTP_NOT_FOUND);
+        }
+
+        $count = $tacheRepository->countTasksForTechnicianOnDate($technician->getId(), $date);
+
+        return new JsonResponse([
+            'date' => $date->format('Y-m-d'),
+            'count' => $count,
+            'threshold' => self::DAILY_TASK_OVERLOAD_THRESHOLD,
+            'isOverloaded' => $count > self::DAILY_TASK_OVERLOAD_THRESHOLD,
+            'message' => $count > self::DAILY_TASK_OVERLOAD_THRESHOLD
+            ? sprintf('Ce jour est déjà surchargé: %d tâche%s planifiée%s.', $count, $count > 1 ? 's' : '', $count > 1 ? 's' : '')
+            : sprintf('Ce jour contient actuellement %d tâche%s planifiée%s.', $count, $count > 1 ? 's' : '', $count > 1 ? 's' : ''),
+        ]);
+    }
 
  #[Route('/tache/generer-description', name: 'app_tache_generate_description', methods: ['POST'])]
 public function generateDescription(
@@ -154,7 +192,7 @@ public function generateDescription(
     }
 }
     #[Route('/tache/modifier/{id_tache}', name: 'app_tache_edit')]
-    public function edit(Tache $tache, Request $request, EntityManagerInterface $em, TacheRepository $tacheRepository): Response
+    public function edit(Tache $tache, Request $request, EntityManagerInterface $em): Response
     {
         $sessionUser = $request->getSession()->get('user');
         if (!$sessionUser instanceof User || $sessionUser->getRole() !== 2) {
@@ -163,21 +201,6 @@ public function generateDescription(
 
         $form = $this->createForm(TacheType::class, $tache);
         $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $datePrevue = $tache->getDatePrevue();
-            if ($datePrevue instanceof \DateTimeInterface) {
-                $plannedCount = $tacheRepository->countActiveTasksForTechnicianOnDate(
-                    (int) $sessionUser->getId(),
-                    $datePrevue,
-                    $tache->getId_tache()
-                );
-
-                if ($plannedCount >= 4) {
-                    $form->get('date_prevue')->addError(new FormError('Ce jour est déjà complet (maximum 4 tâches planifiées).'));
-                }
-            }
-        }
 
         if ($form->isSubmitted() && $form->isValid()) {
             $em->flush();
