@@ -102,6 +102,44 @@
                             <label for="{{ form.imageFile.vars.id }}" class="form-label" style="font-weight:600;color:#0F4229;">Changer la photo de profil</label>
                             {{ form_widget(form.imageFile, {'attr': {'class': 'form-control', 'accept': 'image/*'}}) }}
                             <div class="field-error">{{ form_errors(form.imageFile) }}</div>
+                            <p style="font-size:12px;color:#6b7280;margin:10px 0 6px;"><i class="fas fa-info-circle" style="color:#8b5cf6;"></i> Pas de photo ? Laissez l'IA creer un avatar unique et artistique pour vous.</p>
+                        </div>
+                        <div class="col-12">
+                            <a href="{{ path('app_profile_ai_avatar') }}" class="btn-ai-avatar" id="aiAvatarBtn">
+                                <i class="fas fa-magic"></i> <span id="aiAvatarBtnText">Generer un avatar IA</span>
+                            </a>
+                            <script>
+                                document.getElementById('aiAvatarBtn').addEventListener('click', function() {
+                                    var btn = this;
+                                    btn.style.pointerEvents = 'none';
+                                    btn.style.opacity = '0.7';
+                                    document.getElementById('aiAvatarBtnText').textContent = 'Generation en cours... (10-15s)';
+                                });
+                            </script>
+                            <style>
+                                .btn-ai-avatar {
+                                    text-decoration: none;
+                                    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+                                    color: #fff;
+                                    padding: 10px 20px;
+                                    border: none;
+                                    border-radius: 10px;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    font-size: 13px;
+                                    display: inline-flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                    transition: all .2s;
+                                    box-shadow: 0 3px 10px rgba(139,92,246,.25);
+                                }
+                                .btn-ai-avatar:hover {
+                                    transform: translateY(-1px);
+                                    box-shadow: 0 6px 18px rgba(99,102,241,.4);
+                                }
+                                .btn-ai-avatar i { animation: ai-spin 3s linear infinite; }
+                                @keyframes ai-spin { 0%,85% { transform: rotate(0deg); } 90% { transform: rotate(20deg); } 95% { transform: rotate(-20deg); } 100% { transform: rotate(0deg); } }
+                            </style>
                         </div>
                         <div class="col-12 d-flex gap-3 mt-4">
                             <button class="btn btn-primary py-3 px-4" type="submit">

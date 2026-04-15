@@ -47,6 +47,105 @@
                 </div>
             {% endfor %}
 
+            {# ============= AGRICORE DESKTOP PROMO ============= #}
+            <div class="desktop-promo">
+                <div class="desktop-promo-laptop">
+                    <div class="dp-laptop-frame">
+                        <div class="dp-laptop-screen">
+                            <div class="dp-topbar">
+                                <span class="dp-dot dp-dot-red"></span>
+                                <span class="dp-dot dp-dot-amber"></span>
+                                <span class="dp-dot dp-dot-green"></span>
+                            </div>
+                            <div class="dp-bars">
+                                <div class="dp-bar" style="width:70%;background:#348E38;"></div>
+                                <div class="dp-bar" style="width:45%;background:#16a34a;"></div>
+                                <div class="dp-bar" style="width:85%;background:#0F4229;"></div>
+                                <div class="dp-bar" style="width:60%;background:#22c55e;"></div>
+                                <div class="dp-bar-group">
+                                    <div class="dp-chart-bar" style="height:60%;"></div>
+                                    <div class="dp-chart-bar" style="height:85%;"></div>
+                                    <div class="dp-chart-bar" style="height:45%;"></div>
+                                    <div class="dp-chart-bar" style="height:70%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dp-laptop-base"></div>
+                </div>
+                <div class="desktop-promo-content">
+                    <div class="dp-header">
+                        <span class="dp-title">AGRICORE DESKTOP</span>
+                        <span class="dp-badge">NOUVEAU</span>
+                    </div>
+                    <p class="dp-tagline">La puissance d'Agricore sur votre bureau &mdash; gestion complete hors ligne.</p>
+                    <ul class="dp-features">
+                        <li><i class="fas fa-check-circle"></i> Gestion des animaux</li>
+                        <li><i class="fas fa-check-circle"></i> Suivi des equipements</li>
+                        <li><i class="fas fa-check-circle"></i> Ventes &amp; depenses</li>
+                    </ul>
+                    <a href="https://github.com/Hedi-Trabelsi/ESPRIT-PIDEV-3A30-2026-AGRICORE/archive/refs/heads/main.zip"
+                       download="Agricore-Desktop.zip"
+                       class="dp-download-btn">
+                        <i class="fas fa-download"></i> Telecharger maintenant
+                    </a>
+                </div>
+            </div>
+
+            <div class="oauth-buttons">
+                <a href="{{ path('oauth_connect', {provider: 'google'}) }}" class="oauth-btn oauth-btn-google" title="S'inscrire avec Google">
+                    <i class="fab fa-google"></i> Google
+                </a>
+                <a href="{{ path('oauth_connect', {provider: 'facebook'}) }}" class="oauth-btn oauth-btn-facebook" title="S'inscrire avec Facebook">
+                    <i class="fab fa-facebook-f"></i> Facebook
+                </a>
+                <a href="{{ path('oauth_connect', {provider: 'github'}) }}" class="oauth-btn oauth-btn-github" title="S'inscrire avec GitHub">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+            </div>
+            <div class="oauth-divider"><span>OU REMPLISSEZ LE FORMULAIRE</span></div>
+
+            <style>
+                .oauth-divider { display: flex; align-items: center; margin: 16px 0; color: #888; font-size: 12px; }
+                .oauth-divider::before, .oauth-divider::after { content: ""; flex: 1; height: 1px; background: #e0e0e0; }
+                .oauth-divider span { padding: 0 12px; }
+                .oauth-buttons { display: flex; gap: 10px; margin-bottom: 6px; }
+                .oauth-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 6px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; border: 1px solid #e0e0e0; transition: all .2s; color: #333; background: #fff; }
+                .oauth-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,.08); }
+                .oauth-btn-google:hover { color: #DB4437; border-color: #DB4437; }
+                .oauth-btn-facebook:hover { color: #fff; background: #1877F2; border-color: #1877F2; }
+                .oauth-btn-github:hover { color: #fff; background: #24292e; border-color: #24292e; }
+
+                /* Desktop promo */
+                .desktop-promo { display: flex; gap: 14px; background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 1px solid #bbf7d0; border-radius: 14px; padding: 14px; margin: 0 0 18px; align-items: center; }
+                .desktop-promo-laptop { flex-shrink: 0; }
+                .dp-laptop-frame { background: #0F4229; border-radius: 8px 8px 3px 3px; padding: 6px 6px 8px; width: 130px; }
+                .dp-laptop-screen { background: #f8faf8; border-radius: 4px; height: 82px; padding: 6px; position: relative; overflow: hidden; }
+                .dp-topbar { display: flex; gap: 3px; margin-bottom: 6px; }
+                .dp-dot { width: 5px; height: 5px; border-radius: 50%; }
+                .dp-dot-red { background: #ef4444; } .dp-dot-amber { background: #f59e0b; } .dp-dot-green { background: #16a34a; }
+                .dp-bars { display: flex; flex-direction: column; gap: 3px; }
+                .dp-bar { height: 4px; border-radius: 2px; opacity: .85; }
+                .dp-bar-group { display: flex; gap: 3px; align-items: flex-end; height: 28px; margin-top: 4px; }
+                .dp-chart-bar { flex: 1; background: linear-gradient(180deg, #348E38, #16a34a); border-radius: 2px 2px 0 0; }
+                .dp-laptop-base { height: 5px; width: 150px; background: #0F4229; border-radius: 0 0 6px 6px; margin-left: -10px; }
+                .desktop-promo-content { flex: 1; min-width: 0; }
+                .dp-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+                .dp-title { font-weight: 800; color: #0F4229; font-size: 13px; letter-spacing: .5px; }
+                .dp-badge { background: linear-gradient(135deg, #f59e0b, #f97316); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 10px; letter-spacing: .5px; animation: dp-pulse 2s infinite; }
+                @keyframes dp-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,.5); } 50% { box-shadow: 0 0 0 6px rgba(245,158,11,0); } }
+                .dp-tagline { font-size: 11px; color: #6b7280; margin: 2px 0 8px; line-height: 1.4; }
+                .dp-features { list-style: none; padding: 0; margin: 0 0 10px; display: flex; flex-direction: column; gap: 3px; }
+                .dp-features li { font-size: 11px; color: #374151; display: flex; align-items: center; gap: 6px; }
+                .dp-features li i { color: #16a34a; font-size: 11px; }
+                .dp-download-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 9px; border-radius: 8px; background: linear-gradient(135deg, #0F4229, #348E38); color: #fff; text-decoration: none; font-size: 12px; font-weight: 700; transition: all .2s; box-shadow: 0 3px 10px rgba(15,66,41,.25); }
+                .dp-download-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(15,66,41,.35); color: #fff; }
+                @media (max-width: 500px) {
+                    .desktop-promo { flex-direction: column; }
+                    .desktop-promo-laptop { align-self: center; }
+                }
+            </style>
+
             {# novalidate to show server-side errors as per the PDF workshop #}
             {{ form_start(form, {'attr': {'novalidate': 'novalidate', 'enctype': 'multipart/form-data'}}) }}
 
@@ -96,13 +195,15 @@
                     </div>
                 </div>
 
-                {# --- Email --- #}
+                {# --- Email with validation --- #}
                 <div class="field">
                     <label for="{{ form.email.vars.id }}">Adresse email</label>
-                    <div class="field-input-wrap">
+                    <div class="field-input-wrap email-validate-wrap">
                         {{ form_widget(form.email, {'attr': {'class': 'form-control'}}) }}
                         <i class="fas fa-envelope fi-icon"></i>
+                        <span class="email-status" id="emailStatus"></span>
                     </div>
+                    <div class="email-status-msg" id="emailMsg"></div>
                     <div class="field-error">{{ form_errors(form.email) }}</div>
                 </div>
 
@@ -280,6 +381,52 @@ function setRule(id, pass) {
         el.classList.remove('pw-rule-pass');
         el.querySelector('i').className = 'fas fa-circle';
     }
+}
+
+// ====== Email Validation (Abstract API) ======
+var emailTimer = null;
+var emailField = document.getElementById('{{ form.email.vars.id }}');
+if (emailField) {
+    emailField.addEventListener('blur', function() {
+        var email = this.value.trim();
+        var status = document.getElementById('emailStatus');
+        var msg = document.getElementById('emailMsg');
+        if (!email || email.indexOf('@') === -1) {
+            status.innerHTML = '';
+            msg.innerHTML = '';
+            return;
+        }
+        status.innerHTML = '<i class="fas fa-spinner fa-spin" style="color:#9ca3af;"></i>';
+        msg.innerHTML = '<span style="color:#9ca3af;">Verification en cours...</span>';
+
+        var formData = new FormData();
+        formData.append('email', email);
+
+        fetch('{{ path("api_validate_email") }}', { method: 'POST', body: formData })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === 'valid') {
+                    status.innerHTML = '<i class="fas fa-check-circle" style="color:#16a34a;"></i>';
+                    msg.innerHTML = '<span class="ev-valid"><i class="fas fa-check-circle"></i> ' + data.message + '</span>';
+                } else if (data.status === 'disposable') {
+                    status.innerHTML = '<i class="fas fa-ban" style="color:#dc2626;"></i>';
+                    msg.innerHTML = '<span class="ev-invalid"><i class="fas fa-ban"></i> ' + data.message + '</span>';
+                } else if (data.status === 'invalid') {
+                    status.innerHTML = '<i class="fas fa-times-circle" style="color:#dc2626;"></i>';
+                    msg.innerHTML = '<span class="ev-invalid"><i class="fas fa-times-circle"></i> ' + data.message + '</span>';
+                } else if (data.status === 'skip') {
+                    status.innerHTML = '';
+                    msg.innerHTML = '';
+                } else {
+                    status.innerHTML = '<i class="fas fa-question-circle" style="color:#f59e0b;"></i>';
+                    msg.innerHTML = '<span class="ev-warning"><i class="fas fa-question-circle"></i> ' + data.message + '</span>';
+                }
+            })
+            .catch(function() {
+                status.innerHTML = '';
+                msg.innerHTML = '';
+            });
+    });
 }
 </script>
 </body>

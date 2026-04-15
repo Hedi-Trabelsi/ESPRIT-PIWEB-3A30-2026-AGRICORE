@@ -5,6 +5,8 @@
 {% block body %}
 
 <link href="{{ asset('css/utilisateur/utilisateur.css') }}" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 {# ===== Hero Section ===== #}
 <div class="profile-hero">
@@ -42,6 +44,24 @@
     {% endfor %}
 
     {% if app.session.get('user') %}
+
+    {# ===== FRIEND SEARCH (top of profile) ===== #}
+    <div class="friend-search-top">
+        <div class="fs-top-title">
+            <i class="fas fa-user-friends"></i>
+            <div>
+                <h5>Trouver un contact</h5>
+                <p>Recherchez un utilisateur par nom, prenom ou email pour voir sa carte de contact et scanner son QR code.</p>
+            </div>
+        </div>
+        <div class="fs-input-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" id="friendSearchInput" placeholder="Ex: ahmed, trabelsi, email@..." autocomplete="off">
+        </div>
+        <div id="friendSearchResults" class="fs-results"></div>
+        <div id="friendContactCard" class="fs-contact" style="display:none;"></div>
+    </div>
+
     <div class="row g-4">
 
         {# --- Main Info --- #}
@@ -140,6 +160,47 @@
                 </div>
             </div>
 
+            {# Weather Widget (OpenWeatherMap API) #}
+            <div class="sidebar-mini-card">
+                <h5><i class="fas fa-cloud-sun me-2"></i> Meteo locale</h5>
+                {% if weatherData %}
+                <div class="weather-content">
+                    <div class="weather-main">
+                        <img src="https://openweathermap.org/img/wn/{{ weatherData.icon }}@2x.png" alt="{{ weatherData.desc }}" class="weather-icon">
+                        <div>
+                            <div class="weather-temp">{{ weatherData.temp }}°C</div>
+                            <div class="weather-desc">{{ weatherData.desc }}</div>
+                        </div>
+                    </div>
+                    <div class="weather-details">
+                        <div class="weather-detail"><i class="fas fa-tint"></i> {{ weatherData.humidity }}%</div>
+                        <div class="weather-detail"><i class="fas fa-wind"></i> {{ weatherData.wind }} km/h</div>
+                        <div class="weather-detail"><i class="fas fa-eye"></i> {{ weatherData.visibility }} km</div>
+                    </div>
+                    <div class="weather-city"><i class="fas fa-map-marker-alt"></i> {{ weatherData.city }}</div>
+                </div>
+                {% else %}
+                <div class="weather-error"><i class="fas fa-exclamation-triangle"></i> Meteo indisponible</div>
+                {% endif %}
+            </div>
+
+            {# Map Widget (LocationIQ + Leaflet) #}
+            {% if geoData %}
+            <div class="sidebar-mini-card" style="padding-bottom:16px;">
+                <h5><i class="fas fa-map-marked-alt me-2"></i> Ma localisation</h5>
+                <div id="profileMap" class="profile-map"></div>
+                <p style="font-size:11px;color:#6b7280;margin-top:10px;text-align:center;line-height:1.4;"><i class="fas fa-map-pin" style="color:#348E38;"></i> {{ geoData.display_name }}</p>
+            </div>
+            {% else %}
+            <div class="sidebar-mini-card">
+                <h5><i class="fas fa-map-marked-alt me-2"></i> Ma localisation</h5>
+                <div class="weather-error" style="font-size:12px;">
+                    <i class="fas fa-map"></i> Localisation indisponible
+                    {% if apiError is defined and apiError %}<br><span style="font-size:11px;color:#9ca3af;">{{ apiError }}</span>{% endif %}
+                </div>
+            </div>
+            {% endif %}
+
             <div class="sidebar-mini-card">
                 <h5><i class="fas fa-chart-pie me-2"></i> Activite</h5>
                 <div class="stats-grid">
@@ -162,6 +223,27 @@
                 </div>
             </div>
 
+            {# QR Code vCard #}
+            <div class="sidebar-mini-card text-center">
+                <h5><i class="fas fa-qrcode me-2"></i> Ma carte de contact</h5>
+                <p style="font-size:12px;color:#6b7280;margin-bottom:14px;">Scannez ce QR code pour ajouter mes coordonnees a vos contacts</p>
+                <div class="profile-qr-wrap">
+                    <img src="{{ path('app_profile_qrcode') }}" alt="QR Code vCard" class="profile-qr-img">
+                </div>
+                <a href="{{ path('app_profile_qrcode') }}" download="contact_{{ app.session.get('user').prenom }}_{{ app.session.get('user').nom }}.svg" class="pbtn pbtn-green" style="display:inline-flex;flex:none;padding:8px 20px;font-size:13px;margin-top:14px;">
+                    <i class="fas fa-download"></i> Telecharger
+                </a>
+            </div>
+
+            {# PDF ID Card #}
+            <div class="sidebar-mini-card text-center">
+                <h5><i class="fas fa-id-card me-2"></i> Ma carte d'identite</h5>
+                <p style="font-size:12px;color:#6b7280;margin-bottom:14px;">Telechargez votre carte de membre Agricore au format PDF, prete a imprimer.</p>
+                <a href="{{ path('app_profile_id_card') }}" class="pbtn pbtn-green" style="display:inline-flex;flex:none;padding:8px 20px;font-size:13px;">
+                    <i class="fas fa-file-pdf"></i> Telecharger PDF
+                </a>
+            </div>
+
         </div>
 
     </div>
@@ -181,5 +263,454 @@
         </div>
     {% endif %}
 </div>
+
+{% if geoData is defined and geoData %}
+<script>
+(function() {
+    var lat = {{ geoData.lat }};
+    var lon = {{ geoData.lon }};
+
+    function initProfileMap() {
+        if (typeof L === 'undefined') {
+            // Leaflet not loaded yet, wait
+            setTimeout(initProfileMap, 100);
+            return;
+        }
+        var el = document.getElementById('profileMap');
+        if (!el) return;
+        if (el._leaflet_id) return; // already initialized (avoid double init on Turbo nav)
+
+        var map = L.map(el, { scrollWheelZoom: false }).setView([lat, lon], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+        var greenIcon = L.divIcon({
+            html: '<i class="fas fa-map-marker-alt" style="font-size:28px;color:#348E38;text-shadow:0 2px 4px rgba(0,0,0,.3);"></i>',
+            iconSize: [28, 36],
+            iconAnchor: [14, 36],
+            className: ''
+        });
+        L.marker([lat, lon], { icon: greenIcon }).addTo(map);
+        setTimeout(function() { map.invalidateSize(); }, 300);
+    }
+
+    // Run immediately if DOM is ready, otherwise wait
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initProfileMap);
+    } else {
+        initProfileMap();
+    }
+    // Also hook Turbo navigation events
+    document.addEventListener('turbo:load', initProfileMap);
+    document.addEventListener('turbo:frame-load', initProfileMap);
+})();
+</script>
+{% endif %}
+
+{# =============== AI Chatbot (Groq + Llama) =============== #}
+{% if app.session.get('user') %}
+<style>
+    .ai-chat-bubble {
+        position: fixed; right: 24px; bottom: 24px; z-index: 9999;
+        width: 60px; height: 60px; border-radius: 50%;
+        background: linear-gradient(135deg, #0F4229 0%, #348E38 100%);
+        color: #fff; border: none; cursor: pointer;
+        box-shadow: 0 8px 24px rgba(15, 66, 41, .35);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px; transition: transform .2s;
+    }
+    .ai-chat-bubble:hover { transform: scale(1.08); }
+    .ai-chat-bubble .pulse-dot {
+        position: absolute; top: 10px; right: 10px;
+        width: 12px; height: 12px; border-radius: 50%;
+        background: #ff4444; border: 2px solid #fff;
+        animation: ai-pulse 1.5s infinite;
+    }
+    @keyframes ai-pulse {
+        0%   { box-shadow: 0 0 0 0 rgba(255, 68, 68, .6); }
+        70%  { box-shadow: 0 0 0 10px rgba(255, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
+    }
+    .ai-chat-panel {
+        position: fixed; right: 24px; bottom: 24px; z-index: 9999;
+        width: 370px; height: 520px; max-height: calc(100vh - 40px);
+        background: #fff; border-radius: 14px; overflow: hidden;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
+        display: none; flex-direction: column;
+        font-family: 'Jost', 'Open Sans', sans-serif;
+    }
+    .ai-chat-panel.open { display: flex; }
+    .ai-chat-header {
+        background: linear-gradient(135deg, #0F4229 0%, #348E38 100%);
+        color: #fff; padding: 14px 16px;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .ai-chat-header .ai-avatar {
+        width: 38px; height: 38px; border-radius: 50%;
+        background: rgba(255,255,255,.18);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px;
+    }
+    .ai-chat-header .ai-title { flex: 1; line-height: 1.2; }
+    .ai-chat-header .ai-title strong { display: block; font-size: 14px; }
+    .ai-chat-header .ai-title small { font-size: 11px; opacity: .85; }
+    .ai-chat-header .ai-clear, .ai-chat-header .ai-close {
+        background: none; border: none; color: #fff; cursor: pointer;
+        font-size: 12px; padding: 4px 6px; opacity: .85;
+    }
+    .ai-chat-header .ai-clear:hover, .ai-chat-header .ai-close:hover { opacity: 1; }
+    .ai-chat-header .ai-close { font-size: 20px; line-height: 1; }
+    .ai-chat-body {
+        flex: 1; overflow-y: auto; padding: 16px;
+        background: #f7f9f7; display: flex; flex-direction: column; gap: 10px;
+    }
+    .ai-msg { max-width: 80%; padding: 9px 13px; border-radius: 14px; font-size: 13px; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; }
+    .ai-msg.user { align-self: flex-end; background: #0F4229; color: #fff; border-bottom-right-radius: 4px; }
+    .ai-msg.bot  { align-self: flex-start; background: #fff; color: #222; border: 1px solid #e5e5e5; border-bottom-left-radius: 4px; }
+    .ai-typing { align-self: flex-start; background: #fff; border: 1px solid #e5e5e5; padding: 10px 14px; border-radius: 14px; border-bottom-left-radius: 4px; display: inline-flex; gap: 4px; }
+    .ai-typing span { width: 6px; height: 6px; border-radius: 50%; background: #348E38; animation: ai-bounce 1.2s infinite; }
+    .ai-typing span:nth-child(2) { animation-delay: .15s; }
+    .ai-typing span:nth-child(3) { animation-delay: .3s; }
+    @keyframes ai-bounce {
+        0%, 60%, 100% { transform: translateY(0); opacity: .5; }
+        30%           { transform: translateY(-5px); opacity: 1; }
+    }
+    .ai-chat-footer {
+        border-top: 1px solid #e5e5e5; padding: 10px;
+        display: flex; gap: 8px; background: #fff;
+    }
+    .ai-chat-footer textarea {
+        flex: 1; border: 1px solid #dfe5e1; border-radius: 10px;
+        padding: 8px 10px; resize: none; font-size: 13px;
+        font-family: inherit; height: 38px; outline: none;
+    }
+    .ai-chat-footer textarea:focus { border-color: #348E38; }
+    .ai-chat-footer .ai-send {
+        width: 38px; height: 38px; border-radius: 50%; border: none;
+        background: #0F4229; color: #fff; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: background .2s;
+    }
+    .ai-chat-footer .ai-send:hover { background: #348E38; }
+    .ai-chat-footer .ai-send:disabled { background: #aaa; cursor: not-allowed; }
+    @media (max-width: 480px) {
+        .ai-chat-panel { width: calc(100vw - 20px); right: 10px; bottom: 10px; height: calc(100vh - 20px); }
+    }
+</style>
+
+<button id="aiChatBubble" class="ai-chat-bubble" title="Assistant Agricore">
+    <i class="fas fa-comments"></i>
+    <span class="pulse-dot"></span>
+</button>
+
+<div id="aiChatPanel" class="ai-chat-panel" role="dialog" aria-label="Assistant IA Agricore">
+    <div class="ai-chat-header">
+        <div class="ai-avatar"><i class="fas fa-robot"></i></div>
+        <div class="ai-title">
+            <strong>Assistant Agricore</strong>
+            <small>Propulse par IA</small>
+        </div>
+        <button class="ai-clear" id="aiChatClear" title="Effacer la conversation">Effacer</button>
+        <button class="ai-close" id="aiChatClose" title="Fermer">&times;</button>
+    </div>
+    <div class="ai-chat-body" id="aiChatBody"></div>
+    <form class="ai-chat-footer" id="aiChatForm" autocomplete="off">
+        <textarea id="aiChatInput" placeholder="Posez votre question..." rows="1" maxlength="500"></textarea>
+        <button type="submit" class="ai-send" id="aiChatSend" title="Envoyer">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </form>
+</div>
+
+<script>
+(function() {
+    var STORAGE_KEY = 'agricore_chat_history';
+    var USER_FIRSTNAME = {{ app.session.get('user').prenom|e('js')|json_encode|raw }};
+    var API_URL = {{ path('api_chat')|json_encode|raw }};
+
+    var bubble = document.getElementById('aiChatBubble');
+    var panel  = document.getElementById('aiChatPanel');
+    var body   = document.getElementById('aiChatBody');
+    var form   = document.getElementById('aiChatForm');
+    var input  = document.getElementById('aiChatInput');
+    var send   = document.getElementById('aiChatSend');
+    var closeBtn = document.getElementById('aiChatClose');
+    var clearBtn = document.getElementById('aiChatClear');
+
+    function loadHistory() {
+        try {
+            var raw = sessionStorage.getItem(STORAGE_KEY);
+            if (!raw) return [];
+            var h = JSON.parse(raw);
+            return Array.isArray(h) ? h : [];
+        } catch (e) { return []; }
+    }
+
+    function saveHistory(h) {
+        try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(h)); } catch (e) {}
+    }
+
+    function scrollBottom() { body.scrollTop = body.scrollHeight; }
+
+    function appendMsg(role, content) {
+        var d = document.createElement('div');
+        d.className = 'ai-msg ' + (role === 'user' ? 'user' : 'bot');
+        d.textContent = content;
+        body.appendChild(d);
+        scrollBottom();
+    }
+
+    function appendTyping() {
+        var d = document.createElement('div');
+        d.className = 'ai-typing';
+        d.id = 'aiTyping';
+        d.innerHTML = '<span></span><span></span><span></span>';
+        body.appendChild(d);
+        scrollBottom();
+    }
+
+    function removeTyping() {
+        var t = document.getElementById('aiTyping');
+        if (t) t.remove();
+    }
+
+    function render() {
+        body.innerHTML = '';
+        var h = loadHistory();
+        if (h.length === 0) {
+            appendMsg('assistant', 'Bonjour ' + USER_FIRSTNAME + ' ! Je suis l\'assistant Agricore. Comment puis-je vous aider aujourd\'hui ?');
+        } else {
+            h.forEach(function(m) { appendMsg(m.role, m.content); });
+        }
+    }
+
+    bubble.addEventListener('click', function() {
+        panel.classList.add('open');
+        bubble.style.display = 'none';
+        render();
+        setTimeout(function() { input.focus(); }, 100);
+    });
+
+    closeBtn.addEventListener('click', function() {
+        panel.classList.remove('open');
+        bubble.style.display = 'flex';
+    });
+
+    clearBtn.addEventListener('click', function() {
+        sessionStorage.removeItem(STORAGE_KEY);
+        render();
+    });
+
+    function sendMessage() {
+        var text = input.value.trim();
+        if (!text || send.disabled) return;
+
+        appendMsg('user', text);
+        var history = loadHistory();
+        history.push({ role: 'user', content: text });
+        saveHistory(history);
+
+        input.value = '';
+        input.style.height = '38px';
+        send.disabled = true;
+        appendTyping();
+
+        fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ message: text, history: history.slice(0, -1) }),
+            credentials: 'same-origin'
+        })
+        .then(function(r) { return r.json().catch(function(){ return {}; }); })
+        .then(function(data) {
+            removeTyping();
+            var reply = (data && data.reply) ? data.reply
+                       : 'Desole, une erreur est survenue. Reessayez dans un instant.';
+            appendMsg('assistant', reply);
+            var h = loadHistory();
+            h.push({ role: 'assistant', content: reply });
+            saveHistory(h);
+        })
+        .catch(function() {
+            removeTyping();
+            appendMsg('assistant', 'Desole, je ne peux pas vous repondre pour le moment.');
+        })
+        .finally(function() { send.disabled = false; input.focus(); });
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        sendMessage();
+    });
+
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    input.addEventListener('input', function() {
+        input.style.height = '38px';
+        input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+    });
+})();
+</script>
+{% endif %}
+
+{# =============== FRIEND SEARCH styles & behavior =============== #}
+{% if app.session.get('user') %}
+<style>
+    /* TOP WIDGET CONTAINER */
+    .friend-search-top {
+        background: #fff;
+        border-radius: 16px;
+        padding: 22px 26px;
+        margin-bottom: 24px;
+        box-shadow: 0 3px 14px rgba(0,0,0,.06);
+        border: 1px solid #eef2ef;
+    }
+    .fs-top-title { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+    .fs-top-title > i:first-child { width: 44px; height: 44px; background: linear-gradient(135deg, #0F4229, #348E38); color: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .fs-top-title h5 { margin: 0 0 4px; font-size: 16px; font-weight: 700; color: #0F4229; }
+    .fs-top-title p { margin: 0; font-size: 13px; color: #6b7280; line-height: 1.4; }
+
+    /* INPUT */
+    .fs-input-wrap { position: relative; }
+    .fs-input-wrap > i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px; pointer-events: none; }
+    .fs-input-wrap input { width: 100%; padding: 12px 16px 12px 40px; border: 1.5px solid #dfe5e1; border-radius: 12px; font-size: 14px; outline: none; transition: all .2s; background: #f9fafb; }
+    .fs-input-wrap input:focus { border-color: #348E38; background: #fff; box-shadow: 0 0 0 4px rgba(52,142,56,.12); }
+
+    /* RESULTS (grid on top widget) */
+    .fs-results { margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; max-height: 280px; overflow-y: auto; }
+    .fs-result-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 10px; cursor: pointer; transition: all .15s; border: 1px solid #f0f0f0; background: #fff; }
+    .fs-result-item:hover { background: #f0fdf4; border-color: #bbf7d0; transform: translateY(-1px); }
+    .fs-result-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; background: #e5e7eb; flex-shrink: 0; border: 1px solid #e5e7eb; }
+    .fs-result-body { flex: 1; min-width: 0; }
+    .fs-result-name { font-size: 13px; font-weight: 600; color: #1e293b; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fs-result-email { font-size: 11px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fs-role-pill { font-size: 9px; padding: 2px 7px; border-radius: 8px; font-weight: 700; letter-spacing: .5px; flex-shrink: 0; }
+    .fs-role-1 { background: #f0fdf4; color: #16a34a; }
+    .fs-role-2 { background: #eff6ff; color: #2563eb; }
+    .fs-role-0 { background: #fef3c7; color: #d97706; }
+    .fs-empty, .fs-loading { text-align: center; color: #94a3b8; font-size: 13px; padding: 16px; grid-column: 1 / -1; }
+
+    /* CONTACT CARD (horizontal on top widget) */
+    .fs-contact { margin-top: 18px; padding-top: 18px; border-top: 1px solid #e5e7eb; position: relative; display: grid; grid-template-columns: 180px 1fr 170px; gap: 20px; align-items: center; }
+    .fs-close-btn { position: absolute; top: 10px; right: 0; background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 18px; padding: 4px; z-index: 2; }
+    .fs-close-btn:hover { color: #ef4444; }
+    .fs-contact-left { text-align: center; }
+    .fs-contact-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid #348E38; display: block; margin: 0 auto 10px; }
+    .fs-contact-name { font-size: 16px; font-weight: 700; color: #0F4229; margin: 0 0 6px; }
+    .fs-contact-role { margin-bottom: 0; }
+    .fs-contact-middle { border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 0 20px; }
+    .fs-contact-info { font-size: 13px; color: #374151; margin: 0 0 10px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.4; }
+    .fs-contact-info i { color: #348E38; width: 16px; flex-shrink: 0; margin-top: 3px; font-size: 13px; }
+    .fs-contact-info span { word-break: break-word; }
+    .fs-contact-qr { text-align: center; background: #f9fafb; padding: 12px; border-radius: 12px; border: 1px dashed #bbf7d0; }
+    .fs-contact-qr img { width: 140px; height: 140px; display: block; margin: 0 auto 6px; }
+    .fs-contact-qr .qr-label { font-size: 10px; color: #6b7280; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
+
+    @media (max-width: 768px) {
+        .fs-contact { grid-template-columns: 1fr; }
+        .fs-contact-middle { border: none; padding: 0; }
+    }
+</style>
+<script>
+(function() {
+    var input   = document.getElementById('friendSearchInput');
+    var results = document.getElementById('friendSearchResults');
+    var contact = document.getElementById('friendContactCard');
+    if (!input) return;
+
+    var searchUrl = '{{ path("api_search_users") }}';
+    var contactUrlBase = '{{ path("api_user_contact", {id: 0}) }}';
+    var searchTimer = null;
+
+    function roleLabel(r) { return r === 0 ? 'Admin' : (r === 1 ? 'Agriculteur' : 'Technicien'); }
+    function roleClass(r) { return 'fs-role-' + r; }
+
+    function escapeHtml(s) {
+        var d = document.createElement('div');
+        d.textContent = s == null ? '' : String(s);
+        return d.innerHTML;
+    }
+
+    function renderResults(list) {
+        contact.style.display = 'none';
+        if (!list || list.length === 0) {
+            results.innerHTML = '<div class="fs-empty">Aucun utilisateur trouve.</div>';
+            return;
+        }
+        results.innerHTML = list.map(function(u) {
+            var avatar = u.image
+                ? '<img src="data:image/jpeg;base64,' + u.image + '" class="fs-result-avatar" alt="">'
+                : '<div class="fs-result-avatar" style="display:flex;align-items:center;justify-content:center;color:#94a3b8;"><i class="fas fa-user"></i></div>';
+            return '<div class="fs-result-item" data-id="' + u.id + '">'
+                 + avatar
+                 + '<div class="fs-result-body">'
+                 +   '<div class="fs-result-name">' + escapeHtml(u.prenom) + ' ' + escapeHtml(u.nom) + '</div>'
+                 +   '<div class="fs-result-email">' + escapeHtml(u.email) + '</div>'
+                 + '</div>'
+                 + '<span class="fs-role-pill ' + roleClass(u.role) + '">' + roleLabel(u.role) + '</span>'
+                 + '</div>';
+        }).join('');
+    }
+
+    function showContact(data) {
+        results.innerHTML = '';
+        var avatar = data.image
+            ? '<img src="data:image/jpeg;base64,' + data.image + '" class="fs-contact-avatar" alt="">'
+            : '<div class="fs-contact-avatar" style="display:flex;align-items:center;justify-content:center;background:#f0fdf4;color:#16a34a;font-size:36px;"><i class="fas fa-user"></i></div>';
+
+        contact.innerHTML = ''
+            + '<button type="button" class="fs-close-btn" onclick="document.getElementById(\'friendContactCard\').style.display=\'none\';document.getElementById(\'friendSearchInput\').focus();"><i class="fas fa-times"></i></button>'
+            + '<div class="fs-contact-left">'
+            +   avatar
+            +   '<div class="fs-contact-name">' + escapeHtml(data.prenom) + ' ' + escapeHtml(data.nom) + '</div>'
+            +   '<div class="fs-contact-role"><span class="fs-role-pill ' + roleClass(data.role) + '">' + escapeHtml(data.role_label) + '</span></div>'
+            + '</div>'
+            + '<div class="fs-contact-middle">'
+            +   '<div class="fs-contact-info"><i class="fas fa-envelope"></i><span>' + escapeHtml(data.email) + '</span></div>'
+            +   '<div class="fs-contact-info"><i class="fas fa-phone"></i><span>' + escapeHtml(data.telephone) + '</span></div>'
+            +   '<div class="fs-contact-info"><i class="fas fa-map-marker-alt"></i><span>' + escapeHtml(data.adresse) + '</span></div>'
+            + '</div>'
+            + '<div class="fs-contact-qr">'
+            +   '<img src="data:image/png;base64,' + data.qr_png_b64 + '" alt="QR Contact">'
+            +   '<div class="qr-label">Scanner pour contact</div>'
+            + '</div>';
+        contact.style.display = 'grid';
+    }
+
+    input.addEventListener('input', function() {
+        var q = input.value.trim();
+        clearTimeout(searchTimer);
+        if (q.length < 2) {
+            results.innerHTML = '';
+            contact.style.display = 'none';
+            return;
+        }
+        results.innerHTML = '<div class="fs-loading">Recherche en cours...</div>';
+        searchTimer = setTimeout(function() {
+            fetch(searchUrl + '?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) { renderResults(data.results || []); })
+                .catch(function() { results.innerHTML = '<div class="fs-empty">Erreur de recherche.</div>'; });
+        }, 300);
+    });
+
+    results.addEventListener('click', function(e) {
+        var item = e.target.closest('.fs-result-item');
+        if (!item) return;
+        var id = item.getAttribute('data-id');
+        results.innerHTML = '<div class="fs-loading">Chargement...</div>';
+        fetch(contactUrlBase.replace('/0', '/' + id), { credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) { if (data && !data.error) showContact(data); })
+            .catch(function() { results.innerHTML = '<div class="fs-empty">Erreur de chargement.</div>'; });
+    });
+})();
+</script>
+{% endif %}
 
 {% endblock %}

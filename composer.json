@@ -13,12 +13,20 @@
         "doctrine/doctrine-migrations-bundle": "^3.7",
         "doctrine/orm": "^3.6",
         "dompdf/dompdf": "^3.1",
+        "endroid/qr-code": "^6.0",
+        "endroid/qr-code-bundle": "^6.0",
         "jbafford/password-strength-bundle": "dev-master",
+        "knpuniversity/oauth2-client-bundle": "^2.20",
+        "league/oauth2-facebook": "^2.2",
+        "league/oauth2-github": "^3.1",
+        "league/oauth2-google": "^5.0",
         "meteo-concept/hcaptcha-bundle": "^4.5",
         "nyholm/psr7": "^1.8",
         "php-http/guzzle7-adapter": "^1.1",
         "phpdocumentor/reflection-docblock": "^5.2",
+        "phpoffice/phpspreadsheet": "^5.6",
         "phpstan/phpdoc-parser": "^2.3",
+        "spomky-labs/otphp": "^11.4",
         "symfony/asset": "6.4.*",
         "symfony/asset-mapper": "6.4.*",
         "symfony/console": "6.4.*",
@@ -45,6 +53,7 @@
         "symfony/string": "6.4.*",
         "symfony/translation": "6.4.*",
         "symfony/twig-bundle": "6.4.*",
+        "symfony/ux-chartjs": "*",
         "symfony/ux-turbo": "^2.34",
         "symfony/validator": "6.4.*",
         "symfony/web-link": "6.4.*",
@@ -57,7 +66,8 @@
         "allow-plugins": {
             "php-http/discovery": true,
             "symfony/flex": true,
-            "symfony/runtime": true
+            "symfony/runtime": true,
+            "endroid/installer": true
         },
         "sort-packages": true
     },
