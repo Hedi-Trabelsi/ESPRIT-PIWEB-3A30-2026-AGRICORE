@@ -44,6 +44,24 @@
     {% endfor %}
 
     {% if app.session.get('user') %}
+
+    {# ===== FRIEND SEARCH (top of profile) ===== #}
+    <div class="friend-search-top">
+        <div class="fs-top-title">
+            <i class="fas fa-user-friends"></i>
+            <div>
+                <h5>Trouver un contact</h5>
+                <p>Recherchez un utilisateur par nom, prenom ou email pour voir sa carte de contact et scanner son QR code.</p>
+            </div>
+        </div>
+        <div class="fs-input-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" id="friendSearchInput" placeholder="Ex: ahmed, trabelsi, email@..." autocomplete="off">
+        </div>
+        <div id="friendSearchResults" class="fs-results"></div>
+        <div id="friendContactCard" class="fs-contact" style="display:none;"></div>
+    </div>
+
     <div class="row g-4">
 
         {# --- Main Info --- #}
@@ -176,7 +194,10 @@
             {% else %}
             <div class="sidebar-mini-card">
                 <h5><i class="fas fa-map-marked-alt me-2"></i> Ma localisation</h5>
-                <div class="weather-error"><i class="fas fa-map"></i> Localisation indisponible</div>
+                <div class="weather-error" style="font-size:12px;">
+                    <i class="fas fa-map"></i> Localisation indisponible
+                    {% if apiError is defined and apiError %}<br><span style="font-size:11px;color:#9ca3af;">{{ apiError }}</span>{% endif %}
+                </div>
             </div>
             {% endif %}
 
@@ -245,22 +266,44 @@
 
 {% if geoData is defined and geoData %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
     var lat = {{ geoData.lat }};
     var lon = {{ geoData.lon }};
-    var map = L.map('profileMap', { scrollWheelZoom: false }).setView([lat, lon], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
-    var greenIcon = L.divIcon({
-        html: '<i class="fas fa-map-marker-alt" style="font-size:28px;color:#348E38;text-shadow:0 2px 4px rgba(0,0,0,.3);"></i>',
-        iconSize: [28, 36],
-        iconAnchor: [14, 36],
-        className: ''
-    });
-    L.marker([lat, lon], { icon: greenIcon }).addTo(map);
-    setTimeout(function() { map.invalidateSize(); }, 500);
-});
+
+    function initProfileMap() {
+        if (typeof L === 'undefined') {
+            // Leaflet not loaded yet, wait
+            setTimeout(initProfileMap, 100);
+            return;
+        }
+        var el = document.getElementById('profileMap');
+        if (!el) return;
+        if (el._leaflet_id) return; // already initialized (avoid double init on Turbo nav)
+
+        var map = L.map(el, { scrollWheelZoom: false }).setView([lat, lon], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+        var greenIcon = L.divIcon({
+            html: '<i class="fas fa-map-marker-alt" style="font-size:28px;color:#348E38;text-shadow:0 2px 4px rgba(0,0,0,.3);"></i>',
+            iconSize: [28, 36],
+            iconAnchor: [14, 36],
+            className: ''
+        });
+        L.marker([lat, lon], { icon: greenIcon }).addTo(map);
+        setTimeout(function() { map.invalidateSize(); }, 300);
+    }
+
+    // Run immediately if DOM is ready, otherwise wait
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initProfileMap);
+    } else {
+        initProfileMap();
+    }
+    // Also hook Turbo navigation events
+    document.addEventListener('turbo:load', initProfileMap);
+    document.addEventListener('turbo:frame-load', initProfileMap);
+})();
 </script>
 {% endif %}
 
@@ -510,6 +553,161 @@ document.addEventListener('DOMContentLoaded', function() {
     input.addEventListener('input', function() {
         input.style.height = '38px';
         input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+    });
+})();
+</script>
+{% endif %}
+
+{# =============== FRIEND SEARCH styles & behavior =============== #}
+{% if app.session.get('user') %}
+<style>
+    /* TOP WIDGET CONTAINER */
+    .friend-search-top {
+        background: #fff;
+        border-radius: 16px;
+        padding: 22px 26px;
+        margin-bottom: 24px;
+        box-shadow: 0 3px 14px rgba(0,0,0,.06);
+        border: 1px solid #eef2ef;
+    }
+    .fs-top-title { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+    .fs-top-title > i:first-child { width: 44px; height: 44px; background: linear-gradient(135deg, #0F4229, #348E38); color: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .fs-top-title h5 { margin: 0 0 4px; font-size: 16px; font-weight: 700; color: #0F4229; }
+    .fs-top-title p { margin: 0; font-size: 13px; color: #6b7280; line-height: 1.4; }
+
+    /* INPUT */
+    .fs-input-wrap { position: relative; }
+    .fs-input-wrap > i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px; pointer-events: none; }
+    .fs-input-wrap input { width: 100%; padding: 12px 16px 12px 40px; border: 1.5px solid #dfe5e1; border-radius: 12px; font-size: 14px; outline: none; transition: all .2s; background: #f9fafb; }
+    .fs-input-wrap input:focus { border-color: #348E38; background: #fff; box-shadow: 0 0 0 4px rgba(52,142,56,.12); }
+
+    /* RESULTS (grid on top widget) */
+    .fs-results { margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; max-height: 280px; overflow-y: auto; }
+    .fs-result-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 10px; cursor: pointer; transition: all .15s; border: 1px solid #f0f0f0; background: #fff; }
+    .fs-result-item:hover { background: #f0fdf4; border-color: #bbf7d0; transform: translateY(-1px); }
+    .fs-result-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; background: #e5e7eb; flex-shrink: 0; border: 1px solid #e5e7eb; }
+    .fs-result-body { flex: 1; min-width: 0; }
+    .fs-result-name { font-size: 13px; font-weight: 600; color: #1e293b; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fs-result-email { font-size: 11px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fs-role-pill { font-size: 9px; padding: 2px 7px; border-radius: 8px; font-weight: 700; letter-spacing: .5px; flex-shrink: 0; }
+    .fs-role-1 { background: #f0fdf4; color: #16a34a; }
+    .fs-role-2 { background: #eff6ff; color: #2563eb; }
+    .fs-role-0 { background: #fef3c7; color: #d97706; }
+    .fs-empty, .fs-loading { text-align: center; color: #94a3b8; font-size: 13px; padding: 16px; grid-column: 1 / -1; }
+
+    /* CONTACT CARD (horizontal on top widget) */
+    .fs-contact { margin-top: 18px; padding-top: 18px; border-top: 1px solid #e5e7eb; position: relative; display: grid; grid-template-columns: 180px 1fr 170px; gap: 20px; align-items: center; }
+    .fs-close-btn { position: absolute; top: 10px; right: 0; background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 18px; padding: 4px; z-index: 2; }
+    .fs-close-btn:hover { color: #ef4444; }
+    .fs-contact-left { text-align: center; }
+    .fs-contact-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid #348E38; display: block; margin: 0 auto 10px; }
+    .fs-contact-name { font-size: 16px; font-weight: 700; color: #0F4229; margin: 0 0 6px; }
+    .fs-contact-role { margin-bottom: 0; }
+    .fs-contact-middle { border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 0 20px; }
+    .fs-contact-info { font-size: 13px; color: #374151; margin: 0 0 10px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.4; }
+    .fs-contact-info i { color: #348E38; width: 16px; flex-shrink: 0; margin-top: 3px; font-size: 13px; }
+    .fs-contact-info span { word-break: break-word; }
+    .fs-contact-qr { text-align: center; background: #f9fafb; padding: 12px; border-radius: 12px; border: 1px dashed #bbf7d0; }
+    .fs-contact-qr img { width: 140px; height: 140px; display: block; margin: 0 auto 6px; }
+    .fs-contact-qr .qr-label { font-size: 10px; color: #6b7280; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
+
+    @media (max-width: 768px) {
+        .fs-contact { grid-template-columns: 1fr; }
+        .fs-contact-middle { border: none; padding: 0; }
+    }
+</style>
+<script>
+(function() {
+    var input   = document.getElementById('friendSearchInput');
+    var results = document.getElementById('friendSearchResults');
+    var contact = document.getElementById('friendContactCard');
+    if (!input) return;
+
+    var searchUrl = '{{ path("api_search_users") }}';
+    var contactUrlBase = '{{ path("api_user_contact", {id: 0}) }}';
+    var searchTimer = null;
+
+    function roleLabel(r) { return r === 0 ? 'Admin' : (r === 1 ? 'Agriculteur' : 'Technicien'); }
+    function roleClass(r) { return 'fs-role-' + r; }
+
+    function escapeHtml(s) {
+        var d = document.createElement('div');
+        d.textContent = s == null ? '' : String(s);
+        return d.innerHTML;
+    }
+
+    function renderResults(list) {
+        contact.style.display = 'none';
+        if (!list || list.length === 0) {
+            results.innerHTML = '<div class="fs-empty">Aucun utilisateur trouve.</div>';
+            return;
+        }
+        results.innerHTML = list.map(function(u) {
+            var avatar = u.image
+                ? '<img src="data:image/jpeg;base64,' + u.image + '" class="fs-result-avatar" alt="">'
+                : '<div class="fs-result-avatar" style="display:flex;align-items:center;justify-content:center;color:#94a3b8;"><i class="fas fa-user"></i></div>';
+            return '<div class="fs-result-item" data-id="' + u.id + '">'
+                 + avatar
+                 + '<div class="fs-result-body">'
+                 +   '<div class="fs-result-name">' + escapeHtml(u.prenom) + ' ' + escapeHtml(u.nom) + '</div>'
+                 +   '<div class="fs-result-email">' + escapeHtml(u.email) + '</div>'
+                 + '</div>'
+                 + '<span class="fs-role-pill ' + roleClass(u.role) + '">' + roleLabel(u.role) + '</span>'
+                 + '</div>';
+        }).join('');
+    }
+
+    function showContact(data) {
+        results.innerHTML = '';
+        var avatar = data.image
+            ? '<img src="data:image/jpeg;base64,' + data.image + '" class="fs-contact-avatar" alt="">'
+            : '<div class="fs-contact-avatar" style="display:flex;align-items:center;justify-content:center;background:#f0fdf4;color:#16a34a;font-size:36px;"><i class="fas fa-user"></i></div>';
+
+        contact.innerHTML = ''
+            + '<button type="button" class="fs-close-btn" onclick="document.getElementById(\'friendContactCard\').style.display=\'none\';document.getElementById(\'friendSearchInput\').focus();"><i class="fas fa-times"></i></button>'
+            + '<div class="fs-contact-left">'
+            +   avatar
+            +   '<div class="fs-contact-name">' + escapeHtml(data.prenom) + ' ' + escapeHtml(data.nom) + '</div>'
+            +   '<div class="fs-contact-role"><span class="fs-role-pill ' + roleClass(data.role) + '">' + escapeHtml(data.role_label) + '</span></div>'
+            + '</div>'
+            + '<div class="fs-contact-middle">'
+            +   '<div class="fs-contact-info"><i class="fas fa-envelope"></i><span>' + escapeHtml(data.email) + '</span></div>'
+            +   '<div class="fs-contact-info"><i class="fas fa-phone"></i><span>' + escapeHtml(data.telephone) + '</span></div>'
+            +   '<div class="fs-contact-info"><i class="fas fa-map-marker-alt"></i><span>' + escapeHtml(data.adresse) + '</span></div>'
+            + '</div>'
+            + '<div class="fs-contact-qr">'
+            +   '<img src="data:image/png;base64,' + data.qr_png_b64 + '" alt="QR Contact">'
+            +   '<div class="qr-label">Scanner pour contact</div>'
+            + '</div>';
+        contact.style.display = 'grid';
+    }
+
+    input.addEventListener('input', function() {
+        var q = input.value.trim();
+        clearTimeout(searchTimer);
+        if (q.length < 2) {
+            results.innerHTML = '';
+            contact.style.display = 'none';
+            return;
+        }
+        results.innerHTML = '<div class="fs-loading">Recherche en cours...</div>';
+        searchTimer = setTimeout(function() {
+            fetch(searchUrl + '?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) { renderResults(data.results || []); })
+                .catch(function() { results.innerHTML = '<div class="fs-empty">Erreur de recherche.</div>'; });
+        }, 300);
+    });
+
+    results.addEventListener('click', function(e) {
+        var item = e.target.closest('.fs-result-item');
+        if (!item) return;
+        var id = item.getAttribute('data-id');
+        results.innerHTML = '<div class="fs-loading">Chargement...</div>';
+        fetch(contactUrlBase.replace('/0', '/' + id), { credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) { if (data && !data.error) showContact(data); })
+            .catch(function() { results.innerHTML = '<div class="fs-empty">Erreur de chargement.</div>'; });
     });
 })();
 </script>

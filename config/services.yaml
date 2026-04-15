@@ -5,6 +5,9 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     app_secret: '%env(APP_SECRET)%'
+    groq_api_key: '%env(GROQ_API_KEY)%'
+    locationiq_api_key: '%env(LOCATIONIQ_API_KEY)%'
+    openweather_api_key: '%env(OPENWEATHER_API_KEY)%'
 
 services:
     # default configuration for services in *this* file

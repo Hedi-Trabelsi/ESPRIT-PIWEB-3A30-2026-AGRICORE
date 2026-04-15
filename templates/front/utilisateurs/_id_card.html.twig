@@ -9,41 +9,105 @@
         margin: 0;
         padding: 0;
         font-family: "DejaVu Sans", sans-serif;
-        background: #ffffff;
+        background: #f5f7f5;
     }
     .card {
         width: 100%;
         height: 100%;
         position: relative;
         background: #ffffff;
-        border: 2px solid #0F4229;
+        overflow: hidden;
     }
-    .header {
+
+    /* ---- TOP BAND (gradient header) ---- */
+    .top-band {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 60px;
         background: #0F4229;
+        background: linear-gradient(135deg, #0F4229 0%, #1a6b3e 45%, #348E38 100%);
+    }
+    .top-band::after {
+        content: "";
+        position: absolute;
+        top: 0; right: 0; bottom: 0;
+        width: 150px;
+        background: linear-gradient(135deg, transparent 0%, rgba(52,142,56,.4) 100%);
+    }
+    .brand {
+        position: absolute;
+        top: 12px;
+        left: 18px;
         color: #ffffff;
-        padding: 8px 14px;
-        height: 38px;
+        z-index: 2;
     }
-    .header .title {
-        font-size: 14px;
+    .brand .brand-name {
+        font-size: 20px;
         font-weight: bold;
-        letter-spacing: 1px;
+        letter-spacing: 3px;
         margin: 0;
+        line-height: 1;
     }
-    .header .sub {
-        font-size: 9px;
+    .brand .brand-sub {
+        font-size: 8px;
         color: #c8e6c9;
-        margin: 1px 0 0 0;
+        letter-spacing: 2px;
+        margin: 3px 0 0;
+        line-height: 1;
     }
+    .brand-right {
+        position: absolute;
+        top: 14px;
+        right: 18px;
+        color: #ffffff;
+        font-size: 9px;
+        letter-spacing: 1px;
+        text-align: right;
+        z-index: 2;
+    }
+    .brand-right .mc {
+        font-size: 11px;
+        font-weight: bold;
+        letter-spacing: 2px;
+    }
+    .brand-right .mc-sub {
+        font-size: 7px;
+        color: #c8e6c9;
+        letter-spacing: 1px;
+        margin-top: 2px;
+    }
+
+    /* ---- DECORATIVE STRIPE ---- */
+    .accent-stripe {
+        position: absolute;
+        top: 60px;
+        left: 0; right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #f59e0b 0%, #348E38 50%, #0F4229 100%);
+    }
+
+    /* ---- BODY ---- */
     .body {
-        padding: 14px;
+        position: absolute;
+        top: 72px;
+        left: 0; right: 0; bottom: 26px;
+        padding: 10px 18px;
+    }
+
+    /* Photo */
+    .photo-wrap {
+        position: absolute;
+        top: 10px;
+        left: 18px;
+        width: 90px;
+        height: 112px;
     }
     .photo {
-        width: 95px;
-        height: 110px;
+        width: 90px;
+        height: 112px;
         border: 2px solid #0F4229;
+        border-radius: 4px;
         background: #f4f4f4;
-        float: left;
         text-align: center;
         overflow: hidden;
     }
@@ -52,87 +116,217 @@
         height: 100%;
         object-fit: cover;
     }
-    .photo .placeholder {
+    .photo-placeholder {
         font-size: 60px;
         color: #bbb;
-        line-height: 110px;
+        line-height: 112px;
     }
+    .photo-chip {
+        position: absolute;
+        bottom: -5px;
+        left: 50%;
+        margin-left: -14px;
+        width: 28px;
+        height: 20px;
+        background: linear-gradient(135deg, #d4af37 0%, #f5d061 50%, #c9971c 100%);
+        border-radius: 3px;
+        border: 1px solid #a8831a;
+    }
+    .photo-chip::before {
+        content: "";
+        position: absolute;
+        top: 3px; left: 3px; right: 3px; bottom: 3px;
+        border: 1px solid rgba(0,0,0,.25);
+        border-radius: 1px;
+    }
+
+    /* Info block */
     .info {
-        margin-left: 110px;
-        padding-top: 4px;
+        margin-left: 108px;
+        padding-top: 2px;
     }
-    .info .label {
-        font-size: 8px;
-        color: #888;
+    .label {
+        font-size: 7px;
+        color: #94a3b8;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 1px;
-    }
-    .info .value {
-        font-size: 13px;
-        color: #222;
+        letter-spacing: 2px;
         font-weight: bold;
-        margin-bottom: 8px;
+        margin: 0 0 2px 0;
+    }
+    .value {
+        font-size: 12px;
+        color: #1e293b;
+        font-weight: bold;
+        margin: 0 0 8px 0;
+        letter-spacing: .5px;
+    }
+    .value-big {
+        font-size: 14px;
+        color: #0F4229;
+        font-weight: bold;
+        margin: 0 0 9px 0;
+        letter-spacing: .5px;
     }
     .role-badge {
         display: inline-block;
-        background: #348E38;
+        background: linear-gradient(135deg, #348E38 0%, #16a34a 100%);
         color: #fff;
-        padding: 3px 10px;
-        font-size: 10px;
+        padding: 3px 12px;
+        font-size: 9px;
         font-weight: bold;
-        border-radius: 10px;
+        border-radius: 12px;
+        letter-spacing: 1.5px;
+    }
+    .member-number {
+        font-family: "Courier New", monospace;
+        font-size: 11px;
+        color: #0F4229;
+        letter-spacing: 2px;
+        font-weight: bold;
+    }
+
+    /* QR block */
+    .qr-section {
+        position: absolute;
+        top: 4px;
+        right: 0;
+        text-align: center;
+        background: #ffffff;
+        padding: 4px 6px;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+    }
+    .qr-section img {
+        width: 72px;
+        height: 72px;
+        display: block;
+    }
+    .qr-label {
+        font-size: 6px;
+        color: #64748b;
+        margin-top: 3px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    /* Validity */
+    .validity-block {
+        position: absolute;
+        right: 0;
+        top: 100px;
+        text-align: right;
+    }
+    .validity-block .label {
+        color: #64748b;
+    }
+    .validity-block .value {
+        font-size: 10px;
+        color: #0F4229;
+        font-weight: bold;
+        margin: 0;
         letter-spacing: 1px;
     }
+
+    /* ---- FOOTER ---- */
     .footer {
         position: absolute;
         bottom: 0;
-        left: 0;
-        right: 0;
-        background: #f4f8f5;
-        padding: 5px 14px;
+        left: 0; right: 0;
+        height: 22px;
+        background: #0F4229;
+        color: #c8e6c9;
+        padding: 6px 18px;
         font-size: 8px;
-        color: #555;
-        border-top: 1px solid #e0e0e0;
+        letter-spacing: 1px;
     }
-    .footer .left { float: left; }
-    .footer .right { float: right; }
+    .footer .footer-left { float: left; }
+    .footer .footer-right { float: right; }
+    .footer .footer-center {
+        text-align: center;
+        color: #ffffff;
+        font-weight: bold;
+        letter-spacing: 2px;
+    }
+
+    /* Watermark diagonal text */
+    .watermark {
+        position: absolute;
+        top: 100px;
+        left: -10px;
+        font-size: 50px;
+        color: #f0fdf4;
+        font-weight: bold;
+        opacity: 0.5;
+        transform: rotate(-18deg);
+        z-index: 0;
+        letter-spacing: 8px;
+    }
 </style>
 </head>
 <body>
     <div class="card">
 
-        <div class="header">
-            <p class="title">AGRICORE</p>
-            <p class="sub">Carte d'identite officielle</p>
+        <div class="watermark">AGRICORE</div>
+
+        <div class="top-band"></div>
+
+        <div class="brand">
+            <p class="brand-name">AGRICORE</p>
+            <p class="brand-sub">PLATEFORME AGRICOLE</p>
         </div>
 
+        <div class="brand-right">
+            <div class="mc">MEMBER CARD</div>
+            <div class="mc-sub">CARTE D'IDENTITE</div>
+        </div>
+
+        <div class="accent-stripe"></div>
+
         <div class="body">
-            <div class="photo">
-                {% if image_b64 %}
-                    <img src="data:image/jpeg;base64,{{ image_b64 }}" alt="">
-                {% else %}
-                    <div class="placeholder">&#128100;</div>
-                {% endif %}
+
+            <div class="photo-wrap">
+                <div class="photo">
+                    {% if image_b64 %}
+                        <img src="data:image/jpeg;base64,{{ image_b64 }}" alt="">
+                    {% else %}
+                        <div class="photo-placeholder">&#128100;</div>
+                    {% endif %}
+                </div>
+                <div class="photo-chip"></div>
             </div>
 
             <div class="info">
-                <div class="label">Nom complet</div>
-                <div class="value">{{ user.prenom }} {{ user.nom|upper }}</div>
+                <p class="label">Nom complet</p>
+                <p class="value-big">{{ user.prenom }} {{ user.nom|upper }}</p>
 
-                <div class="label">Role</div>
-                <div class="value">
-                    <span class="role-badge">{{ role_label|upper }}</span>
-                </div>
+                <p class="label">Role</p>
+                <p class="value"><span class="role-badge">{{ role_label|upper }}</span></p>
 
-                <div class="label">N&deg; Membre</div>
-                <div class="value">#{{ '%05d'|format(user.id) }}</div>
+                <p class="label">N&deg; Membre</p>
+                <p class="value"><span class="member-number">AGC-{{ '%05d'|format(user.id) }}</span></p>
             </div>
+
+            {% if qr_b64 is defined and qr_b64 %}
+            <div class="qr-section">
+                <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR Contact">
+                <div class="qr-label">Scan Contact</div>
+            </div>
+            {% endif %}
+
+            <div class="validity-block">
+                <p class="label">Valable du</p>
+                <p class="value">{{ issued_at|date('m/Y') }}</p>
+                <p class="label" style="margin-top:4px;">Expire le</p>
+                <p class="value">{{ issued_at|date_modify('+1 year')|date('m/Y') }}</p>
+            </div>
+
         </div>
 
         <div class="footer">
-            <span class="left">Emise le {{ issued_at|date('d/m/Y') }}</span>
-            <span class="right">agricore.tn</span>
+            <span class="footer-left">Emise le {{ issued_at|date('d/m/Y') }}</span>
+            <span class="footer-right">agricore.tn</span>
+            <div class="footer-center">OFFICIAL MEMBER</div>
         </div>
 
     </div>

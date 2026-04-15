@@ -147,9 +147,22 @@
             <h4 class="fw-bold mb-1">Gestion des utilisateurs</h4>
             <p class="text-muted mb-0">Consulter, modifier, bannir ou supprimer les utilisateurs de la plateforme.</p>
         </div>
-        <a href="{{ path('back_utilisateurs_export_excel') }}" class="btn btn-success d-flex align-items-center gap-2" style="border-radius:12px;padding:10px 20px;font-weight:600;font-size:13px;">
-            <i class="ti ti-file-spreadsheet fs-5"></i> Exporter en Excel
-        </a>
+        <div class="d-flex gap-2">
+            <div class="dropdown">
+                <button class="btn btn-outline-success d-flex align-items-center gap-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" style="border-radius:12px;padding:10px 20px;font-weight:600;font-size:13px;">
+                    <i class="ti ti-mail fs-5"></i> Envoyer un email
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#" onclick="_openGroupEmail('1','Agriculteurs');return false;"><i class="ti ti-plant me-2"></i>Tous les agriculteurs</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="_openGroupEmail('2','Techniciens');return false;"><i class="ti ti-tools me-2"></i>Tous les techniciens</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" onclick="_openGroupEmail('all','utilisateurs');return false;"><i class="ti ti-users me-2"></i>Tous les utilisateurs</a></li>
+                </ul>
+            </div>
+            <a href="{{ path('back_utilisateurs_export_excel') }}" class="btn btn-success d-flex align-items-center gap-2" style="border-radius:12px;padding:10px 20px;font-weight:600;font-size:13px;">
+                <i class="ti ti-file-spreadsheet fs-5"></i> Exporter en Excel
+            </a>
+        </div>
     </div>
 </div>
 
@@ -246,6 +259,73 @@
     </div>
 </div>
 
+{# Charts Dashboard (Chart.js) #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<div class="row mb-4 g-3">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm" style="border-radius:12px;">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3" style="font-size:14px;color:#374151;"><i class="ti ti-chart-donut me-1" style="color:#16a34a;"></i> Repartition par role</h6>
+                <canvas id="chartRole" style="max-height:240px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm" style="border-radius:12px;">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3" style="font-size:14px;color:#374151;"><i class="ti ti-gender-bigender me-1" style="color:#ec4899;"></i> Repartition par genre</h6>
+                <canvas id="chartGender" style="max-height:240px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm" style="border-radius:12px;">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3" style="font-size:14px;color:#374151;"><i class="ti ti-chart-bar me-1" style="color:#f59e0b;"></i> Statut des comptes</h6>
+                <canvas id="chartStatus" style="max-height:240px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+new Chart(document.getElementById('chartRole'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Agriculteurs', 'Techniciens', 'Administrateurs'],
+        datasets: [{
+            data: [{{ users|filter(u => u.role == 1)|length }}, {{ users|filter(u => u.role == 2)|length }}, {{ users|filter(u => u.role == 0)|length }}],
+            backgroundColor: ['#16a34a', '#2563eb', '#7c3aed'],
+            borderWidth: 2, borderColor: '#fff'
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true } } } }
+});
+new Chart(document.getElementById('chartGender'), {
+    type: 'pie',
+    data: {
+        labels: ['Homme', 'Femme'],
+        datasets: [{
+            data: [{{ users|filter(u => u.genre == 'Homme')|length }}, {{ users|filter(u => u.genre == 'Femme')|length }}],
+            backgroundColor: ['#3b82f6', '#ec4899'],
+            borderWidth: 2, borderColor: '#fff'
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true } } } }
+});
+new Chart(document.getElementById('chartStatus'), {
+    type: 'bar',
+    data: {
+        labels: ['Actifs', 'Bannis', 'Profil complet', 'Profil incomplet'],
+        datasets: [{
+            data: [{{ users|filter(u => not u.banned)|length }}, {{ users|filter(u => u.banned)|length }}, {{ users|filter(u => u.profileComplete)|length }}, {{ users|filter(u => not u.profileComplete)|length }}],
+            backgroundColor: ['#16a34a', '#dc2626', '#f59e0b', '#94a3b8'],
+            borderRadius: 6, borderSkipped: false
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
+});
+</script>
+
 {# Toolbar: Search + Filters #}
 <div class="u-toolbar">
     <div class="u-search-wrap">
@@ -335,6 +415,10 @@
                                 <a href="{{ path('back_utilisateur_modifier', {id: user.id}) }}" class="u-action-btn u-action-edit" title="Modifier">
                                     <i class="ti ti-edit"></i>
                                 </a>
+                                <button type="button" class="u-action-btn u-action-email" title="Envoyer un email"
+                                    onclick="_openUserEmail({{ user.id }},'{{ user.prenom|replace({"'": "\\'"}) }}','{{ user.nom|replace({"'": "\\'"}) }}','{{ user.email }}')">
+                                    <i class="ti ti-mail"></i>
+                                </button>
                                 {% if user.role != 0 %}
                                     <a href="{{ path('back_utilisateur_ban', {id: user.id}) }}" class="u-action-btn {% if user.banned %}u-action-unban{% else %}u-action-ban{% endif %}" title="{% if user.banned %}Debannir{% else %}Bannir{% endif %}">
                                         <i class="ti ti-{% if user.banned %}lock-open{% else %}ban{% endif %}"></i>
@@ -427,6 +511,107 @@ document.addEventListener('DOMContentLoaded', function() {
             arr.forEach(function(row) { tbody.appendChild(row); });
         });
     });
+});
+</script>
+
+{# ============= EMAIL OVERLAY (custom, no Bootstrap modal) ============= #}
+<div id="emailOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.45);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+        <div style="background:linear-gradient(135deg,#0F4229,#348E38);padding:18px 24px;border-radius:14px 14px 0 0;display:flex;align-items:center;gap:10px;">
+            <i class="ti ti-mail" style="color:#fff;font-size:20px;"></i>
+            <span id="emailModalTitle" style="color:#fff;font-size:16px;font-weight:600;flex:1;">Envoyer un email</span>
+            <button type="button" onclick="document.getElementById('emailOverlay').style.display='none'" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <form id="emailForm" method="post">
+            <div style="padding:24px;">
+                <div style="margin-bottom:16px;">
+                    <label style="font-size:13px;font-weight:700;color:#374151;display:block;margin-bottom:6px;">Destinataire</label>
+                    <div id="emailRecipient" style="background:#f3f4f6;padding:8px 14px;border-radius:8px;font-size:13px;color:#555;"></div>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="font-size:13px;font-weight:700;color:#374151;display:block;margin-bottom:6px;">Sujet</label>
+                    <input type="text" name="subject" id="emailSubject" required placeholder="Objet de l'email" style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label style="font-size:13px;font-weight:700;color:#374151;display:block;margin-bottom:6px;">Modele</label>
+                    <select id="emailTemplate" onchange="_emailApplyTemplate()" style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;">
+                        <option value="personnalise" selected>Personnalise</option>
+                        <option value="bienvenue">Bienvenue</option>
+                        <option value="rappel">Rappel profil</option>
+                        <option value="avertissement">Avertissement</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:0;">
+                    <label style="font-size:13px;font-weight:700;color:#374151;display:block;margin-bottom:6px;">Message</label>
+                    <textarea name="message" id="emailMessage" rows="6" required placeholder="Redigez votre message..." style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
+                </div>
+                <input type="hidden" name="role" id="emailGroupRole" value="">
+            </div>
+            <div style="border-top:1px solid #f0f0f0;padding:14px 24px;display:flex;justify-content:flex-end;gap:10px;">
+                <button type="button" onclick="document.getElementById('emailOverlay').style.display='none'" style="padding:8px 18px;border-radius:8px;border:1px solid #d1d5db;background:#fff;font-size:13px;cursor:pointer;">Annuler</button>
+                <button type="submit" style="padding:8px 18px;border-radius:8px;border:none;background:#16a34a;color:#fff;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                    <i class="ti ti-send"></i> Envoyer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .u-action-email {
+        color: #16a34a;
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        width: 32px; height: 32px;
+        display: inline-flex; align-items: center; justify-content: center;
+        border-radius: 8px; cursor: pointer; transition: all .2s;
+        font-size: 16px; text-decoration: none;
+    }
+    .u-action-email:hover { background: #16a34a; color: #fff; border-color: #16a34a; }
+</style>
+
+<script>
+var _emailTpls = {
+    bienvenue: { subject: 'Bienvenue sur Agricore !', message: "Bienvenue sur Agricore ! Votre compte a ete cree avec succes. Vous pouvez desormais acceder a toutes les fonctionnalites de la plateforme : gestion d'equipements, suivi de vos animaux, ventes et depenses.\n\nN'hesitez pas a completer votre profil pour profiter de la meteo locale et du QR code de contact." },
+    rappel: { subject: 'Rappel : completez votre profil Agricore', message: "Nous avons remarque que votre profil n'est pas encore complet. Pensez a ajouter votre photo de profil, votre numero de telephone et votre adresse pour profiter de toutes les fonctionnalites d'Agricore (meteo locale, carte d'identite PDF, QR code vCard)." },
+    avertissement: { subject: 'Avertissement concernant votre compte Agricore', message: "Ce message vous est envoye pour vous informer que votre activite sur Agricore a ete signalee. Veuillez respecter les conditions d'utilisation de la plateforme.\n\nEn cas de non-respect, votre compte pourra etre suspendu." },
+    personnalise: { subject: '', message: '' }
+};
+
+function _emailApplyTemplate() {
+    var t = _emailTpls[document.getElementById('emailTemplate').value];
+    if (t) { document.getElementById('emailSubject').value = t.subject; document.getElementById('emailMessage').value = t.message; }
+}
+
+function _emailShow() {
+    document.getElementById('emailOverlay').style.display = 'flex';
+}
+
+function _openUserEmail(id, prenom, nom, email) {
+    document.getElementById('emailForm').action = '/back/utilisateurs/email/' + id;
+    document.getElementById('emailModalTitle').textContent = 'Envoyer un email';
+    document.getElementById('emailRecipient').innerHTML = '<i class="ti ti-user" style="margin-right:4px;"></i> <strong>' + prenom + ' ' + nom + '</strong> (' + email + ')';
+    document.getElementById('emailGroupRole').value = '';
+    document.getElementById('emailTemplate').value = 'personnalise';
+    document.getElementById('emailSubject').value = '';
+    document.getElementById('emailMessage').value = '';
+    _emailShow();
+}
+
+function _openGroupEmail(role, label) {
+    document.getElementById('emailForm').action = '/back/utilisateurs/email-group';
+    document.getElementById('emailModalTitle').textContent = 'Email de groupe';
+    document.getElementById('emailRecipient').innerHTML = '<i class="ti ti-users" style="margin-right:4px;"></i> Tous les <strong>' + label + '</strong> (actifs, non bannis)';
+    document.getElementById('emailGroupRole').value = role;
+    document.getElementById('emailTemplate').value = 'personnalise';
+    document.getElementById('emailSubject').value = '';
+    document.getElementById('emailMessage').value = '';
+    _emailShow();
+}
+
+// Close overlay when clicking the dark backdrop
+document.getElementById('emailOverlay').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
 });
 </script>
 

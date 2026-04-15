@@ -21,8 +21,12 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
+use Symfony\UX\Chartjs\Model\Chart;
 
 class UtilisateurController extends AbstractController
 {
@@ -96,7 +100,7 @@ class UtilisateurController extends AbstractController
 
     // ===================== REGISTER =====================
     #[Route('/utilisateurs/register', name: 'front_register', methods: ['GET', 'POST'])]
-    public function register(Request $request, EntityManagerInterface $em, UserRepository $userRepo): Response
+    public function register(Request $request, EntityManagerInterface $em, UserRepository $userRepo, HttpClientInterface $httpClient): Response
     {
         $user = new User();
         $form = $this->createForm(UserType::class, $user);
@@ -110,13 +114,14 @@ class UtilisateurController extends AbstractController
                 ]);
             }
 
-            // Validate email with Disify API (free, no key needed)
+            // Validate email with Disify API (free, no key needed) - soft check with short timeout
             try {
-                $ctx = stream_context_create(['http' => ['timeout' => 5]]);
-                $emailCheckUrl = 'https://disify.com/api/email/' . urlencode($user->getEmail());
-                $emailJson = file_get_contents($emailCheckUrl, false, $ctx);
-                if ($emailJson) {
-                    $emailResult = json_decode($emailJson, true);
+                $resp = $httpClient->request('GET', 'https://disify.com/api/email/' . urlencode($user->getEmail()), [
+                    'timeout' => 3,
+                    'max_duration' => 4,
+                ]);
+                if ($resp->getStatusCode() === 200) {
+                    $emailResult = $resp->toArray(false);
                     if (isset($emailResult['disposable']) && $emailResult['disposable'] === true) {
                         $this->addFlash('error', 'Les adresses email temporaires ne sont pas acceptees.');
                         return $this->render('front/utilisateurs/register.html.twig', [
@@ -130,8 +135,8 @@ class UtilisateurController extends AbstractController
                         ]);
                     }
                 }
-            } catch (\Exception $e) {
-                // API failed, continue without validation
+            } catch (\Throwable) {
+                // API timeout or failure - continue registration anyway
             }
 
             $user->setBanned(false);
@@ -171,7 +176,7 @@ class UtilisateurController extends AbstractController
 
     // ===================== PROFILE (frontend) =====================
     #[Route('/profil', name: 'app_profile')]
-    public function profile(Request $request, UserRepository $userRepo): Response
+    public function profile(Request $request, UserRepository $userRepo, HttpClientInterface $httpClient): Response
     {
         $sessionUser = $request->getSession()->get('user');
         if (!$sessionUser) {
@@ -185,54 +190,95 @@ class UtilisateurController extends AbstractController
 
         $weatherData = null;
         $geoData = null;
-        $address = $user ? $user->getAdresse() : '';
+        $apiError = null;
+        $address = $user ? trim($user->getAdresse()) : '';
 
         if ($address && strlen($address) > 1) {
-            // API keys - replace with your own
-            $locationiqKey = 'pk.a979013cc3f23c0c7b7edd99881a5e67';
-            $openweatherKey = 'cdaffac2d917777295772c89f67dd06d';
+            $locationiqKey = $this->getParameter('locationiq_api_key');
+            $openweatherKey = $this->getParameter('openweather_api_key');
 
-            try {
-                // 1. Geocode address with LocationIQ
-                $geoUrl = 'https://us1.locationiq.com/v1/search?key=' . $locationiqKey . '&q=' . urlencode($address) . '&format=json&limit=1';
-                $ctx = stream_context_create(['http' => ['timeout' => 5]]);
-                $geoJson = file_get_contents($geoUrl, false, $ctx);
-                if ($geoJson) {
-                    $geoResult = json_decode($geoJson, true);
-                    if (is_array($geoResult) && count($geoResult) > 0) {
-                        $geoData = [
-                            'lat' => (float) $geoResult[0]['lat'],
-                            'lon' => (float) $geoResult[0]['lon'],
-                            'display_name' => $geoResult[0]['display_name'],
-                        ];
+            // Build a list of address variants to try (handles common typos and fallbacks)
+            $variants = [];
+            $variants[] = $address;
+            $variants[] = $this->normalizeAddress($address);
+            // Fallback: try just the first word (likely the city)
+            $firstWord = trim(explode(',', explode(' ', $address)[0] ?? '')[0] ?? '');
+            if ($firstWord && strlen($firstWord) > 2) {
+                $variants[] = $firstWord . ', Tunisie';
+            }
+            // Ultimate fallback: default to Tunis
+            $variants[] = 'Ville de Tunis';
+            $variants = array_values(array_unique(array_filter($variants)));
 
-                        // 2. Get weather using coordinates
-                        $weatherUrl = 'https://api.openweathermap.org/data/2.5/weather?lat=' . $geoData['lat'] . '&lon=' . $geoData['lon'] . '&appid=' . $openweatherKey . '&units=metric&lang=fr';
-                        $weatherJson = file_get_contents($weatherUrl, false, $ctx);
-                        if ($weatherJson) {
-                            $weatherResult = json_decode($weatherJson, true);
-                            if (isset($weatherResult['main'])) {
-                                $weatherData = [
-                                    'temp' => round($weatherResult['main']['temp']),
-                                    'desc' => ucfirst($weatherResult['weather'][0]['description']),
-                                    'icon' => $weatherResult['weather'][0]['icon'],
-                                    'humidity' => $weatherResult['main']['humidity'],
-                                    'wind' => round($weatherResult['wind']['speed']),
-                                    'visibility' => round(($weatherResult['visibility'] ?? 10000) / 1000, 1),
-                                    'city' => $weatherResult['name'] ?? $address,
-                                ];
-                            }
+            // 1. Geocode with LocationIQ via HttpClient — try each variant
+            foreach ($variants as $variant) {
+                try {
+                    $geoResponse = $httpClient->request('GET', 'https://us1.locationiq.com/v1/search', [
+                        'query' => [
+                            'key' => $locationiqKey,
+                            'q' => $variant,
+                            'format' => 'json',
+                            'limit' => 1,
+                        ],
+                        'timeout' => 8,
+                    ]);
+                    if ($geoResponse->getStatusCode() === 200) {
+                        $geoResult = $geoResponse->toArray(false);
+                        if (is_array($geoResult) && count($geoResult) > 0 && isset($geoResult[0]['lat'])) {
+                            $geoData = [
+                                'lat' => (float) $geoResult[0]['lat'],
+                                'lon' => (float) $geoResult[0]['lon'],
+                                'display_name' => $geoResult[0]['display_name'] ?? $variant,
+                            ];
+                            break; // success
                         }
                     }
+                } catch (\Throwable) {
+                    // try next variant
                 }
-            } catch (\Exception $e) {
-                // APIs failed silently, widgets will show fallback
+            }
+
+            if (!$geoData) {
+                $apiError = 'Adresse "' . $address . '" introuvable. Veuillez la corriger depuis "Modifier profil".';
+            }
+
+            // 2. Weather via OpenWeather (only if geocoding succeeded)
+            if ($geoData) {
+                try {
+                    $weatherResponse = $httpClient->request('GET', 'https://api.openweathermap.org/data/2.5/weather', [
+                        'query' => [
+                            'lat' => $geoData['lat'],
+                            'lon' => $geoData['lon'],
+                            'appid' => $openweatherKey,
+                            'units' => 'metric',
+                            'lang' => 'fr',
+                        ],
+                        'timeout' => 8,
+                    ]);
+                    if ($weatherResponse->getStatusCode() === 200) {
+                        $w = $weatherResponse->toArray(false);
+                        if (isset($w['main'])) {
+                            $weatherData = [
+                                'temp' => round($w['main']['temp']),
+                                'desc' => ucfirst($w['weather'][0]['description'] ?? ''),
+                                'icon' => $w['weather'][0]['icon'] ?? '01d',
+                                'humidity' => $w['main']['humidity'] ?? 0,
+                                'wind' => round($w['wind']['speed'] ?? 0),
+                                'visibility' => round(($w['visibility'] ?? 10000) / 1000, 1),
+                                'city' => $w['name'] ?? $address,
+                            ];
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // Keep geo data, just no weather
+                }
             }
         }
 
         return $this->render('front/utilisateurs/profil.html.twig', [
             'weatherData' => $weatherData,
             'geoData' => $geoData,
+            'apiError' => $apiError,
         ]);
     }
 
@@ -584,6 +630,104 @@ class UtilisateurController extends AbstractController
         return $this->redirectToRoute('front_forgot_password');
     }
 
+    // ===================== SEARCH USERS (Friend finder) =====================
+    #[Route('/api/search-users', name: 'api_search_users', methods: ['GET'])]
+    public function apiSearchUsers(Request $request, UserRepository $userRepo): JsonResponse
+    {
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser) {
+            return new JsonResponse(['error' => 'Not authenticated'], 401);
+        }
+
+        $q = trim((string) $request->query->get('q', ''));
+        if (mb_strlen($q) < 2) {
+            return new JsonResponse(['results' => []]);
+        }
+
+        $all = $userRepo->findAll();
+        $matches = [];
+        $needle = mb_strtolower($q);
+
+        foreach ($all as $u) {
+            if ($u->getId() === $sessionUser->getId()) continue; // skip self
+            if ($u->isBanned()) continue;                         // skip banned
+            $haystack = mb_strtolower($u->getPrenom() . ' ' . $u->getNom() . ' ' . $u->getEmail());
+            if (str_contains($haystack, $needle)) {
+                $matches[] = [
+                    'id'     => $u->getId(),
+                    'prenom' => $u->getPrenom(),
+                    'nom'    => $u->getNom(),
+                    'email'  => $u->getEmail(),
+                    'role'   => $u->getRole(),
+                    'image'  => $u->getImage(),
+                ];
+            }
+            if (count($matches) >= 8) break;
+        }
+
+        return new JsonResponse(['results' => $matches]);
+    }
+
+    // ===================== FRIEND CONTACT (Full contact + vCard QR) =====================
+    #[Route('/api/user-contact/{id}', name: 'api_user_contact', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function apiUserContact(int $id, Request $request, UserRepository $userRepo): JsonResponse
+    {
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser) {
+            return new JsonResponse(['error' => 'Not authenticated'], 401);
+        }
+
+        $user = $userRepo->find($id);
+        if (!$user || $user->isBanned()) {
+            return new JsonResponse(['error' => 'User not found'], 404);
+        }
+
+        $roleLabel = match ($user->getRole()) {
+            0 => 'Administrateur',
+            1 => 'Agriculteur',
+            2 => 'Technicien',
+            default => 'Utilisateur',
+        };
+
+        // Build vCard
+        $vcard = "BEGIN:VCARD\r\n"
+            . "VERSION:3.0\r\n"
+            . "N:" . $user->getNom() . ";" . $user->getPrenom() . "\r\n"
+            . "FN:" . $user->getPrenom() . " " . $user->getNom() . "\r\n"
+            . "EMAIL:" . $user->getEmail() . "\r\n"
+            . "TEL:" . $user->getNumeroT() . "\r\n"
+            . "ADR:;;" . $user->getAdresse() . "\r\n"
+            . "ORG:Agricore\r\n"
+            . "END:VCARD\r\n";
+
+        // Generate QR as PNG base64
+        $builder = new Builder(
+            writer: new \Endroid\QrCode\Writer\PngWriter(),
+            data: $vcard,
+            encoding: new Encoding('UTF-8'),
+            errorCorrectionLevel: ErrorCorrectionLevel::High,
+            size: 220,
+            margin: 8,
+            foregroundColor: new Color(15, 66, 41),
+            backgroundColor: new Color(255, 255, 255),
+        );
+        $qrBase64 = base64_encode($builder->build()->getString());
+
+        return new JsonResponse([
+            'id'         => $user->getId(),
+            'prenom'     => $user->getPrenom(),
+            'nom'        => $user->getNom(),
+            'email'      => $user->getEmail(),
+            'telephone'  => $user->getNumeroT(),
+            'adresse'    => $user->getAdresse(),
+            'genre'      => $user->getGenre(),
+            'role'       => $user->getRole(),
+            'role_label' => $roleLabel,
+            'image'      => $user->getImage(),
+            'qr_png_b64' => $qrBase64,
+        ]);
+    }
+
     // ===================== QR CODE VCARD (Profile) =====================
     #[Route('/profil/qrcode', name: 'app_profile_qrcode')]
     public function profileQrCode(Request $request, UserRepository $userRepo): Response
@@ -687,7 +831,7 @@ class UtilisateurController extends AbstractController
             [['role' => 'user', 'content' => $message]],
         );
 
-        $apiKey = $_ENV['GROQ_API_KEY'] ?? getenv('GROQ_API_KEY') ?: '';
+        $apiKey = $this->getParameter('groq_api_key');
         if ($apiKey === '' || $apiKey === 'YOUR_GROQ_API_KEY') {
             return new JsonResponse([
                 'reply' => "Desole, l'assistant IA n'est pas encore configure (cle API Groq manquante).",
@@ -818,5 +962,226 @@ class UtilisateurController extends AbstractController
         $response->headers->set('Cache-Control', 'max-age=0');
 
         return $response;
+    }
+
+    // ===================== SEND EMAIL TO SINGLE USER (Admin) =====================
+    #[Route('/back/utilisateurs/email/{id}', name: 'back_utilisateur_email', methods: ['POST'])]
+    public function sendEmailToUser(int $id, Request $request, UserRepository $userRepo, MailerInterface $mailer): Response
+    {
+        $currentUser = $request->getSession()->get('user');
+        if (!$currentUser || $currentUser->getRole() !== 0) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        $user = $userRepo->find($id);
+        if (!$user) {
+            $this->addFlash('error', 'Utilisateur introuvable.');
+            return $this->redirectToRoute('back_utilisateurs');
+        }
+
+        $subject = trim($request->request->get('subject', ''));
+        $message = trim($request->request->get('message', ''));
+
+        if ($subject === '' || $message === '') {
+            $this->addFlash('error', 'Le sujet et le message sont obligatoires.');
+            return $this->redirectToRoute('back_utilisateurs');
+        }
+
+        try {
+            $htmlBody = $this->buildBrandedEmailHtml($user->getPrenom(), $message);
+            $email = (new Email())
+                ->from('heditrabelsi412@gmail.com')
+                ->to($user->getEmail())
+                ->subject($subject)
+                ->html($htmlBody);
+            $mailer->send($email);
+            $this->addFlash('success', 'Email envoye avec succes a ' . $user->getPrenom() . ' ' . $user->getNom() . '.');
+        } catch (\Throwable $e) {
+            $this->addFlash('error', 'Erreur lors de l\'envoi : ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('back_utilisateurs');
+    }
+
+    // ===================== SEND EMAIL TO USER GROUP (Admin) =====================
+    #[Route('/back/utilisateurs/email-group', name: 'back_utilisateur_email_group', methods: ['POST'])]
+    public function sendEmailToGroup(Request $request, UserRepository $userRepo, MailerInterface $mailer): Response
+    {
+        $currentUser = $request->getSession()->get('user');
+        if (!$currentUser || $currentUser->getRole() !== 0) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        $subject = trim($request->request->get('subject', ''));
+        $message = trim($request->request->get('message', ''));
+        $targetRole = $request->request->get('role', 'all');
+
+        if ($subject === '' || $message === '') {
+            $this->addFlash('error', 'Le sujet et le message sont obligatoires.');
+            return $this->redirectToRoute('back_utilisateurs');
+        }
+
+        $allUsers = $userRepo->findAll();
+        $recipients = [];
+        foreach ($allUsers as $u) {
+            if ($u->getRole() === 0) continue; // skip admins
+            if ($u->isBanned()) continue;       // skip banned
+            if ($targetRole !== 'all' && $u->getRole() !== (int) $targetRole) continue;
+            $recipients[] = $u;
+        }
+
+        if (empty($recipients)) {
+            $this->addFlash('error', 'Aucun destinataire trouve pour ce groupe.');
+            return $this->redirectToRoute('back_utilisateurs');
+        }
+
+        $sent = 0;
+        foreach ($recipients as $u) {
+            try {
+                $htmlBody = $this->buildBrandedEmailHtml($u->getPrenom(), $message);
+                $email = (new Email())
+                    ->from('heditrabelsi412@gmail.com')
+                    ->to($u->getEmail())
+                    ->subject($subject)
+                    ->html($htmlBody);
+                $mailer->send($email);
+                $sent++;
+            } catch (\Throwable) {
+                // continue to next recipient
+            }
+        }
+
+        $this->addFlash('success', 'Email envoye avec succes a ' . $sent . ' utilisateur(s).');
+        return $this->redirectToRoute('back_utilisateurs');
+    }
+
+    /**
+     * Normalize common Tunisian address typos to improve geocoding success.
+     */
+    private function normalizeAddress(string $address): string
+    {
+        $a = trim(mb_strtolower($address));
+        // Common misspellings -> correct names
+        $fixes = [
+            'manzel bou zelfa' => 'Menzel Bouzelfa',
+            'manzel bouzelfa'  => 'Menzel Bouzelfa',
+            'menzel bou zelfa' => 'Menzel Bouzelfa',
+            'menzel bouzelfa'  => 'Menzel Bouzelfa',
+            'tunis'            => 'Ville de Tunis',
+        ];
+        foreach ($fixes as $bad => $good) {
+            if (str_contains($a, $bad)) {
+                return $good;
+            }
+        }
+        // Return title-cased version as last resort
+        return mb_convert_case($address, MB_CASE_TITLE, 'UTF-8');
+    }
+
+    private function buildBrandedEmailHtml(string $prenom, string $messageBody): string
+    {
+        $escapedPrenom = htmlspecialchars($prenom, ENT_QUOTES, 'UTF-8');
+        $escapedBody = nl2br(htmlspecialchars($messageBody, ENT_QUOTES, 'UTF-8'));
+
+        return <<<HTML
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head><meta charset="utf-8"></head>
+        <body style="margin:0;padding:0;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;background:#f4f6f7;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f7;padding:32px 0;">
+                <tr><td align="center">
+                    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+                        <tr>
+                            <td style="background:linear-gradient(135deg,#0F4229,#348E38);padding:28px 32px;text-align:center;">
+                                <h1 style="margin:0;color:#ffffff;font-size:24px;letter-spacing:2px;">AGRICORE</h1>
+                                <p style="margin:4px 0 0;color:rgba(255,255,255,0.8);font-size:12px;">Plateforme de gestion agricole</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:32px;">
+                                <p style="font-size:16px;color:#222;margin:0 0 16px;">Bonjour <strong>{$escapedPrenom}</strong>,</p>
+                                <div style="font-size:14px;color:#444;line-height:1.7;margin-bottom:24px;">
+                                    {$escapedBody}
+                                </div>
+                                <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0;">
+                                <p style="font-size:12px;color:#999;margin:0;">Cordialement,<br><strong>L'equipe Agricore</strong></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="background:#f8faf8;padding:16px 32px;text-align:center;">
+                                <p style="font-size:11px;color:#aaa;margin:0;">Cet email a ete envoye par l'administration Agricore. Veuillez ne pas repondre directement a ce message.</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td></tr>
+            </table>
+        </body>
+        </html>
+        HTML;
+    }
+
+    // ===================== AI AVATAR HELPER =====================
+    private function generateAiAvatar(User $user, HttpClientInterface $httpClient, ?int $seedOverride = null): ?string
+    {
+        $role = $user->getRole();
+        $genre = mb_strtolower((string) $user->getGenre());
+        $isFemale = str_contains($genre, 'fem') || $genre === 'femme';
+        $gender = $isFemale ? 'female' : 'male';
+
+        $prompt = match ($role) {
+            1 => "cute cartoon portrait of a {$gender} farmer, green farm background, flat illustration style, friendly smile, high quality avatar",
+            2 => "cute cartoon portrait of a {$gender} technician wearing work uniform, flat illustration style, professional, high quality avatar",
+            0 => "cute cartoon portrait of a {$gender} business professional, green theme, flat illustration style, high quality avatar",
+            default => "cute cartoon portrait avatar, flat illustration style, high quality",
+        };
+
+        $seed = $seedOverride ?? ($user->getId() ?? random_int(1, 999999));
+        $url = 'https://image.pollinations.ai/prompt/' . rawurlencode($prompt)
+             . '?width=400&height=400&seed=' . $seed
+             . '&nologo=true&model=flux';
+
+        try {
+            $response = $httpClient->request('GET', $url, ['timeout' => 20]);
+            if ($response->getStatusCode() !== 200) {
+                return null;
+            }
+            $content = $response->getContent(false);
+            if ($content === '') {
+                return null;
+            }
+            return base64_encode($content);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    // ===================== AI AVATAR REGENERATE (Profile) =====================
+    #[Route('/profil/ai-avatar', name: 'app_profile_ai_avatar', methods: ['GET', 'POST'])]
+    public function generateAvatarAction(Request $request, UserRepository $userRepo, EntityManagerInterface $em, HttpClientInterface $httpClient): Response
+    {
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        $user = $userRepo->find($sessionUser->getId());
+        if (!$user) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        // Use time-based seed so regeneration produces a different avatar each time
+        $aiAvatar = $this->generateAiAvatar($user, $httpClient, time());
+        if ($aiAvatar) {
+            $user->setImage($aiAvatar);
+            $user->setProfileComplete(true);
+            $em->flush();
+            $user->prepareForSession();
+            $request->getSession()->set('user', $user);
+            $this->addFlash('success', 'Avatar IA genere avec succes !');
+        } else {
+            $this->addFlash('error', 'Impossible de generer l\'avatar pour le moment. Reessayez dans un instant.');
+        }
+
+        return $this->redirectToRoute('app_profile_edit');
     }
 }
