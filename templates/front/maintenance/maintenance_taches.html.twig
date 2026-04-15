@@ -41,6 +41,7 @@
     {% endfor %}
 
     {% set is_resolved = maintenance.Statut in ['Résolu', 'Résolue'] %}
+    {% set agriculteur = maintenance.getId_agriculteur() %}
 
     <div class="header-section d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
         <div>
@@ -101,6 +102,9 @@
                     <div class="col-md-4 card-info-val"><small class="text-muted d-block">Priorité</small><span class="{% if maintenance.Priorite == 'Urgente' %}text-danger fw-bold{% endif %}">{{ maintenance.Priorite }}</span></div>
                     <div class="col-md-4 card-info-val"><small class="text-muted d-block">Type</small><span>{{ maintenance.Type }}</span></div>
                     <div class="col-md-4 card-info-val"><small class="text-muted d-block">Date</small><span>{{ maintenance.dateDeclaration|date('d/m/Y') }}</span></div>
+                    <div class="col-md-4 card-info-val"><small class="text-muted d-block">Agriculteur</small><span>{{ agriculteur ? (agriculteur.prenom ~ ' ' ~ agriculteur.nom)|trim : 'Non renseigné' }}</span></div>
+                    <div class="col-md-4 card-info-val"><small class="text-muted d-block">Téléphone agriculteur</small><span>{{ agriculteur and agriculteur.numeroT ? agriculteur.numeroT : 'Non renseigné' }}</span></div>
+                  
                 </div>
 
                 <div class="mt-4 pt-3 border-top">

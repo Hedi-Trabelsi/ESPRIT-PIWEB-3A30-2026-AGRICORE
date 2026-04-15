@@ -8,8 +8,10 @@ use App\Form\MaintenanceType;
 use App\Entity\User;
 use App\Repository\MaintenanceRepository;
 use App\Repository\TacheRepository;
+use App\Service\MaintenanceRecommendationService;
 use App\Service\MaintenanceProximityService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -123,6 +125,42 @@ public function index(Request $request, MaintenanceRepository $repo): Response
             'listeMaintenances' => $pagination,
             'maintenanceDistances' => $proximityResult['distances'],
             'proximityEnabled' => $proximityResult['enabled'],
+        ]);
+    }
+
+    #[Route('/maintenance/recommendations', name: 'app_maintenance_recommendations', methods: ['POST'])]
+    public function maintenanceRecommendations(
+        Request $request,
+        MaintenanceRepository $maintenanceRepository,
+        MaintenanceRecommendationService $recommendationService,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        $sessionUser = $request->getSession()->get('user');
+        $technician = null;
+
+        if (is_object($sessionUser) && method_exists($sessionUser, 'getId') && method_exists($sessionUser, 'getRole') && (int) $sessionUser->getRole() === 2) {
+            $technician = $entityManager->getRepository(User::class)->find($sessionUser->getId());
+        } elseif (is_array($sessionUser) && isset($sessionUser['id'], $sessionUser['role']) && (int) $sessionUser['role'] === 2) {
+            $technician = $entityManager->getRepository(User::class)->find((int) $sessionUser['id']);
+        }
+
+        if (!$technician instanceof User) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Session technicien invalide.',
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $maintenances = $maintenanceRepository->findBy(['statut' => 'En attente']);
+        $technicianAddress = $technician->getAdresse();
+        $limit = max(1, min(5, (int) $request->query->get('limit', 3)));
+
+        $payload = $recommendationService->recommendForTechnician($technician, $maintenances, $technicianAddress, $limit);
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => $payload['message'],
+            'data' => $payload,
         ]);
     }
 

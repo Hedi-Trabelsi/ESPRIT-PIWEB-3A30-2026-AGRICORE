@@ -92,6 +92,27 @@ class TacheRepository extends ServiceEntityRepository
         return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
+    public function countPastTasksForTechnicianAndFarmer(int $technicianId, int $farmerId, ?\DateTimeInterface $beforeDate = null): int
+    {
+        $cutoffDate = $beforeDate instanceof \DateTimeInterface
+            ? \DateTimeImmutable::createFromInterface($beforeDate)
+            : new \DateTimeImmutable('today');
+
+        $qb = $this->createQueryBuilder('t')
+            ->select('COUNT(t.id_tache)')
+            ->innerJoin('t.id_technicien', 'tech')
+            ->innerJoin('t.id_maintenance', 'm')
+            ->innerJoin('m.id_agriculteur', 'farmer')
+            ->andWhere('tech.id = :technicianId')
+            ->andWhere('farmer.id = :farmerId')
+            ->andWhere('t.date_prevue < :cutoffDate')
+            ->setParameter('technicianId', $technicianId)
+            ->setParameter('farmerId', $farmerId)
+            ->setParameter('cutoffDate', $cutoffDate);
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
     public function getTechniciansWithNegativeEvaluations(): array
     {
         return $this->createQueryBuilder('t')
