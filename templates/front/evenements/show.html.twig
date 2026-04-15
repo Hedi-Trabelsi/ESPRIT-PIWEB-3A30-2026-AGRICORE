@@ -612,7 +612,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const btn = document.getElementById('sttBtn');
     if (!btn) return;
 
-    const input = document.querySelector('input[name="nom_participant"]');
+    const input = document.querySelector('input[name="participants[nom_participant]"]');
     if (!input) return;
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;

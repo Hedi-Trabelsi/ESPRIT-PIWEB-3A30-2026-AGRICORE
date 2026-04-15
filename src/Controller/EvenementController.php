@@ -201,13 +201,17 @@ class EvenementController extends AbstractController
         $now    = new \DateTime();
         $isPast = $ev->getDateFin() < $now;
 
-        // Conflict detection
+        // Conflict detection — only flag if the overlap period hasn't fully passed
         $conflictingEvent = null;
         if ($sessionUser && !$dejaInscrit && !$isPast) {
             foreach ($em->getRepository(Participants::class)->findBy(['id_utilisateur' => $sessionUser->getId()]) as $p) {
                 $other = $p->getEvenement();
                 if (!$other || $other->getIdEv() === $ev->getIdEv()) continue;
-                if ($other->getDateDebut() <= $ev->getDateFin() && $other->getDateFin() >= $ev->getDateDebut()) {
+                if ($p->getStatutParticipation() === 'waitlist') continue;
+                // Overlap exists AND the other event hasn't fully ended yet
+                if ($other->getDateDebut() <= $ev->getDateFin()
+                    && $other->getDateFin() >= $ev->getDateDebut()
+                    && $other->getDateFin() >= $now) {
                     $conflictingEvent = $other;
                     break;
                 }
