@@ -1,0 +1,163 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block title %}Demandes urgentes depassees - Admin{% endblock %}
+
+{% block notifications %}
+    {% include 'back/maintenance/_notifications_dropdown.html.twig' %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-4">
+        <div>
+            <h4 class="fw-bold mb-1">Demandes urgentes en attente depassant 24h</h4>
+            <p class="text-muted mb-0">Suivi prioritaire des maintenances urgentes en retard.</p>
+        </div>
+       
+    </div>
+
+    <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+        <div class="card-body p-0">
+            <div id="urgentEmptyState" class="{% if urgentMaintenances is not empty %}d-none {% endif %}p-5 text-center">
+                    <i class="ti ti-checks fs-9 text-success d-block mb-2"></i>
+                    <h6 class="fw-semibold mb-1">Aucune demande urgente depassee</h6>
+                    <p class="text-muted mb-0">Toutes les demandes urgentes sont traitees dans les delais.</p>
+            </div>
+
+            <div id="urgentTableWrapper" class="{% if urgentMaintenances is empty %}d-none {% endif %}table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Demande</th>
+                                <th>Equipement</th>
+                                <th>Date declaration</th>
+                                <th>Ancienneté</th>
+                                <th>Statut</th>
+                                <th class="text-end pe-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="urgentTableBody">
+                            {% for maintenance in urgentMaintenances %}
+                                {% set nowTs = "now"|date('U') %}
+                                {% set decTs = maintenance.dateDeclaration|date('U') %}
+                                {% set ageDays = ((nowTs - decTs) / 86400)|round(0, 'floor') %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="fw-semibold">{{ maintenance.nomMaintenance }}</div>
+                                        <small class="text-muted">Lieu: {{ maintenance.lieu }}</small>
+                                    </td>
+                                    <td>{{ maintenance.equipement }}</td>
+                                    <td>{{ maintenance.dateDeclaration|date('d/m/Y') }}</td>
+                                    <td>
+                                        <span class="badge bg-light-danger text-danger">
+                                            {{ ageDays }} jour{{ ageDays > 1 ? 's' : '' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light-warning text-warning">{{ maintenance.statut }}</span>
+                                        <span class="badge bg-light-danger text-danger ms-1">{{ maintenance.priorite }}</span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <a href="{{ path('app_maintenance_detail_back', {'id_maintenance': maintenance.id_maintenance}) }}" class="btn btn-sm btn-primary">
+                                            Voir detail
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const stateUrl = '{{ path('app_maintenance_urgent_overdue_state_back') }}';
+    const pollMs = 30000;
+    const tableBody = document.getElementById('urgentTableBody');
+    const emptyState = document.getElementById('urgentEmptyState');
+    const tableWrapper = document.getElementById('urgentTableWrapper');
+
+    if (!tableBody || !emptyState || !tableWrapper) {
+        return;
+    }
+
+    const renderRows = (items) => {
+        tableBody.innerHTML = '';
+
+        if (!Array.isArray(items) || items.length === 0) {
+            emptyState.classList.remove('d-none');
+            tableWrapper.classList.add('d-none');
+            return;
+        }
+
+        emptyState.classList.add('d-none');
+        tableWrapper.classList.remove('d-none');
+
+        const nowTs = Math.floor(Date.now() / 1000);
+        items.forEach((item) => {
+            const decTs = Number(item.dateDeclarationTs || 0);
+            const ageDays = decTs > 0 ? Math.max(0, Math.floor((nowTs - decTs) / 86400)) : 0;
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+                <td class="ps-4">
+                    <div class="fw-semibold">${item.nomMaintenance || ''}</div>
+                    <small class="text-muted">Lieu: ${item.lieu || ''}</small>
+                </td>
+                <td>${item.equipement || ''}</td>
+                <td>${item.dateDeclaration || ''}</td>
+                <td>
+                    <span class="badge bg-light-danger text-danger">${ageDays} jour${ageDays > 1 ? 's' : ''}</span>
+                </td>
+                <td>
+                    <span class="badge bg-light-warning text-warning">${item.statut || ''}</span>
+                    <span class="badge bg-light-danger text-danger ms-1">${item.priorite || ''}</span>
+                </td>
+                <td class="text-end pe-4">
+                    <a href="${item.detailUrl || '#'}" class="btn btn-sm btn-primary">Voir detail</a>
+                </td>
+            `;
+
+            tableBody.appendChild(row);
+        });
+    };
+
+    const refreshUrgentTable = async () => {
+        try {
+            const response = await fetch(stateUrl, {
+                cache: 'no-store',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const payload = await response.json();
+            renderRows(payload.items || []);
+        } catch (error) {
+        }
+    };
+
+    refreshUrgentTable();
+    window.addEventListener('focus', refreshUrgentTable);
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+            refreshUrgentTable();
+        }
+    });
+
+    setInterval(function () {
+        if (document.visibilityState === 'visible') {
+            refreshUrgentTable();
+        }
+    }, pollMs);
+});
+</script>
+{% include 'back/maintenance/_notifications_ajax.html.twig' %}
+{% endblock %}

@@ -113,6 +113,12 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     {% endfor %}
+    {% for message in app.flashes('warning') %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
 
     <div class="header-section d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
        <div class="mt-2">
@@ -126,7 +132,7 @@
     {% set count = 0 %}
 
     {% for t in maintenance.getTaches() %}
-        {% if t.evaluation is not null %}
+        {% if t.evaluation in [1, -1] %}
             {% set total = total + t.evaluation %}
             {% set count = count + 1 %}
         {% endif %}
@@ -157,6 +163,19 @@
     </div>
 {% endif %}
 </div>
+        <div class="ms-md-auto">
+            <button
+                type="button"
+                class="btn btn-success btn-sm d-flex align-items-center gap-2"
+                data-bs-toggle="modal"
+                data-bs-target="#assignAiModal"
+                id="openAssignAiModalBtn"
+                onclick="openAssignAiModal(event)"
+            >
+                <i class="ti ti-sparkles"></i>
+                <span>Affecter avec IA</span>
+            </button>
+        </div>
         </div>
         
        
@@ -266,6 +285,33 @@
     {% endif %}
 </div>
 
+<div class="modal fade" id="assignAiModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" style="color:#0F4229;">Affectation IA des techniciens</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">L'IA vous propose des techniciens au même lieu ou les plus proches.</p>
+                <div id="aiTechLoading" class="text-center py-3 d-none">
+                    <div class="spinner-border text-success" role="status"></div>
+                    <div class="small text-muted mt-2">Analyse IA en cours...</div>
+                </div>
+                <div id="aiTechEmpty" class="alert alert-light border d-none mb-0">Aucun technicien recommandé.</div>
+                <div id="aiTechList" class="d-grid gap-2"></div>
+            </div>
+            <div class="modal-footer">
+                <form method="post" action="{{ path('app_maintenance_assign_ai_back', {'id_maintenance': maintenance.id_maintenance}) }}" id="assignAiForm" class="d-flex align-items-center gap-2 w-100 justify-content-end">
+                    <input type="hidden" name="technicien_id" id="selectedTechnicianId" value="">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success" id="confirmAssignAiBtn" disabled>Confirmer l'affectation</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 {# Modale de Suppression #}
 <div class="modal fade" id="confirmDeleteMaintenanceModal" tabindex="-1">
     <div class="modal-dialog modal-sm modal-dialog-centered">
@@ -292,6 +338,148 @@
         document.querySelectorAll('.task-card').forEach(card => card.classList.remove('active'));
         if (!isActive) element.classList.add('active');
     }
+
+    (function () {
+        const recommendationUrl = '{{ path('app_maintenance_technician_recommendations_back', {'id_maintenance': maintenance.id_maintenance}) }}';
+        const openBtn = document.getElementById('openAssignAiModalBtn');
+        const modalEl = document.getElementById('assignAiModal');
+        const loadingEl = document.getElementById('aiTechLoading');
+        const emptyEl = document.getElementById('aiTechEmpty');
+        const listEl = document.getElementById('aiTechList');
+        const selectedTechnicianInput = document.getElementById('selectedTechnicianId');
+        const confirmBtn = document.getElementById('confirmAssignAiBtn');
+        let loadingInProgress = false;
+
+        if (!modalEl || !listEl || !selectedTechnicianInput || !confirmBtn || !openBtn) {
+            return;
+        }
+
+        const clearSelection = () => {
+            selectedTechnicianInput.value = '';
+            confirmBtn.disabled = true;
+        };
+
+        const renderList = (recommendations) => {
+            listEl.innerHTML = '';
+            clearSelection();
+
+            if (!Array.isArray(recommendations) || recommendations.length === 0) {
+                emptyEl.classList.remove('d-none');
+                return;
+            }
+
+            emptyEl.classList.add('d-none');
+
+            recommendations.forEach((item, index) => {
+                const card = document.createElement('label');
+                card.className = 'border rounded-3 p-3 d-flex justify-content-between align-items-start gap-3';
+                card.style.cursor = 'pointer';
+
+                const left = document.createElement('div');
+                left.className = 'd-flex gap-2';
+
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'ai_technician_choice';
+                radio.value = String(item.id || '');
+                radio.className = 'form-check-input mt-1';
+                radio.checked = index === 0;
+
+                const info = document.createElement('div');
+                info.innerHTML = `
+                    <div class="fw-semibold">${item.name || 'Technicien'}</div>
+                    <div class="small text-muted">${item.address || ''}</div>
+                    <div class="small ${item.sameLocation ? 'text-success' : 'text-secondary'}">${item.reason || ''}</div>
+                `;
+
+                left.appendChild(radio);
+                left.appendChild(info);
+
+                const right = document.createElement('div');
+                right.className = 'text-end';
+                const distance = item.distanceKm !== null && item.distanceKm !== undefined
+                    ? `${Number(item.distanceKm).toFixed(2)} km`
+                    : 'N/A';
+                const tomorrowTasks = Number(item.tomorrowTasksCount || 0);
+                right.innerHTML = `
+                    <span class="badge bg-light-primary text-primary d-block mb-1">${distance}</span>
+                    <span class="badge bg-light-warning text-warning">Demain: ${tomorrowTasks} tâche${tomorrowTasks > 1 ? 's' : ''}</span>
+                `;
+
+                card.appendChild(left);
+                card.appendChild(right);
+                listEl.appendChild(card);
+
+                radio.addEventListener('change', () => {
+                    selectedTechnicianInput.value = radio.value;
+                    confirmBtn.disabled = !radio.value;
+                });
+            });
+
+            const first = listEl.querySelector('input[type="radio"]');
+            if (first && first.value) {
+                selectedTechnicianInput.value = first.value;
+                confirmBtn.disabled = false;
+            }
+        };
+
+        const loadRecommendations = async () => {
+            if (loadingInProgress) {
+                return;
+            }
+
+            loadingInProgress = true;
+            loadingEl.classList.remove('d-none');
+            emptyEl.classList.add('d-none');
+            listEl.innerHTML = '';
+            clearSelection();
+
+            try {
+                const response = await fetch(recommendationUrl, {
+                    cache: 'no-store',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+
+                const payload = await response.json();
+                renderList(payload.recommendations || []);
+            } catch (error) {
+                emptyEl.textContent = 'Impossible de charger les recommandations IA.';
+                emptyEl.classList.remove('d-none');
+            } finally {
+                loadingEl.classList.add('d-none');
+                loadingInProgress = false;
+            }
+        };
+
+        window.openAssignAiModal = function (event) {
+            if (event) {
+                event.preventDefault();
+            }
+
+            if (window.bootstrap && window.bootstrap.Modal) {
+                const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+                loadRecommendations();
+                return;
+            }
+
+            // Fallback minimal if Bootstrap JS is unavailable.
+            modalEl.style.display = 'block';
+            modalEl.classList.add('show');
+            modalEl.removeAttribute('aria-hidden');
+            loadRecommendations();
+        };
+
+        openBtn.addEventListener('click', window.openAssignAiModal);
+        modalEl.addEventListener('show.bs.modal', loadRecommendations);
+    })();
 </script>
 {% include 'back/maintenance/_notifications_ajax.html.twig' %}
 {% endblock %}

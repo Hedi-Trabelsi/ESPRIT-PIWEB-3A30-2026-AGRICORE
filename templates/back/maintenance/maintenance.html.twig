@@ -28,12 +28,98 @@
     .btn-light-warning:hover { background-color: #ffae1f !important; color: #fff !important; }
 
     .search-container { background: #fff; border-radius: 12px; border: 1px solid #ebf1f6; padding: 15px; margin-bottom: 20px; }
+
+    .urgent-overdue-modal .modal-content {
+        border: 1px solid #e4ecf2;
+        border-radius: 18px;
+        background: linear-gradient(155deg, #ffffff 0%, #f7fbff 100%);
+        box-shadow: 0 18px 36px rgba(15, 66, 41, 0.12);
+        overflow: hidden;
+    }
+
+    .urgent-overdue-modal .modal-header {
+        border-bottom: 1px solid #edf2f7;
+        background: linear-gradient(90deg, #fff8f6 0%, #fffdf8 100%);
+    }
+
+    .urgent-overdue-modal .modal-title {
+        color: #0f4229;
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+    }
+
+    .urgent-overdue-modal .urgent-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        background: #ffe7e2;
+        color: #b42318;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 0.8rem;
+    }
+
+    .urgent-overdue-modal .urgent-body {
+        color: #475467;
+        line-height: 1.55;
+    }
+
+    .urgent-overdue-modal .urgent-focus {
+        margin-top: 0.8rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 10px;
+        border: 1px dashed #f3c6bb;
+        background: #fffaf9;
+        color: #7a271a;
+        font-weight: 600;
+        font-size: 0.92rem;
+    }
+
+    .urgent-overdue-modal .modal-footer {
+        border-top: 1px solid #edf2f7;
+        background: #fcfdfd;
+    }
+
+    .urgent-overdue-modal .btn-view-list {
+        border: none;
+        border-radius: 10px;
+        background: #0f4229;
+        color: #ffffff;
+        font-weight: 700;
+        padding: 0.5rem 0.95rem;
+    }
+
+    .urgent-overdue-modal .btn-view-list:hover {
+        background: #13603a;
+        color: #ffffff;
+    }
+
+    .urgent-overdue-modal .btn-view-detail {
+        border: 1px solid #d6dde5;
+        border-radius: 10px;
+        color: #1f2937;
+        font-weight: 600;
+    }
+
+    .urgent-overdue-modal .btn-view-detail:hover {
+        border-color: #bfc9d5;
+        background: #f8fafc;
+        color: #111827;
+    }
 </style>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="fw-bold mb-0">Liste des Maintenances</h4>
         <div class="d-flex gap-2">
+            <a href="{{ path('app_maintenance_urgent_overdue_back') }}" class="btn btn-outline-danger d-flex align-items-center gap-2">
+                <i class="ti ti-alert-triangle fs-5"></i>
+                <span>Urgentes > 24h</span>
+            </a>
             <a href="{{ path('app_maintenance_stats_back') }}" class="btn btn-primary d-flex align-items-center gap-2">
                 <i class="ti ti-chart-bar fs-5"></i> 
                 <span>Statistiques</span>
@@ -174,6 +260,26 @@
     </div>
 </div>
 
+<div class="modal fade urgent-overdue-modal" id="urgentOverdueBackModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="ti ti-alert-triangle me-2 text-danger"></i>Alerte maintenance urgente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <span class="urgent-kicker"><i class="ti ti-clock-hour-4"></i>Delais depasses</span>
+                <p class="mb-2 urgent-body" id="urgentOverdueBodyText">Vous avez des demandes urgentes en attente depuis plus de 24h.</p>
+                <div class="urgent-focus" id="urgentOverdueFocusText"></div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <a id="urgentOverdueDetailBtn" href="#" class="btn btn-view-detail">Voir detail</a>
+                <a id="urgentOverdueListBtn" href="#" class="btn btn-view-list">Voir toutes les demandes</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // Soumission automatique lors de la saisie (avec un petit délai pour éviter trop de requêtes)
     let timeout = null;
@@ -209,6 +315,103 @@
         if (event.target.closest('button') || event.target.closest('.confirm-bar') || event.target.closest('form')) return;
         window.location.href = url;
     }
+
+    (function () {
+        const stateUrl = '{{ path('app_maintenance_urgent_overdue_state_back') }}';
+        const pollMs = 45000;
+        const storageKey = 'back_urgent_overdue_seen_v1';
+        let modalInstance = null;
+
+        function getModal() {
+            const modalEl = document.getElementById('urgentOverdueBackModal');
+            if (!modalEl || typeof bootstrap === 'undefined') {
+                return null;
+            }
+
+            if (!modalInstance) {
+                modalInstance = new bootstrap.Modal(modalEl, {
+                    backdrop: true,
+                    keyboard: true,
+                });
+            }
+
+            return modalInstance;
+        }
+
+        function renderAlert(payload) {
+            const body = document.getElementById('urgentOverdueBodyText');
+            const focus = document.getElementById('urgentOverdueFocusText');
+            const detailBtn = document.getElementById('urgentOverdueDetailBtn');
+            const listBtn = document.getElementById('urgentOverdueListBtn');
+
+            if (!body || !focus || !detailBtn || !listBtn) {
+                return;
+            }
+
+            const count = Number(payload.count || 0);
+            const first = payload.first || null;
+            const listUrl = payload.listUrl || '#';
+
+            if (count <= 0 || !first || !first.id) {
+                return;
+            }
+
+            body.textContent = count === 1
+                ? 'Vous avez 1 demande urgente en attente depuis plus de 24h.'
+                : 'Vous avez ' + count + ' demandes urgentes en attente depuis plus de 24h.';
+
+            focus.textContent = 'Demande: ' + (first.nomMaintenance || 'Maintenance') + ' | Equipement: ' + (first.equipement || 'N/A') + ' | Declaree le: ' + (first.dateDeclaration || '-');
+            detailBtn.href = first.detailUrl || '#';
+            listBtn.href = listUrl;
+
+            const signature = String(first.id) + ':' + String(count);
+            if (sessionStorage.getItem(storageKey) === signature) {
+                return;
+            }
+
+            const modal = getModal();
+            if (!modal) {
+                return;
+            }
+
+            modal.show();
+            sessionStorage.setItem(storageKey, signature);
+        }
+
+        async function loadUrgentOverdueState() {
+            try {
+                const response = await fetch(stateUrl, {
+                    cache: 'no-store',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const payload = await response.json();
+                renderAlert(payload || {});
+            } catch (error) {
+            }
+        }
+
+        loadUrgentOverdueState();
+        window.addEventListener('focus', loadUrgentOverdueState);
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+                loadUrgentOverdueState();
+            }
+        });
+
+        setInterval(function () {
+            if (document.visibilityState === 'visible') {
+                loadUrgentOverdueState();
+            }
+        }, pollMs);
+    })();
 </script>
 
 {% include 'back/maintenance/_notifications_ajax.html.twig' %}

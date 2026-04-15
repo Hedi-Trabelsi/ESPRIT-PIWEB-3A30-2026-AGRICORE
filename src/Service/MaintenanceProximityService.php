@@ -97,6 +97,24 @@ class MaintenanceProximityService
         ];
     }
 
+    public function estimateRoadDistanceKm(?string $originAddress, ?string $destinationAddress): ?float
+    {
+        $originAddress = trim((string) $originAddress);
+        $destinationAddress = trim((string) $destinationAddress);
+
+        if ($originAddress === '' || $destinationAddress === '') {
+            return null;
+        }
+
+        $origin = $this->geocodeAddress($originAddress);
+        $destination = $this->geocodeAddress($destinationAddress);
+        if ($origin === null || $destination === null) {
+            return null;
+        }
+
+        return $this->getRoadDistanceKm($origin, $destination);
+    }
+
     /**
      * @return array{lat: float, lon: float}|null
      */

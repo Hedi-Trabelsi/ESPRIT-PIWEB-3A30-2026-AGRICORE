@@ -11,6 +11,7 @@ use App\Repository\TacheRepository;
 use App\Service\MaintenanceRecommendationService;
 use App\Service\MaintenanceProximityService;
 use App\Service\MaintenanceDateChangeNotificationStore;
+use App\Service\TaskDescriptionAiService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -513,8 +514,12 @@ public function backList(
 }
 
 #[Route('/back/maintenance/detail/{id_maintenance}', name: 'app_maintenance_detail_back')]
-public function showBack(Maintenance $maintenance, EntityManagerInterface $entityManager, MaintenanceRepository $repo): Response 
+public function showBack(Maintenance $maintenance, Request $request, EntityManagerInterface $entityManager, MaintenanceRepository $repo): Response
 {
+    if (!$this->isAdminSession($request)) {
+        return $this->redirectToRoute('front_login');
+    }
+
     if (!$maintenance->isRead()) {
         $maintenance->setIsRead(true);
         $entityManager->flush();
@@ -529,6 +534,136 @@ public function showBack(Maintenance $maintenance, EntityManagerInterface $entit
         'pendingCount' => $notificationContext['pendingCount'],
         'unreadCount' => $notificationContext['unreadCount'],
     ]);
+}
+
+#[Route('/back/maintenance/{id_maintenance}/technicians/recommendations', name: 'app_maintenance_technician_recommendations_back', methods: ['GET'])]
+public function technicianRecommendationsBack(
+    Maintenance $maintenance,
+    Request $request,
+    EntityManagerInterface $entityManager,
+    MaintenanceProximityService $proximityService,
+    TacheRepository $tacheRepository
+): JsonResponse {
+    if (!$this->isAdminSession($request)) {
+        return new JsonResponse(['success' => false, 'error' => 'Accès refusé.'], Response::HTTP_UNAUTHORIZED);
+    }
+
+    $technicians = $entityManager->getRepository(User::class)->findBy(['role' => 2]);
+    $maintenanceLocation = trim((string) $maintenance->getLieu());
+    $tomorrow = new \DateTime('tomorrow');
+    $recommendations = [];
+
+    foreach ($technicians as $technician) {
+        if (!$technician instanceof User || $technician->isBanned()) {
+            continue;
+        }
+
+        $techAddress = trim((string) $technician->getAdresse());
+        $distanceKm = $proximityService->estimateRoadDistanceKm($maintenanceLocation, $techAddress);
+        $tomorrowTasksCount = $tacheRepository->countTasksForTechnicianOnDate((int) $technician->getId(), $tomorrow);
+        $sameLocation = $maintenanceLocation !== '' && mb_strtolower($maintenanceLocation) === mb_strtolower($techAddress);
+        $name = trim((string) $technician->getPrenom() . ' ' . (string) $technician->getNom());
+
+        $recommendations[] = [
+            'id' => $technician->getId(),
+            'name' => $name !== '' ? $name : 'Technicien',
+            'address' => $techAddress !== '' ? $techAddress : 'Adresse non disponible',
+            'sameLocation' => $sameLocation,
+            'distanceKm' => $distanceKm,
+            'tomorrowTasksCount' => $tomorrowTasksCount,
+            'reason' => $sameLocation
+                ? 'Même lieu que la maintenance.'
+                : ($distanceKm !== null ? sprintf('Distance estimée: %.2f km.', $distanceKm) : 'Distance indisponible, adresse non géocodable.'),
+        ];
+    }
+
+    usort($recommendations, static function (array $left, array $right): int {
+        if (($left['sameLocation'] ?? false) !== ($right['sameLocation'] ?? false)) {
+            return ($left['sameLocation'] ?? false) ? -1 : 1;
+        }
+
+        $leftDistance = $left['distanceKm'] ?? PHP_FLOAT_MAX;
+        $rightDistance = $right['distanceKm'] ?? PHP_FLOAT_MAX;
+        if ($leftDistance !== $rightDistance) {
+            return $leftDistance <=> $rightDistance;
+        }
+
+        return strcmp((string) ($left['name'] ?? ''), (string) ($right['name'] ?? ''));
+    });
+
+    return new JsonResponse([
+        'success' => true,
+        'maintenance' => [
+            'id' => $maintenance->getId_maintenance(),
+            'name' => $maintenance->getNomMaintenance(),
+            'location' => $maintenanceLocation,
+        ],
+        'recommendations' => array_slice($recommendations, 0, 8),
+    ]);
+}
+
+#[Route('/back/maintenance/{id_maintenance}/assign-ai', name: 'app_maintenance_assign_ai_back', methods: ['POST'])]
+public function assignAiBack(
+    Maintenance $maintenance,
+    Request $request,
+    EntityManagerInterface $entityManager,
+    TaskDescriptionAiService $taskDescriptionAiService
+): Response {
+    if (!$this->isAdminSession($request)) {
+        return $this->redirectToRoute('front_login');
+    }
+
+    $technicianId = (int) $request->request->get('technicien_id', 0);
+    if ($technicianId <= 0) {
+        $this->addFlash('warning', 'Veuillez choisir un technicien.');
+        return $this->redirectToRoute('app_maintenance_detail_back', ['id_maintenance' => $maintenance->getId_maintenance()]);
+    }
+
+    $technician = $entityManager->getRepository(User::class)->find($technicianId);
+    if (!$technician instanceof User || (int) $technician->getRole() !== 2) {
+        $this->addFlash('warning', 'Technicien invalide.');
+        return $this->redirectToRoute('app_maintenance_detail_back', ['id_maintenance' => $maintenance->getId_maintenance()]);
+    }
+
+    $taskName = $this->buildAiTaskName($maintenance);
+    try {
+        $taskDescription = $taskDescriptionAiService->generateForMaintenance($maintenance, $taskName, $technician);
+    } catch (\Throwable) {
+        $taskDescription = sprintf(
+            "[RAPPEL] : Intervention auto-affectée.\n\n--- IA DIAGNOSTIC ---\n\nCAUSE PROBABLE : %s\n\nGRAVITÉ : modérée\n\nSOLUTION : Diagnostic initial sur site, correction du composant défectueux puis test de validation.",
+            (string) $maintenance->getDescription()
+        );
+    }
+
+    $tache = new Tache();
+    $tache->setNomTache($taskName);
+    $tache->setDescription($taskDescription);
+    $tache->setDatePrevue(new \DateTime('today'));
+    $tache->setCoutEstimee('0');
+    $tache->setEvaluation(0);
+    $tache->setEtat(0);
+    $tache->setIdMaintenance($maintenance);
+    $tache->setIdTechnicien($technician);
+
+    if (!in_array($maintenance->getStatut(), ['Résolue', 'Résolu', 'Refusée', 'Refusé'], true)) {
+        $maintenance->setStatut('Planifiée');
+    }
+
+    $existingDescription = trim((string) $maintenance->getDescription());
+    $technicianName = trim((string) $technician->getPrenom() . ' ' . (string) $technician->getNom());
+    $assignmentNote = sprintf(
+        '[Affectation IA] %s assigné le %s.',
+        $technicianName !== '' ? $technicianName : 'Technicien',
+        (new \DateTimeImmutable())->format('d/m/Y')
+    );
+    $maintenance->setDescription($existingDescription !== '' ? ($existingDescription . "\n\n" . $assignmentNote) : $assignmentNote);
+
+    $entityManager->persist($tache);
+    $entityManager->flush();
+
+    $this->addFlash('success', 'Affectation IA effectuée et tâche générée automatiquement.');
+
+    return $this->redirectToRoute('app_maintenance_detail_back', ['id_maintenance' => $maintenance->getId_maintenance()]);
 }
 #[Route('/back/maintenance/statistiques', name: 'app_maintenance_stats_back')]
 public function statsBack(MaintenanceRepository $repo, TacheRepository $tacheRepo): Response
@@ -613,6 +748,53 @@ public function notificationsState(MaintenanceRepository $repo): JsonResponse
     ]);
 }
 
+#[Route('/back/maintenance/alertes/urgentes-retard/state', name: 'app_maintenance_urgent_overdue_state_back', methods: ['GET'])]
+public function urgentOverdueState(MaintenanceRepository $repo): JsonResponse
+{
+    $urgentMaintenances = $this->extractUrgentOverdueMaintenances($repo->findAll());
+    $first = $urgentMaintenances[0] ?? null;
+    $items = array_map(function (Maintenance $maintenance): array {
+        return [
+            'id' => $maintenance->getId_maintenance(),
+            'nomMaintenance' => $maintenance->getNomMaintenance(),
+            'lieu' => $maintenance->getLieu(),
+            'equipement' => $maintenance->getEquipement(),
+            'statut' => $maintenance->getStatut(),
+            'priorite' => $maintenance->getPriorite(),
+            'dateDeclaration' => $maintenance->getDateDeclaration()->format('d/m/Y'),
+            'dateDeclarationTs' => $maintenance->getDateDeclaration()->format('U'),
+            'detailUrl' => $this->generateUrl('app_maintenance_detail_back', ['id_maintenance' => $maintenance->getId_maintenance()]),
+        ];
+    }, $urgentMaintenances);
+
+    return new JsonResponse([
+        'count' => count($urgentMaintenances),
+        'listUrl' => $this->generateUrl('app_maintenance_urgent_overdue_back'),
+        'items' => $items,
+        'first' => $first instanceof Maintenance ? [
+            'id' => $first->getId_maintenance(),
+            'nomMaintenance' => $first->getNomMaintenance(),
+            'equipement' => $first->getEquipement(),
+            'dateDeclaration' => $first->getDateDeclaration()->format('d/m/Y'),
+            'detailUrl' => $this->generateUrl('app_maintenance_detail_back', ['id_maintenance' => $first->getId_maintenance()]),
+        ] : null,
+    ]);
+}
+
+#[Route('/back/maintenance/alertes/urgentes-retard', name: 'app_maintenance_urgent_overdue_back')]
+public function urgentOverdueList(MaintenanceRepository $repo): Response
+{
+    $notificationContext = $this->buildMaintenanceNotificationContext($repo);
+    $urgentMaintenances = $this->extractUrgentOverdueMaintenances($repo->findAll());
+
+    return $this->render('back/maintenance/urgent_overdue_list.html.twig', [
+        'urgentMaintenances' => $urgentMaintenances,
+        'pendingNotifications' => $notificationContext['pendingNotifications'],
+        'pendingCount' => $notificationContext['pendingCount'],
+        'unreadCount' => $notificationContext['unreadCount'],
+    ]);
+}
+
 #[Route('/back/maintenance/notifications/mark-read/{id_maintenance}', name: 'app_maintenance_notification_mark_read_back', methods: ['POST'])]
 public function markNotificationReadBack(int $id_maintenance, MaintenanceRepository $repo, EntityManagerInterface $entityManager): Response
 {
@@ -679,6 +861,73 @@ private function buildMaintenanceNotificationContext(MaintenanceRepository $repo
         'pendingCount' => count($pendingNotifications),
         'unreadCount' => $unreadCount,
     ];
+}
+
+/**
+ * @param Maintenance[] $maintenances
+ * @return Maintenance[]
+ */
+private function extractUrgentOverdueMaintenances(array $maintenances): array
+{
+    $threshold = new \DateTimeImmutable('today -1 day');
+
+    $filtered = array_filter($maintenances, static function (Maintenance $maintenance) use ($threshold): bool {
+        $status = mb_strtolower(trim((string) $maintenance->getStatut()));
+        $priority = mb_strtolower(trim((string) $maintenance->getPriorite()));
+        $declarationDate = $maintenance->getDateDeclaration();
+
+        $isPending = in_array($status, ['en attente', 'attente'], true);
+        $isUrgent = str_starts_with($priority, 'urgent');
+        $isOlderThan24h = $declarationDate <= $threshold;
+
+        return $isPending && $isUrgent && $isOlderThan24h;
+    });
+
+    usort($filtered, static function (Maintenance $left, Maintenance $right): int {
+        $dateComparison = $left->getDateDeclaration() <=> $right->getDateDeclaration();
+        if ($dateComparison !== 0) {
+            return $dateComparison;
+        }
+
+        return $left->getId_maintenance() <=> $right->getId_maintenance();
+    });
+
+    return array_values($filtered);
+}
+
+private function isAdminSession(Request $request): bool
+{
+    $sessionUser = $request->getSession()->get('user');
+
+    if (is_object($sessionUser) && method_exists($sessionUser, 'getRole')) {
+        return (int) $sessionUser->getRole() === 0;
+    }
+
+    if (is_array($sessionUser) && isset($sessionUser['role'])) {
+        return (int) $sessionUser['role'] === 0;
+    }
+
+    return false;
+}
+
+private function buildAiTaskName(Maintenance $maintenance): string
+{
+    $type = trim((string) $maintenance->getType());
+    $equipment = trim((string) $maintenance->getEquipement());
+
+    $name = 'Intervention AI';
+    if ($type !== '') {
+        $name .= ' - ' . $type;
+    } elseif ($equipment !== '') {
+        $name .= ' - ' . $equipment;
+    }
+
+    $name = trim($name);
+    if ($name === '') {
+        $name = 'Intervention AI';
+    }
+
+    return mb_substr($name, 0, 50);
 }
 
 #[Route('/tache/evaluer/{id}/{note}', name: 'app_tache_evaluer')]
