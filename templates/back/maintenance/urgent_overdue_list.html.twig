@@ -74,7 +74,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const stateUrl = '{{ path('app_maintenance_urgent_overdue_state_back') }}';
-    const pollMs = 30000;
+    const pollMs = 120000;
     const tableBody = document.getElementById('urgentTableBody');
     const emptyState = document.getElementById('urgentEmptyState');
     const tableWrapper = document.getElementById('urgentTableWrapper');

@@ -18,6 +18,7 @@ use App\Service\MaintenancePlanningMailer;
 use App\Service\MaintenanceDateChangeNotificationStore;
 use App\Service\TaskDescriptionAiService;
 use App\Service\TwilioSmsApiService;
+use Psr\Log\LoggerInterface;
 class TacheController extends AbstractController
 {
     private const DAILY_TASK_OVERLOAD_THRESHOLD = 4;
@@ -29,6 +30,7 @@ public function new(
     MaintenanceRepository $maintenanceRepository,
     MaintenancePlanningMailer $maintenancePlanningMailer,
     TwilioSmsApiService $twilioSmsApiService,
+    LoggerInterface $logger,
     ?int $id_maintenance = null
 ): Response
 {
@@ -75,12 +77,22 @@ public function new(
             $maintenancePlanningMailer->sendPlanningNotification($tache);
            
         } catch (\Throwable $e) {
+            $logger->error('Failed to send maintenance planning email.', [
+                'tacheId' => $tache->getId_tache(),
+                'maintenanceId' => $maintenance?->getId_maintenance(),
+                'error' => $e->getMessage(),
+            ]);
             $this->addFlash('warning', 'La tâche est enregistrée, mais l\'email n\'a pas pu être envoyé.');
         }
 
         try {
             $twilioSmsApiService->sendTaskPlannedSms($tache);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $logger->error('Failed to send Twilio SMS after task creation.', [
+                'tacheId' => $tache->getId_tache(),
+                'maintenanceId' => $maintenance?->getId_maintenance(),
+                'error' => $e->getMessage(),
+            ]);
             $this->addFlash('warning', 'La tâche est enregistrée, mais le SMS Twilio n\'a pas pu être envoyé.');
         }
 
@@ -271,6 +283,12 @@ public function generateDescription(
 
         $sessionUser = $request->getSession()->get('user');
         if (!$sessionUser instanceof User || $sessionUser->getRole() !== 2) {
+            return $this->redirectToRoute('front_login');
+        }
+        
+        $sessionUserId = $sessionUser->getId();
+        if ($sessionUserId === null) {
+            $this->addFlash('danger', 'Session invalide. Veuillez vous reconnecter.');
             return $this->redirectToRoute('front_login');
         }
 

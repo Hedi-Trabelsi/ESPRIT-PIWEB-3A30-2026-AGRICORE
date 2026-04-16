@@ -1,10 +1,11 @@
-Bonjour,
+Bonjour {{ agriculteur and agriculteur.prenom ? agriculteur.prenom : 'cher client' }},
 
-Pour votre maintenance declarée concernant : "{{ maintenance.nomMaintenance }}",
-nous vous informons que la planification est fixée pour le {{ tache.datePrevue|date('Y-m-d') }}.
+Nous avons planifie votre maintenance "{{ maintenance.nomMaintenance }}" pour le {{ tache.datePrevue|date('d/m/Y') }}.
 
-Note du technicien :
-{{ tache.description }}
+Vous trouverez les details dans le PDF joint, incluant :
+- le rappel de maintenance,
+- le nom et le telephone du technicien,
+- son commentaire.
 
-Details financiers :
-- Cout estime : {{ tache.coutEstimee }} DT
+Merci,
+L'equipe AgriCore
