@@ -86,13 +86,13 @@ class Equipement
         return $this;
     }
 
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[ORM\Column(name: 'image_filename', type: 'string', length: 255, nullable: true)]
     private ?string $imageFilename = null;
 
     #[Vich\UploadableField(mapping: 'equipement_images', fileNameProperty: 'imageFilename')]
     private ?File $imageFile = null;
 
-    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    #[ORM\Column(name: 'updated_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
     public function getImageFilename(): ?string
@@ -134,7 +134,7 @@ class Equipement
         return $this;
     }
 
-    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    #[ORM\Column(name: 'is_active', type: 'boolean', options: ['default' => true])]
     private bool $isActive = true;
 
     public function isActive(): bool

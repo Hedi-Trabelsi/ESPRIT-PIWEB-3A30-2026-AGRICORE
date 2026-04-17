@@ -244,6 +244,7 @@ class FrontEquipementController extends AbstractController
 
         $commande = new Commande();
         $commande->setAgriculteurId($sessionUser->getId());
+        $em->persist($commande);
         $totalCommande = 0.0;
 
         foreach ($cart as $id => $qty) {
@@ -257,14 +258,12 @@ class FrontEquipementController extends AbstractController
             $ligne->setQuantite($qty);
             $ligne->setPrixUnitaire(number_format($prix, 2, '.', ''));
             $ligne->setTotalLigne(number_format($totalLigne, 2, '.', ''));
-            $ligne->setCommande($commande);
-            $em->persist($ligne);
+            $commande->addLigne($ligne);
 
             $eq->setQuantite($eq->getQuantite() - $qty);
         }
 
         $commande->setTotal(number_format($totalCommande, 2, '.', ''));
-        $em->persist($commande);
         $em->flush();
 
         $cartService->clear();
