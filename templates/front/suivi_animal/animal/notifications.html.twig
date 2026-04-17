@@ -1,0 +1,314 @@
+﻿{% extends 'front/base_front.html.twig' %}
+{% block title %}Notifications Animaux{% endblock %}
+{% block body %}
+<style>
+:root{--g:#2d6a4f;--g2:#40916c;--g3:#74c69d;--gl:#d8f3dc;--gd:#1b4332;--red:#c62828;--orange:#e65100;--yellow:#f9a825;}
+.notif-page{max-width:960px;margin:0 auto;padding:2rem 1rem 5rem;}
+.notif-hero{background:linear-gradient(135deg,#1a0a0a 0%,#c62828 50%,#e65100 100%);border-radius:28px;padding:2.8rem;margin-bottom:2rem;position:relative;overflow:hidden;box-shadow:0 28px 72px rgba(198,40,40,.35);}
+.notif-hero::before{content:'';position:absolute;top:-90px;right:-90px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.08),transparent 70%);}
+.notif-hero-inner{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+.notif-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px;animation:badgePulse 2s ease-in-out infinite;}
+.notif-hero-title{font-size:28px;font-weight:800;color:#fff;margin:0 0 6px;}
+.notif-hero-sub{font-size:13px;color:rgba(255,255,255,.7);margin:0;}
+.notif-back{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;padding:10px 22px;border-radius:14px;font-size:13px;font-weight:700;text-decoration:none;transition:.25s;white-space:nowrap;}
+.notif-back:hover{background:rgba(255,255,255,.22);color:#fff;}
+
+/* Support banner */
+.support-banner{border-radius:16px;padding:14px 20px;margin-bottom:1.5rem;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700;}
+.support-ok{background:linear-gradient(135deg,#f1f8e9,#dcedc8);border:2px solid #aed581;color:#33691e;}
+.support-warn{background:linear-gradient(135deg,#fff8e1,#ffecb3);border:2px solid #ffd54f;color:#e65100;}
+
+/* Actions bar */
+.notif-actions{display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;}
+.notif-btn{padding:12px 24px;border:none;border-radius:14px;font-size:14px;font-weight:800;cursor:pointer;transition:.25s;display:flex;align-items:center;gap:8px;}
+.btn-scan{background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;box-shadow:0 6px 20px rgba(45,106,79,.3);}
+.btn-scan:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(45,106,79,.4);}
+.btn-test{background:linear-gradient(135deg,#1a237e,#3949ab);color:#fff;}
+.btn-test:hover{transform:translateY(-2px);}
+.btn-scan:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+
+/* Counter */
+.notif-counter{background:#fff;border-radius:16px;padding:1.2rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(0,0,0,.06);border:1px solid #f0f0f0;}
+.counter-num{font-size:36px;font-weight:900;}
+.counter-num.zero{color:var(--g);}
+.counter-num.danger{color:var(--red);animation:counterPulse 1s ease-in-out infinite;}
+.counter-lbl{font-size:13px;color:#6c757d;margin-top:2px;}
+.counter-time{font-size:12px;color:#9ca3af;}
+
+/* Alertes */
+.alertes-grid{display:flex;flex-direction:column;gap:1rem;}
+.alerte-card{background:#fff;border-radius:18px;padding:1.2rem 1.5rem;box-shadow:0 4px 20px rgba(0,0,0,.06);border-left:5px solid;display:flex;align-items:center;justify-content:space-between;gap:1rem;animation:slideIn .4s ease;}
+.alerte-card.critique{border-left-color:var(--red);background:linear-gradient(135deg,#fff,#fff5f5);}
+.alerte-card.avertissement{border-left-color:var(--orange);background:linear-gradient(135deg,#fff,#fff8f0);}
+.alerte-left{display:flex;align-items:center;gap:14px;}
+.alerte-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.alerte-avatar.critique{background:linear-gradient(135deg,#ffebee,#ffcdd2);}
+.alerte-avatar.avertissement{background:linear-gradient(135deg,#fff8e1,#ffecb3);}
+.alerte-code{font-size:15px;font-weight:800;color:#1a1a1a;}
+.alerte-espece{font-size:12px;color:#6c757d;margin-top:2px;}
+.alerte-msg{font-size:13px;font-weight:700;margin-top:4px;}
+.alerte-msg.critique{color:var(--red);}
+.alerte-msg.avertissement{color:var(--orange);}
+.notif-btn-send{padding:8px 16px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;white-space:nowrap;}
+.notif-btn-send.critique{background:var(--red);color:#fff;}
+.notif-btn-send.critique:hover{background:#b71c1c;}
+.notif-btn-send.avertissement{background:var(--orange);color:#fff;}
+.notif-btn-send.avertissement:hover{background:#bf360c;}
+
+/* OK state */
+.all-ok{background:linear-gradient(135deg,#f1f8e9,#dcedc8);border:2px solid #aed581;border-radius:18px;padding:2.5rem;text-align:center;}
+.all-ok-icon{font-size:56px;margin-bottom:1rem;}
+.all-ok-title{font-size:20px;font-weight:800;color:#33691e;margin-bottom:6px;}
+.all-ok-sub{font-size:14px;color:#558b2f;}
+
+/* Manual notif */
+.manual-card{background:#fff;border-radius:22px;padding:2rem;box-shadow:0 4px 20px rgba(0,0,0,.06);border:1px solid #f0f0f0;margin-top:1.5rem;}
+.manual-title{font-size:14px;font-weight:800;color:var(--gd);margin-bottom:1.2rem;padding-bottom:10px;border-bottom:2px solid #f0fdf4;display:flex;align-items:center;gap:8px;}
+.manual-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+.manual-field{display:flex;flex-direction:column;gap:6px;}
+.manual-field.full{grid-column:1/-1;}
+.manual-label{font-size:11px;font-weight:700;color:var(--g2);text-transform:uppercase;letter-spacing:.6px;}
+.manual-select,.manual-input{background:#f8fffe;border:1.5px solid #c8e6c9;border-radius:12px;padding:11px 14px;font-size:13px;color:var(--gd);width:100%;box-sizing:border-box;outline:none;transition:.25s;appearance:none;}
+.manual-select:focus,.manual-input:focus{border-color:var(--g);background:#fff;box-shadow:0 0 0 4px rgba(45,106,79,.1);}
+.manual-btn{padding:12px 24px;background:linear-gradient(135deg,var(--red),var(--orange));color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;transition:.25s;}
+.manual-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(198,40,40,.3);}
+
+/* Loading */
+.scan-loading{text-align:center;padding:2rem;display:none;}
+.scan-loading.show{display:block;}
+.scan-dots{display:flex;justify-content:center;gap:8px;margin-bottom:1rem;}
+.scan-dot{width:12px;height:12px;border-radius:50%;background:var(--red);animation:dotBounce 1.2s ease-in-out infinite;}
+.scan-dot:nth-child(1){animation-delay:0s;}
+.scan-dot:nth-child(2){animation-delay:.2s;}
+.scan-dot:nth-child(3){animation-delay:.4s;}
+
+@keyframes badgePulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.3)}50%{box-shadow:0 0 0 8px rgba(255,255,255,0)}}
+@keyframes counterPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
+@keyframes dotBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@media(max-width:640px){.notif-actions{flex-direction:column;}.manual-grid{grid-template-columns:1fr;}.manual-field.full{grid-column:1;}.notif-hero-inner{flex-direction:column;}}
+</style>
+
+<div class="notif-page">
+
+  <div class="notif-hero">
+    <div class="notif-hero-inner">
+      <div>
+        <span class="notif-badge">🔔 Web Notifications API</span>
+        <h1 class="notif-hero-title">🚨 Alertes & Notifications Animaux</h1>
+        <p class="notif-hero-sub">Détection automatique des anomalies vitales + notifications desktop en temps réel</p>
+      </div>
+      <a href="{{ path('app_animal_index') }}" class="notif-back"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+    </div>
+  </div>
+
+  <div class="support-banner" id="supportBanner">
+    <span style="font-size:24px;">⏳</span>
+    <span>Vérification du support des notifications...</span>
+  </div>
+
+  <div class="notif-actions">
+    <button class="notif-btn btn-scan" id="scanBtn" onclick="scannerAnomalies()">
+      <i class="fas fa-search-plus"></i> Scanner les anomalies
+    </button>
+    <button class="notif-btn btn-test" onclick="testerNotifications()">
+      🧪 Tester les notifications
+    </button>
+  </div>
+
+  <div class="notif-counter" id="counterBox" style="display:none;">
+    <div>
+      <div class="counter-num" id="counterNum">0</div>
+      <div class="counter-lbl">alerte(s) détectée(s)</div>
+    </div>
+    <div class="counter-time" id="counterTime"></div>
+  </div>
+
+  <div class="scan-loading" id="scanLoading">
+    <div class="scan-dots">
+      <div class="scan-dot"></div><div class="scan-dot"></div><div class="scan-dot"></div>
+    </div>
+    <p style="font-size:15px;font-weight:700;color:var(--red);">🔍 Scan des paramètres vitaux en cours...</p>
+  </div>
+
+  <div class="alertes-grid" id="alertesGrid"></div>
+
+  <!-- Notification manuelle -->
+  <div class="manual-card">
+    <div class="manual-title"><i class="fas fa-bell" style="color:var(--red)"></i> Envoyer une notification manuelle</div>
+    <div class="manual-grid">
+      <div class="manual-field">
+        <label class="manual-label">🐄 Animal</label>
+        <select class="manual-select" id="manualAnimal">
+          <option value="">— Sélectionner —</option>
+          {% for animal in animals %}
+          <option value="{{ animal.codeAnimal }}">{{ animal.codeAnimal }} — {{ animal.espece }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="manual-field">
+        <label class="manual-label">⚠️ Type</label>
+        <select class="manual-select" id="manualType">
+          <option value="critique">🚨 Urgence critique</option>
+          <option value="avertissement" selected>⚠️ Avertissement</option>
+          <option value="info">ℹ️ Information</option>
+        </select>
+      </div>
+      <div class="manual-field full">
+        <label class="manual-label">💬 Message</label>
+        <input type="text" class="manual-input" id="manualMessage" placeholder="Ex: Vérifier l'alimentation de l'animal...">
+      </div>
+    </div>
+    <button class="manual-btn" onclick="envoyerManuelle()">
+      <i class="fas fa-paper-plane me-2"></i> Envoyer la notification
+    </button>
+  </div>
+
+</div>
+
+<script>
+// ── Vérifier support notifications (équivalent isSupported() Java) ──
+function checkSupport() {
+  const banner = document.getElementById('supportBanner');
+  if (!('Notification' in window)) {
+    banner.className = 'support-banner support-warn';
+    banner.innerHTML = '<span style="font-size:24px;">⚠️</span><span>Notifications non supportées par ce navigateur</span>';
+    return;
+  }
+  // Demander permission IMMÉDIATEMENT sans attendre un clic
+  if (Notification.permission === 'default') {
+    Notification.requestPermission().then(function(perm) {
+      if (perm === 'granted') {
+        banner.className = 'support-banner support-ok';
+        banner.innerHTML = '<span style="font-size:24px;">✅</span><span>Notifications Desktop activées — vous recevrez des alertes automatiques sur votre PC</span>';
+        new Notification('✅ AgriCore activé', { body: 'Vous recevrez des alertes automatiques sur votre bureau Windows', icon: '/favicon.ico' });
+      } else {
+        banner.className = 'support-banner support-warn';
+        banner.innerHTML = '<span style="font-size:24px;">⚠️</span><span>Permission refusée — Autorisez les notifications dans les paramètres du navigateur</span>';
+      }
+    });
+  } else if (Notification.permission === 'granted') {
+    banner.className = 'support-banner support-ok';
+    banner.innerHTML = '<span style="font-size:24px;">✅</span><span>Notifications Desktop actives — Alertes automatiques activées sur votre PC Windows</span>';
+  } else {
+    banner.className = 'support-banner support-warn';
+    banner.innerHTML = '<span style="font-size:24px;">🔒</span><span>Notifications bloquées — Cliquez sur le cadenas 🔒 dans la barre d\'adresse → Autoriser les notifications</span>';
+  }
+}
+
+// ── Envoyer notification desktop Windows ──
+function envoyerNotifDesktop(titre, message, niveau) {
+  if (!('Notification' in window)) return;
+  function send() {
+    new Notification(titre, {
+      body: message,
+      icon: '/favicon.ico',
+      requireInteraction: niveau === 'critique',
+      tag: titre + Date.now(),
+    });
+  }
+  if (Notification.permission === 'granted') {
+    send();
+  } else if (Notification.permission !== 'denied') {
+    Notification.requestPermission().then(p => { if (p === 'granted') send(); });
+  }
+}
+
+// ── Scanner anomalies (équivalent scannerAnomalies() Java) ──
+async function scannerAnomalies() {
+  const btn     = document.getElementById('scanBtn');
+  const loading = document.getElementById('scanLoading');
+  const grid    = document.getElementById('alertesGrid');
+  const counter = document.getElementById('counterBox');
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Scan en cours...';
+  loading.classList.add('show');
+  grid.innerHTML = '';
+  counter.style.display = 'none';
+
+  try {
+    const resp = await fetch('{{ path("app_notifications_scanner") }}');
+    const data = await resp.json();
+
+    counter.style.display = 'flex';
+    document.getElementById('counterTime').textContent = '🕐 Dernier scan : ' + data.timestamp;
+
+    const num = document.getElementById('counterNum');
+    num.textContent = data.nbAlertes;
+    num.className = 'counter-num ' + (data.nbAlertes > 0 ? 'danger' : 'zero');
+
+    if (data.alertes.length === 0) {
+      grid.innerHTML = `
+        <div class="all-ok">
+          <div class="all-ok-icon">✅</div>
+          <div class="all-ok-title">Tous les animaux sont en bonne santé !</div>
+          <div class="all-ok-sub">Aucune anomalie détectée sur les paramètres vitaux</div>
+        </div>`;
+      envoyerNotifDesktop('✅ Scan terminé', 'Tous les animaux sont en bonne santé !', 'info');
+    } else {
+      // Envoyer notifications desktop pour chaque alerte
+      data.alertes.forEach((a, i) => {
+        setTimeout(() => {
+          envoyerNotifDesktop('🐾 ' + a.animal, a.message, a.niveau);
+        }, i * 500);
+
+        const card = document.createElement('div');
+        card.className = `alerte-card ${a.niveau}`;
+        card.innerHTML = `
+          <div class="alerte-left">
+            <div class="alerte-avatar ${a.niveau}">
+              ${a.niveau === 'critique' ? '🚨' : '⚠️'}
+            </div>
+            <div>
+              <div class="alerte-code">🐾 ${a.animal}</div>
+              <div class="alerte-espece">${a.espece} · ${a.race}</div>
+              <div class="alerte-msg ${a.niveau}">${a.message}</div>
+            </div>
+          </div>
+          <button class="notif-btn-send ${a.niveau}" onclick="envoyerNotifDesktop('${a.animal}', '${a.message.replace(/'/g, "\\'")}', '${a.niveau}')">
+            🔔 Notifier
+          </button>`;
+        grid.appendChild(card);
+      });
+    }
+  } catch(e) {
+    grid.innerHTML = `<div style="color:red;padding:1rem;">Erreur : ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-search-plus"></i> Scanner les anomalies';
+    loading.classList.remove('show');
+  }
+}
+
+// ── Tester notifications ──
+function testerNotifications() {
+  if (Notification.permission === 'denied') {
+    console.warn('Notifications bloquées');
+    return;
+  }
+  Notification.requestPermission().then(perm => {
+    if (perm === 'granted') {
+      envoyerNotifDesktop('🧪 Test AgriCore', 'Les notifications Desktop fonctionnent !', 'info');
+      setTimeout(() => envoyerNotifDesktop('⚠️ Test Avertissement', 'Ceci est un test d\'avertissement', 'avertissement'), 1000);
+      setTimeout(() => envoyerNotifDesktop('🚨 Test Urgence — A001', 'État CRITIQUE — Consultez un vétérinaire immédiatement !', 'critique'), 2000);
+    }
+  });
+}
+
+// ── Notification manuelle (équivalent envoyerManuelle() Java) ──
+function envoyerManuelle() {
+  const animal  = document.getElementById('manualAnimal').value;
+  const type    = document.getElementById('manualType').value;
+  const message = document.getElementById('manualMessage').value.trim();
+  if (!animal || !message) return;
+  envoyerNotifDesktop('🐾 ' + animal, message, type);
+  document.getElementById('manualMessage').value = '';
+}
+
+// Init
+checkSupport();
+// Scanner automatiquement au chargement
+scannerAnomalies();
+</script>
+{% endblock %}

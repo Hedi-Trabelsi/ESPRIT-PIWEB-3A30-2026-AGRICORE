@@ -5,7 +5,6 @@ namespace App\Controller;
 use App\Entity\Animal;
 use App\Entity\SuiviAnimal;
 use App\Repository\AnimalRepository;
-use App\Repository\SuiviAnimalRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,7 +21,23 @@ class AnimalBackController extends AbstractController
         $sortBy = $request->query->get('sortBy', 'codeAnimal');
         $order  = $request->query->get('order', 'ASC');
 
-        $animals = $repo->search($q, $sortBy, $order);
+        $allowed = ['codeAnimal', 'espece', 'race', 'sexe', 'dateNaissance'];
+        $sortBy  = in_array($sortBy, $allowed) ? $sortBy : 'codeAnimal';
+        $order   = strtoupper($order) === 'DESC' ? 'DESC' : 'ASC';
+
+        $qb = $repo->createQueryBuilder('a');
+
+        if ($q !== '') {
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    $qb->expr()->like('a.codeAnimal', ':q'),
+                    $qb->expr()->like('a.espece',     ':q'),
+                    $qb->expr()->like('a.race',       ':q')
+                )
+            )->setParameter('q', '%'.$q.'%');
+        }
+
+        $animals = $qb->orderBy('a.'.$sortBy, $order)->getQuery()->getResult();
 
         return $this->render('back/suivi_animal/animal/index.html.twig', [
             'animals' => $animals,
@@ -34,13 +49,11 @@ class AnimalBackController extends AbstractController
 
     // ─── SHOW ─────────────────────────────────────────────────────────────────
     #[Route('/back/animaux/{id}', name: 'back_animal_show', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function show(Animal $animal, SuiviAnimalRepository $suiviRepo): Response
+    public function show(Animal $animal): Response
     {
-        $suivis = $suiviRepo->findBy(['animal' => $animal], ['dateSuivi' => 'DESC']);
-
         return $this->render('back/suivi_animal/animal/show.html.twig', [
             'animal' => $animal,
-            'suivis' => $suivis,
+            'suivis' => $animal->getSuivis(),
         ]);
     }
 
@@ -92,12 +105,14 @@ class AnimalBackController extends AbstractController
 
     // ─── DELETE ───────────────────────────────────────────────────────────────
     #[Route('/back/animaux/{id}/delete', name: 'back_animal_delete', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function delete(Animal $animal, EntityManagerInterface $em): Response
+    public function delete(Animal $animal, EntityManagerInterface $em, Request $request): Response
     {
-        $em->remove($animal);
-        $em->flush();
+        if ($this->isCsrfTokenValid('delete'.$animal->getIdAnimal(), $request->request->get('_token'))) {
+            $em->remove($animal);
+            $em->flush();
+            $this->addFlash('success', 'Animal supprimé.');
+        }
 
-        $this->addFlash('success', 'Animal supprimé.');
         return $this->redirectToRoute('back_animaux');
     }
 }

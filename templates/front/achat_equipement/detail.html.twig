@@ -1,0 +1,559 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block title %}{{ equipement.nom }} | Fiche intelligente{% endblock %}
+
+{% block body %}
+<style>
+    .detail-page {
+        --detail-night: #10261d;
+        --detail-forest: #1f6c44;
+        --detail-green: #2f9a61;
+        --detail-lime: #b8f296;
+        --detail-gold: #ffd35c;
+        --detail-mist: #f4f8f3;
+        --detail-line: rgba(16, 38, 29, 0.1);
+        --detail-soft-text: #6b7d71;
+    }
+    .detail-shell {
+        padding: 1.8rem 0 4rem;
+    }
+    .detail-back {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        color: var(--detail-forest);
+        text-decoration: none;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+    .detail-back:hover {
+        color: var(--detail-night);
+    }
+    .detail-grid {
+        display: grid;
+        grid-template-columns: minmax(0, .95fr) minmax(0, 1.25fr);
+        gap: 1.4rem;
+        align-items: start;
+    }
+    .detail-card {
+        background: rgba(255,255,255,.94);
+        border: 1px solid var(--detail-line);
+        border-radius: 32px;
+        box-shadow: 0 24px 60px rgba(17, 52, 28, .08);
+    }
+    .detail-product {
+        overflow: hidden;
+        position: relative;
+        background:
+            radial-gradient(circle at top right, rgba(184,242,150,.12), transparent 24%),
+            linear-gradient(180deg, #ffffff 0%, #f8fbf7 100%);
+    }
+    .detail-visual {
+        position: relative;
+        padding: 1.1rem 1.1rem 0;
+    }
+    .detail-visual-frame {
+        position: relative;
+        overflow: hidden;
+        border-radius: 28px;
+        background:
+            linear-gradient(135deg, rgba(16,38,29,.88), rgba(31,108,68,.62)),
+            linear-gradient(180deg, #edf6ef 0%, #dcecdc 100%);
+        min-height: 430px;
+    }
+    .detail-visual-frame::after {
+        content: "";
+        position: absolute;
+        right: -90px;
+        bottom: -120px;
+        width: 260px;
+        height: 260px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.12);
+    }
+    .detail-visual-frame img {
+        width: 100%;
+        height: 430px;
+        object-fit: contain;
+        position: relative;
+        z-index: 1;
+        padding: 1rem;
+        filter: drop-shadow(0 22px 34px rgba(0,0,0,.18));
+    }
+    .detail-empty {
+        min-height: 430px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255,255,255,.8);
+        font-size: 1.05rem;
+    }
+    .detail-floating-badge {
+        position: absolute;
+        top: 1.8rem;
+        left: 1.8rem;
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        border-radius: 999px;
+        padding: .5rem .85rem;
+        background: rgba(255,255,255,.92);
+        color: var(--detail-forest);
+        font-size: .8rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        box-shadow: 0 14px 26px rgba(16,38,29,.12);
+    }
+    .detail-product-body {
+        padding: 1.4rem 1.6rem 1.6rem;
+    }
+    .detail-title {
+        font-size: clamp(2.2rem, 4vw, 3.3rem);
+        line-height: .98;
+        color: var(--detail-night);
+        font-weight: 900;
+        margin-bottom: .8rem;
+        letter-spacing: -.03em;
+    }
+    .detail-price {
+        color: var(--detail-green);
+        font-size: 2.4rem;
+        line-height: 1;
+        font-weight: 900;
+        margin-bottom: .55rem;
+    }
+    .detail-stock {
+        color: var(--detail-soft-text);
+        font-size: 1.05rem;
+        margin-bottom: 1.2rem;
+    }
+    .detail-mini-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .75rem;
+        margin-bottom: 1.2rem;
+    }
+    .detail-mini-card {
+        border-radius: 20px;
+        padding: 1rem;
+        background: linear-gradient(180deg, #f7fbf7, #ffffff);
+        border: 1px solid rgba(16,38,29,.08);
+    }
+    .detail-mini-card .label {
+        display: block;
+        color: var(--detail-soft-text);
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: .2rem;
+    }
+    .detail-mini-card .value {
+        display: block;
+        color: var(--detail-night);
+        font-size: 1.15rem;
+        font-weight: 900;
+    }
+    .detail-add-form .input-group {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: .6rem;
+    }
+    .detail-qty-group {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        flex: 1 1 auto;
+        padding: .35rem;
+        border-radius: 16px;
+        border: 1px solid rgba(16, 38, 29, .12);
+        background: #fff;
+    }
+    .detail-qty-btn {
+        width: 48px;
+        min-width: 48px;
+        min-height: 48px;
+        border: 1px solid rgba(16, 38, 29, .14);
+        border-radius: 14px;
+        background: #f5f8f4;
+        color: var(--detail-night);
+        font-size: 1.3rem;
+        font-weight: 900;
+        line-height: 1;
+    }
+    .detail-qty-input {
+        flex: 1 1 auto;
+        min-width: 0;
+        text-align: center;
+        border: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        font-weight: 800;
+        font-size: 1.05rem;
+    }
+    .detail-add-form .form-control,
+    .detail-add-form .btn {
+        min-height: 56px;
+        border-radius: 16px !important;
+    }
+    .detail-add-form .btn {
+        font-weight: 800;
+        min-width: 180px;
+        white-space: nowrap;
+        flex: 0 0 auto;
+    }
+    .detail-stack {
+        display: grid;
+        gap: 1.2rem;
+    }
+    .detail-ai-card {
+        position: relative;
+        overflow: hidden;
+        padding: 1.5rem;
+        background:
+            radial-gradient(circle at top right, rgba(184,242,150,.16), transparent 24%),
+            linear-gradient(180deg, #ffffff 0%, #f8fbf7 100%);
+    }
+    .detail-ai-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1rem;
+        align-items: start;
+        margin-bottom: 1.25rem;
+    }
+    .detail-ai-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        font-size: .82rem;
+        font-weight: 900;
+        color: var(--detail-soft-text);
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        margin-bottom: .55rem;
+    }
+    .detail-ai-title {
+        color: var(--detail-night);
+        font-size: clamp(1.9rem, 3vw, 3rem);
+        line-height: 1.02;
+        font-weight: 900;
+        margin-bottom: .35rem;
+    }
+    .detail-ai-provider {
+        color: var(--detail-soft-text);
+        font-size: 1rem;
+    }
+    .score-ring {
+        width: 126px;
+        height: 126px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background:
+            radial-gradient(circle at center, #fff 47%, transparent 48%),
+            conic-gradient(#2f7d32 {{ insights.score }}%, #dde9de 0);
+        box-shadow: 0 14px 28px rgba(31,108,68,.12);
+    }
+    .score-ring .small {
+        color: var(--detail-soft-text) !important;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+    .score-ring .h3 {
+        color: var(--detail-night);
+        font-size: 2rem;
+        font-weight: 900;
+    }
+    .detail-ai-summary {
+        color: #43584a;
+        font-size: 1.18rem;
+        line-height: 1.7;
+        white-space: pre-line;
+        margin-bottom: 1.25rem;
+    }
+    .detail-bullets {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .8rem;
+    }
+    .detail-bullet {
+        border-radius: 22px;
+        padding: 1rem;
+        background: #fff;
+        border: 1px solid rgba(16,38,29,.1);
+        min-height: 132px;
+        color: #506355;
+        font-size: 1rem;
+        line-height: 1.55;
+    }
+    .detail-news-card,
+    .detail-related-card {
+        padding: 1.5rem;
+    }
+    .detail-section-title {
+        color: var(--detail-night);
+        font-size: 1.7rem;
+        font-weight: 900;
+        margin-bottom: 1rem;
+    }
+    .detail-news-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .9rem;
+    }
+    .detail-news-item {
+        border-radius: 24px;
+        padding: 1rem;
+        background: linear-gradient(180deg, #ffffff, #f8fbf7);
+        border: 1px solid rgba(16,38,29,.08);
+        box-shadow: 0 12px 24px rgba(17,52,28,.04);
+    }
+    .detail-news-meta {
+        color: var(--detail-soft-text);
+        font-size: .86rem;
+        margin-bottom: .55rem;
+    }
+    .detail-news-title {
+        color: var(--detail-night);
+        font-weight: 900;
+        font-size: 1.08rem;
+        line-height: 1.3;
+        margin-bottom: .55rem;
+    }
+    .detail-news-desc {
+        color: #5a6d60;
+        font-size: .95rem;
+        line-height: 1.55;
+    }
+    .detail-news-item .btn {
+        margin-top: .9rem;
+        border-radius: 14px;
+        font-weight: 800;
+    }
+    .detail-related-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .9rem;
+    }
+    .detail-related-item {
+        display: block;
+        text-decoration: none;
+        border-radius: 24px;
+        padding: 1rem;
+        background: linear-gradient(180deg, #ffffff, #f8fbf7);
+        border: 1px solid rgba(16,38,29,.08);
+        transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .detail-related-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 16px 28px rgba(17,52,28,.08);
+    }
+    .detail-related-item strong {
+        display: block;
+        color: var(--detail-night);
+        font-size: 1rem;
+        margin-bottom: .2rem;
+    }
+    .detail-related-item span {
+        display: block;
+        color: var(--detail-soft-text);
+        font-size: .9rem;
+    }
+    .detail-related-price {
+        margin-top: .6rem;
+        color: var(--detail-green) !important;
+        font-weight: 900;
+    }
+    @media (max-width: 1199px) {
+        .detail-grid {
+            grid-template-columns: 1fr;
+        }
+        .detail-related-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 991px) {
+        .detail-mini-grid,
+        .detail-bullets,
+        .detail-news-grid {
+            grid-template-columns: 1fr;
+        }
+        .detail-ai-head {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 767px) {
+        .detail-card {
+            border-radius: 24px;
+        }
+        .detail-product-body,
+        .detail-ai-card,
+        .detail-news-card,
+        .detail-related-card {
+            padding: 1.15rem;
+        }
+        .detail-visual {
+            padding: .85rem .85rem 0;
+        }
+        .detail-visual-frame,
+        .detail-visual-frame img,
+        .detail-empty {
+            min-height: 300px;
+            height: 300px;
+        }
+        .detail-title {
+            font-size: 2.2rem;
+        }
+        .detail-related-grid {
+            grid-template-columns: 1fr;
+        }
+        .score-ring {
+            width: 110px;
+            height: 110px;
+        }
+    }
+</style>
+
+<div class="detail-page">
+    <div class="container detail-shell">
+        <a href="{{ path('app_equipement_catalogue') }}" class="detail-back">&larr; Retour au catalogue</a>
+
+        <div class="detail-grid">
+            <section class="detail-card detail-product">
+                <div class="detail-visual">
+                    <div class="detail-visual-frame">
+                        <span class="detail-floating-badge">{{ equipement.type }}</span>
+                        {% if equipement.imageFilename %}
+                            <img src="{{ vich_uploader_asset(equipement, 'imageFile') }}" alt="{{ equipement.nom }}">
+                        {% else %}
+                            <div class="detail-empty">Pas d'image disponible</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="detail-product-body">
+                    <h1 class="detail-title">{{ equipement.nom }}</h1>
+                    <div class="detail-price">{{ equipement.prix }} TND</div>
+                    <div class="detail-stock">Stock disponible: {{ equipement.quantite }} unite(s)</div>
+
+                    <div class="detail-mini-grid">
+                        <div class="detail-mini-card">
+                            <span class="label">EUR</span>
+                            <span class="value">{{ priceData.EUR|number_format(2, '.', ' ') }}</span>
+                        </div>
+                        <div class="detail-mini-card">
+                            <span class="label">USD</span>
+                            <span class="value">{{ priceData.USD|number_format(2, '.', ' ') }}</span>
+                        </div>
+                        <div class="detail-mini-card">
+                            <span class="label">Source</span>
+                            <span class="value text-capitalize">{{ priceData.meta.source }}</span>
+                        </div>
+                    </div>
+
+                    {% if equipement.quantite > 0 %}
+                        <form method="post" action="{{ path('app_add_to_cart', {id: equipement.id}) }}" class="detail-add-form">
+                            <div class="input-group input-group-lg">
+                                <div class="detail-qty-group" data-quantity-picker>
+                                    <button type="button" class="detail-qty-btn" data-quantity-action="decrease">-</button>
+                                    <input type="number" name="quantity" value="1" min="1" max="{{ equipement.quantite }}" class="form-control detail-qty-input" data-quantity-input>
+                                    <button type="button" class="detail-qty-btn" data-quantity-action="increase">+</button>
+                                </div>
+                                <button class="btn btn-success">Ajouter au panier</button>
+                            </div>
+                        </form>
+                    {% endif %}
+                </div>
+            </section>
+
+            <div class="detail-stack">
+                <section class="detail-card detail-ai-card">
+                    <div class="detail-ai-head">
+                        <div>
+                            <div class="detail-ai-kicker">Assistant Agricore</div>
+                            <h2 class="detail-ai-title">Analyse IA de l'equipement</h2>
+                            <div class="detail-ai-provider">Fournisseur: {{ insights.provider == 'groq' ? 'Groq API' : 'moteur local' }}</div>
+                        </div>
+                        <div class="score-ring">
+                            <div class="text-center">
+                                <div class="small">Score</div>
+                                <div class="h3 mb-0">{{ insights.score }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-ai-summary">{{ insights.summary }}</div>
+
+                    <div class="detail-bullets">
+                        {% for bullet in insights.bullets %}
+                            <div class="detail-bullet">{{ bullet }}</div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="detail-card detail-news-card">
+                    <h3 class="detail-section-title">Actualites et veille marche</h3>
+                    <div class="detail-news-grid">
+                        {% for article in news %}
+                            <article class="detail-news-item">
+                                <div class="detail-news-meta">{{ article.source }}{% if article.publishedAt %} • {{ article.publishedAt|slice(0, 16) }}{% endif %}</div>
+                                <div class="detail-news-title">{{ article.title }}</div>
+                                <div class="detail-news-desc">{{ article.description }}</div>
+                                {% if article.link %}
+                                    <a href="{{ article.link }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success">Ouvrir l'article</a>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        {% if relatedEquipements is not empty %}
+            <section class="detail-card detail-related-card mt-4">
+                <h3 class="detail-section-title">Equipements du meme type</h3>
+                <div class="detail-related-grid">
+                    {% for related in relatedEquipements %}
+                        <a href="{{ path('app_equipement_detail', {id: related.id}) }}" class="detail-related-item">
+                            <strong>{{ related.nom }}</strong>
+                            <span>{{ related.type }}</span>
+                            <span class="detail-related-price">{{ related.prix }} TND</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+    </div>
+</div>
+<script>
+    (() => {
+        document.querySelectorAll('[data-quantity-picker]').forEach((picker) => {
+            const input = picker.querySelector('[data-quantity-input]');
+            if (!input) {
+                return;
+            }
+
+            const min = Number(input.min || 1);
+            const max = Number(input.max || Number.MAX_SAFE_INTEGER);
+
+            picker.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-quantity-action]');
+                if (!button) {
+                    return;
+                }
+
+                const current = Number(input.value || min);
+                const next = button.dataset.quantityAction === 'increase' ? current + 1 : current - 1;
+                input.value = String(Math.min(max, Math.max(min, next)));
+            });
+
+            input.addEventListener('input', () => {
+                const current = Number(input.value || min);
+                input.value = String(Math.min(max, Math.max(min, current)));
+            });
+        });
+    })();
+</script>
+{% endblock %}

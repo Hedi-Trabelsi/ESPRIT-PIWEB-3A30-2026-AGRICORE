@@ -5,9 +5,11 @@ namespace App\Entity;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-
 use App\Repository\EquipementRepository;
+use Symfony\Component\HttpFoundation\File\File;
+use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
+#[Vich\Uploadable]
 #[ORM\Entity(repositoryClass: EquipementRepository::class)]
 #[ORM\Table(name: 'equipements')]
 class Equipement
@@ -84,8 +86,14 @@ class Equipement
         return $this;
     }
 
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[ORM\Column(name: 'image_filename', type: 'string', length: 255, nullable: true)]
     private ?string $imageFilename = null;
+
+    #[Vich\UploadableField(mapping: 'equipement_images', fileNameProperty: 'imageFilename')]
+    private ?File $imageFile = null;
+
+    #[ORM\Column(name: 'updated_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $updatedAt = null;
 
     public function getImageFilename(): ?string
     {
@@ -98,7 +106,35 @@ class Equipement
         return $this;
     }
 
-    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    public function setImageFile(?File $imageFile = null): self
+    {
+        $this->imageFile = $imageFile;
+
+        if ($imageFile !== null) {
+            $this->updatedAt = new \DateTimeImmutable();
+        }
+
+        return $this;
+    }
+
+    public function getImageFile(): ?File
+    {
+        return $this->imageFile;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?\DateTimeImmutable $updatedAt): self
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
+
+    #[ORM\Column(name: 'is_active', type: 'boolean', options: ['default' => true])]
     private bool $isActive = true;
 
     public function isActive(): bool

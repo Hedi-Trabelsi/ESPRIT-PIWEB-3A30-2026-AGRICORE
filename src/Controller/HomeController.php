@@ -3,10 +3,9 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\HttpFoundation\Request;
-use App\Repository\AnimalRepository;
 
 class HomeController extends AbstractController
 {
@@ -34,23 +33,10 @@ class HomeController extends AbstractController
         return $this->render('front/evenements/evenements.html.twig');
     }
 
-  
-
-     #[Route('/suivi-animal', name: 'app_suivi_animal')]
-    public function suiviAnimal(Request $request, AnimalRepository $animalRepository): Response
+    #[Route('/suivi-animal', name: 'app_suivi_animal')]
+    public function suiviAnimal(): Response
     {
-        $q = $request->query->get('q', '');
-        $sortBy = $request->query->get('sortBy', 'codeAnimal');
-        $order = $request->query->get('order', 'ASC');
-
-        $animals = $animalRepository->findAll(); // simple pour maintenant
-
-        return $this->render('front/suivi_animal/animal/index.html.twig', [
-            'animals' => $animals,
-            'q' => $q,
-            'sortBy' => $sortBy,
-            'order' => $order,
-        ]);
+        return $this->render('front/suivi_animal/suivi_animal.html.twig');
     }
 
     #[Route('/achat-equipement', name: 'app_achat_equipement')]
@@ -64,36 +50,15 @@ class HomeController extends AbstractController
         return $this->redirectToRoute('app_equipement_catalogue');
     }
 
-    // ← AJOUTE CE QUI SUIT
-    #[Route('/profil', name: 'app_profile')]
-    public function profile(): Response
-    {
-        return $this->render('front/utilisateurs/profil.html.twig');
-    }
     #[Route('/services', name: 'app_services')]
 public function services(): Response
 {
     return $this->render('front/home/services.html.twig');
 }
-
 #[Route('/tech', name: 'app_tech_home')]
 public function techHome(): Response
 {
     return $this->render('front/home/tech_home.html.twig');
 }
 
-
-    #[Route('/utilisateurs/login', name: 'front_login')]
-    public function login(): Response
-    {
-        return $this->render('front/utilisateurs/login.html.twig');
-    }
-
-    #[Route('/utilisateurs/register', name: 'front_register')]
-    public function register(): Response
-    {
-        return $this->render('front/utilisateurs/register.html.twig');
-    }
-
 }
-    

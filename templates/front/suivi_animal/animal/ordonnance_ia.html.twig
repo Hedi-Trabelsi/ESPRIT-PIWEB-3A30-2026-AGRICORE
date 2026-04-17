@@ -1,0 +1,536 @@
+﻿{% extends 'front/base_front.html.twig' %}
+{% block title %}Ordonnance IA{% endblock %}
+{% block body %}
+<style>
+:root{--g:#2d6a4f;--g2:#40916c;--g3:#74c69d;--gl:#d8f3dc;--gd:#1b4332;--br:#5d3a1a;--br2:#8b5e3c;--br3:#d4a574;--brl:#fdf3e7;}
+.ord-page{max-width:960px;margin:0 auto;padding:2rem 1rem 5rem;}
+
+/* ── Hero vert/marron ── */
+.ord-hero{
+  background:linear-gradient(135deg,#1b4332 0%,#2d6a4f 40%,#5d3a1a 100%);
+  border-radius:28px;padding:2.8rem;margin-bottom:2rem;
+  position:relative;overflow:hidden;
+  box-shadow:0 28px 72px rgba(27,67,50,.35);
+}
+.ord-hero::before{content:'';position:absolute;top:-90px;right:-90px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(116,198,157,.2),transparent 70%);}
+.ord-hero::after{content:'';position:absolute;bottom:-60px;left:10%;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(212,165,116,.15),transparent 70%);}
+.ord-hero-orb{position:absolute;top:40%;right:25%;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(93,58,26,.3),transparent 70%);}
+.ord-hero-inner{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+.ord-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(212,165,116,.25);border:1px solid rgba(212,165,116,.4);
+  color:#d4a574;padding:5px 14px;border-radius:20px;
+  font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px;
+  animation:badgePulse 3s ease-in-out infinite;
+}
+.ord-hero-title{font-size:28px;font-weight:800;color:#fff;margin:0 0 6px;text-shadow:0 2px 12px rgba(0,0,0,.2);}
+.ord-hero-sub{font-size:13px;color:rgba(255,255,255,.65);margin:0;}
+.ord-back{
+  background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);
+  color:#fff;padding:10px 22px;border-radius:14px;font-size:13px;font-weight:700;
+  text-decoration:none;transition:.25s;white-space:nowrap;backdrop-filter:blur(10px);
+}
+.ord-back:hover{background:rgba(255,255,255,.22);color:#fff;transform:translateX(-3px);}
+
+/* ── Cards ── */
+.ord-card{
+  background:#fff;border-radius:22px;padding:2rem;
+  box-shadow:0 6px 36px rgba(45,106,79,.08);
+  border:1px solid rgba(116,198,157,.2);
+  margin-bottom:1.5rem;
+  animation:fadeUp .5s ease;
+}
+.ord-card-title{
+  font-size:14px;font-weight:800;color:var(--gd);
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:1.5rem;padding-bottom:14px;
+  border-bottom:2px solid #f0fdf4;
+}
+.ord-card-icon{
+  width:36px;height:36px;border-radius:11px;
+  background:linear-gradient(135deg,var(--gd),var(--g));
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:15px;flex-shrink:0;
+  box-shadow:0 4px 12px rgba(45,106,79,.3);
+}
+
+/* ── Fields ── */
+.ord-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;}
+.ord-field{display:flex;flex-direction:column;gap:7px;}
+.ord-field.full{grid-column:1/-1;}
+.ord-label{font-size:11px;font-weight:800;color:var(--g2);text-transform:uppercase;letter-spacing:.7px;display:flex;align-items:center;gap:5px;}
+.ord-select,.ord-input,.ord-textarea{
+  background:#f8fffe;border:1.5px solid #c8e6c9;border-radius:12px;
+  padding:12px 15px;font-size:13px;color:var(--gd);width:100%;
+  box-sizing:border-box;outline:none;transition:.25s;appearance:none;
+}
+.ord-select:focus,.ord-input:focus,.ord-textarea:focus{
+  border-color:var(--g);background:#fff;
+  box-shadow:0 0 0 4px rgba(45,106,79,.1);
+}
+.ord-textarea{resize:vertical;min-height:85px;}
+
+/* ── Animal preview ── */
+.animal-preview{
+  background:linear-gradient(135deg,#f1f8e9,#dcedc8);
+  border:1.5px solid #aed581;border-radius:16px;
+  padding:14px 18px;margin-top:8px;
+  display:none;align-items:center;gap:14px;
+  animation:fadeUp .3s ease;
+}
+.animal-preview.show{display:flex;}
+.ap-avatar{
+  width:50px;height:50px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gd),var(--g));
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+  box-shadow:0 6px 16px rgba(45,106,79,.3);
+}
+.ap-code{font-size:18px;font-weight:800;color:var(--gd);}
+.ap-info{font-size:12px;color:var(--g2);margin-top:2px;}
+.ap-poids{
+  background:linear-gradient(135deg,var(--br),var(--br2));
+  color:#fff;padding:3px 12px;border-radius:20px;
+  font-size:11px;font-weight:700;margin-top:5px;display:inline-block;
+  box-shadow:0 2px 8px rgba(93,58,26,.3);
+}
+
+/* ── Checkboxes ── */
+.check-row{display:flex;gap:1.5rem;flex-wrap:wrap;}
+.check-item{display:flex;align-items:center;gap:8px;cursor:pointer;}
+.check-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--g);cursor:pointer;}
+.check-item label{font-size:13px;font-weight:600;color:var(--gd);cursor:pointer;}
+.allergies-wrap{margin-top:.8rem;display:none;}
+.allergies-wrap.show{display:block;}
+
+/* ── Submit button ── */
+.ord-btn{
+  width:100%;padding:16px;margin-top:1.5rem;
+  background:linear-gradient(135deg,var(--gd) 0%,var(--g) 50%,var(--br) 100%);
+  background-size:200% 200%;
+  color:#fff;border:none;border-radius:16px;
+  font-size:15px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:.3s;position:relative;overflow:hidden;
+  animation:gradShift 5s ease infinite;
+  box-shadow:0 8px 24px rgba(45,106,79,.3);
+}
+.ord-btn::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.15),transparent 60%);
+  opacity:0;transition:.3s;
+}
+.ord-btn:hover::after{opacity:1;}
+.ord-btn:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(45,106,79,.4);}
+.ord-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+
+/* ── Loading ── */
+.ord-loading{
+  background:#fff;border-radius:22px;padding:3.5rem 2rem;
+  box-shadow:0 6px 36px rgba(45,106,79,.08);
+  border:1px solid rgba(116,198,157,.2);
+  text-align:center;display:none;margin-bottom:1.5rem;
+}
+.ord-loading.show{display:block;}
+.leaf-loader{display:flex;justify-content:center;gap:10px;margin-bottom:1.5rem;}
+.leaf{
+  width:14px;height:14px;border-radius:50% 0 50% 0;
+  background:linear-gradient(135deg,var(--g),var(--g3));
+  animation:leafSpin 1.4s ease-in-out infinite;
+}
+.leaf:nth-child(1){animation-delay:0s;}
+.leaf:nth-child(2){animation-delay:.2s;}
+.leaf:nth-child(3){animation-delay:.4s;}
+.leaf:nth-child(4){animation-delay:.6s;}
+.leaf:nth-child(5){animation-delay:.4s;}
+.leaf:nth-child(6){animation-delay:.2s;}
+.loading-title{font-size:17px;font-weight:800;color:var(--gd);margin-bottom:6px;}
+.loading-sub{font-size:13px;color:#9ca3af;}
+
+/* ── Result ── */
+.ord-result{
+  background:#fff;border-radius:22px;
+  box-shadow:0 6px 36px rgba(45,106,79,.1);
+  border:1px solid rgba(116,198,157,.2);
+  overflow:hidden;display:none;margin-bottom:1.5rem;
+}
+.ord-result.show{display:block;}
+.ord-result-header{
+  background:linear-gradient(135deg,var(--gd) 0%,var(--g) 60%,var(--br) 100%);
+  padding:1.8rem 2rem;
+}
+.ord-result-title{font-size:16px;font-weight:800;color:#fff;display:flex;align-items:center;gap:8px;margin-bottom:1rem;}
+.ord-meta{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.8rem;}
+.ord-meta-item{
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+  border-radius:12px;padding:10px 14px;backdrop-filter:blur(4px);
+}
+.ord-meta-label{font-size:10px;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.5px;}
+.ord-meta-value{font-size:12px;color:#fff;font-weight:700;margin-top:3px;}
+.ord-result-actions{display:flex;gap:.6rem;margin-top:1.2rem;}
+.ord-action-btn{
+  padding:8px 18px;border-radius:10px;font-size:12px;font-weight:700;
+  cursor:pointer;border:none;transition:.2s;display:flex;align-items:center;gap:5px;
+}
+.btn-copy-ord{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3);}
+.btn-copy-ord:hover{background:rgba(255,255,255,.28);}
+.btn-print-ord{background:var(--br3);color:var(--br);}
+.btn-print-ord:hover{background:#e8c49a;}
+
+/* ── Tableau médicaments ── */
+.ord-body{padding:2rem;}
+.section-title{
+  font-size:12px;font-weight:800;color:var(--gd);
+  text-transform:uppercase;letter-spacing:.7px;
+  margin:1.8rem 0 .8rem;
+  display:flex;align-items:center;gap:8px;
+  padding-bottom:8px;border-bottom:2px solid #f0fdf4;
+}
+.section-title:first-child{margin-top:0;}
+.med-table{width:100%;border-collapse:collapse;border-radius:14px;overflow:hidden;box-shadow:0 4px 16px rgba(45,106,79,.1);margin-bottom:1rem;}
+.med-table thead tr{background:linear-gradient(135deg,var(--gd),var(--g));}
+.med-table thead th{color:#fff;font-size:11px;font-weight:700;padding:13px 10px;text-align:left;text-transform:uppercase;letter-spacing:.4px;}
+.med-table tbody tr:nth-child(odd){background:#f8fffe;}
+.med-table tbody tr:nth-child(even){background:#fff;}
+.med-table tbody tr:hover{background:#f1f8e9;transition:.15s;}
+.med-table tbody td{font-size:12px;color:var(--gd);padding:12px 10px;border-bottom:1px solid #f0fdf4;}
+.med-name{font-weight:800;color:var(--gd);}
+.med-classe{background:#e8f5e9;color:var(--g);padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;}
+.med-dose{background:#e3f2fd;color:#1565c0;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.med-total{background:linear-gradient(135deg,#e8f5e9,#c8e6c9);color:var(--gd);padding:3px 9px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid #a5d6a7;}
+.med-freq{color:var(--br);font-weight:700;}
+.med-voie{background:linear-gradient(135deg,var(--brl),#ffe0b2);color:var(--br);padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;border:1px solid var(--br3);}
+.section-content{background:#f8fffe;border-radius:14px;padding:16px 18px;font-size:13px;line-height:1.9;color:#374151;border-left:4px solid var(--g);margin-bottom:1rem;}
+.section-content.warning{border-left-color:var(--br);background:linear-gradient(135deg,#fdf3e7,#fff8f0);}
+.section-content.success{border-left-color:var(--g2);background:linear-gradient(135deg,#f1f8e9,#f8fffe);}
+
+/* ── Error ── */
+.ord-error{background:#fef2f2;border:1.5px solid #fca5a5;border-radius:14px;padding:14px 18px;color:#dc2626;font-size:13px;font-weight:600;display:none;margin-top:1rem;align-items:center;gap:8px;}
+.ord-error.show{display:flex;}
+
+/* ── Animations ── */
+@keyframes badgePulse{0%,100%{box-shadow:0 0 0 0 rgba(212,165,116,.3)}50%{box-shadow:0 0 0 6px rgba(212,165,116,0)}}
+@keyframes gradShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes leafSpin{0%,100%{transform:rotate(0deg) scale(1);opacity:.6}50%{transform:rotate(180deg) scale(1.4);opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+
+@media(max-width:640px){.ord-grid{grid-template-columns:1fr;}.ord-field.full{grid-column:1;}.ord-meta{grid-template-columns:1fr;}.ord-hero-inner{flex-direction:column;}}
+</style>
+
+<div class="ord-page">
+
+  <div class="ord-hero">
+    <div class="ord-hero-orb"></div>
+    <div class="ord-hero-inner">
+      <div>
+        <span class="ord-badge">🌿 Groq · LLaMA 3.3 70B</span>
+        <h1 class="ord-hero-title">💊 Ordonnance Vétérinaire IA</h1>
+        <p class="ord-hero-sub">Dosages précis calculés automatiquement selon le poids de l'animal</p>
+      </div>
+      <a href="{{ path('app_animal_index') }}" class="ord-back"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+    </div>
+  </div>
+
+  <div class="ord-card" style="animation:fadeUp .5s ease;">
+    <div class="ord-card-title">
+      <div class="ord-card-icon"><i class="fas fa-stethoscope"></i></div>
+      Informations du patient
+    </div>
+
+    <form id="ordForm">
+      <div class="ord-grid">
+
+        <div class="ord-field full">
+          <label class="ord-label">🐄 Animal</label>
+          <select class="ord-select" name="animalId" id="animalSelect" required>
+            <option value="">— Sélectionner un animal —</option>
+            {% for animal in animals %}
+            <option value="{{ animal.idAnimal }}"
+                    data-code="{{ animal.codeAnimal }}"
+                    data-espece="{{ animal.espece }}"
+                    data-race="{{ animal.race }}"
+                    data-sexe="{{ animal.sexe }}">
+              {{ animal.codeAnimal }} — {{ animal.espece }} · {{ animal.race }}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="animal-preview" id="animalPreview">
+            <div class="ap-avatar">🐾</div>
+            <div>
+              <div class="ap-code" id="previewCode"></div>
+              <div class="ap-info" id="previewInfo"></div>
+              <div class="ap-poids" id="previewPoids" style="display:none"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ord-field">
+          <label class="ord-label">⚖️ Poids (kg)</label>
+          <input type="number" step="0.1" min="0.1" class="ord-input" name="poids" id="poidsInput" placeholder="Ex: 45.5" required>
+        </div>
+
+        <div class="ord-field">
+          <label class="ord-label">🎂 Âge</label>
+          <select class="ord-select" name="age">
+            <option value="Nouveau-ne (< 1 mois)">Nouveau-né (&lt; 1 mois)</option>
+            <option value="Jeune (1-6 mois)">Jeune (1-6 mois)</option>
+            <option value="Juvenil (6-12 mois)">Juvénile (6-12 mois)</option>
+            <option value="Adulte (1-7 ans)" selected>Adulte (1-7 ans)</option>
+            <option value="Senior (> 7 ans)">Senior (> 7 ans)</option>
+          </select>
+        </div>
+
+        <div class="ord-field full">
+          <label class="ord-label">🦠 Pathologie</label>
+          <select class="ord-select" name="pathologie" required>
+            <option value="">— Sélectionner une pathologie —</option>
+            <option>Mammite</option>
+            <option>Pneumonie / Infection respiratoire</option>
+            <option>Diarrhée infectieuse</option>
+            <option>Infection utérine (métrite)</option>
+            <option>Fièvre aphteuse</option>
+            <option>Infection cutanée / Plaie infectée</option>
+            <option>Parasitose intestinale</option>
+            <option>Boiterie / Arthrite infectieuse</option>
+            <option>Infection urinaire</option>
+            <option>Conjonctivite infectieuse</option>
+            <option>Septicémie</option>
+            <option>Infection post-opératoire</option>
+            <option>Endoparasitose</option>
+            <option>Ectoparasitose (tiques, puces)</option>
+            <option>Autre (décrire dans symptômes)</option>
+          </select>
+        </div>
+
+        <div class="ord-field full">
+          <label class="ord-label">⚠️ Gravité</label>
+          <select class="ord-select" name="gravite">
+            <option value="Legere — Traitement ambulatoire">Légère — Traitement ambulatoire</option>
+            <option value="Moderee — Surveillance quotidienne" selected>Modérée — Surveillance quotidienne</option>
+            <option value="Severe — Hospitalisation recommandee">Sévère — Hospitalisation recommandée</option>
+          </select>
+        </div>
+
+        <div class="ord-field full">
+          <label class="ord-label">📋 Symptômes observés</label>
+          <textarea class="ord-textarea" name="symptomes" id="symptomesInput" placeholder="Décrivez les symptômes observés..."></textarea>
+        </div>
+
+        <div class="ord-field full">
+          <label class="ord-label">⚕️ Statut physiologique</label>
+          <div class="check-row">
+            <div class="check-item">
+              <input type="checkbox" id="chkGestante" name="gestante" value="1">
+              <label for="chkGestante">🤰 Gestante</label>
+            </div>
+            <div class="check-item">
+              <input type="checkbox" id="chkLactante" name="lactante" value="1">
+              <label for="chkLactante">🍼 Lactante</label>
+            </div>
+            <div class="check-item">
+              <input type="checkbox" id="chkAllergies">
+              <label for="chkAllergies">⚠️ Allergies connues</label>
+            </div>
+          </div>
+          <div class="allergies-wrap" id="allergiesWrap">
+            <input type="text" class="ord-input" name="allergies" placeholder="Ex: Pénicilline, Sulfamides...">
+          </div>
+        </div>
+
+      </div>
+
+      <button type="submit" class="ord-btn" id="submitBtn">
+        <i class="fas fa-pills"></i> Générer l'ordonnance
+      </button>
+    </form>
+
+    <div class="ord-error" id="errorBox">
+      <i class="fas fa-exclamation-circle"></i>
+      <span id="errorText"></span>
+    </div>
+  </div>
+
+  <div class="ord-loading" id="loadingBox">
+    <div class="leaf-loader">
+      <div class="leaf"></div><div class="leaf"></div><div class="leaf"></div>
+      <div class="leaf"></div><div class="leaf"></div><div class="leaf"></div>
+    </div>
+    <p class="loading-title">🌿 Calcul des dosages en cours...</p>
+    <p class="loading-sub">LLaMA 3.3 70B calcule les posologies précises pour votre animal</p>
+  </div>
+
+  <div class="ord-result" id="resultBox">
+    <div class="ord-result-header">
+      <div class="ord-result-title"><i class="fas fa-file-prescription"></i> Ordonnance Vétérinaire</div>
+      <div class="ord-meta">
+        <div class="ord-meta-item">
+          <div class="ord-meta-label">🐾 Patient</div>
+          <div class="ord-meta-value" id="metaAnimal">—</div>
+        </div>
+        <div class="ord-meta-item">
+          <div class="ord-meta-label">🦠 Diagnostic</div>
+          <div class="ord-meta-value" id="metaDiag">—</div>
+        </div>
+        <div class="ord-meta-item">
+          <div class="ord-meta-label">📅 Date</div>
+          <div class="ord-meta-value" id="metaDate">—</div>
+        </div>
+        <div class="ord-meta-item">
+          <div class="ord-meta-label">🤖 Modèle</div>
+          <div class="ord-meta-value">Groq · LLaMA 3.3 70B</div>
+        </div>
+      </div>
+      <div class="ord-result-actions">
+        <button class="ord-action-btn btn-copy-ord" id="copyBtn" onclick="copyOrd()">📋 Copier</button>
+        <button class="ord-action-btn btn-print-ord" onclick="window.print()">🖨 Imprimer</button>
+      </div>
+    </div>
+    <div class="ord-body" id="ordBody"></div>
+  </div>
+
+</div>
+
+<script>
+// ── Auto-remplir poids depuis dernier suivi (comme autoRemplir() en Java) ──
+document.getElementById('animalSelect').addEventListener('change', async function() {
+  const opt     = this.options[this.selectedIndex];
+  const preview = document.getElementById('animalPreview');
+  if (!this.value) { preview.classList.remove('show'); return; }
+
+  document.getElementById('previewCode').textContent = opt.dataset.code;
+  document.getElementById('previewInfo').textContent = opt.dataset.espece + ' · ' + opt.dataset.race + ' · ' + opt.dataset.sexe;
+  preview.classList.add('show');
+
+  try {
+    const r = await fetch('/animal/ordonnance-ia/dernier-suivi/' + this.value);
+    const d = await r.json();
+    if (d && d.poids) {
+      document.getElementById('poidsInput').value = d.poids;
+      const pp = document.getElementById('previewPoids');
+      pp.textContent = '⚖️ Dernier poids connu : ' + d.poids + ' kg';
+      pp.style.display = 'inline-block';
+      if (d.remarque) document.getElementById('symptomesInput').value = d.remarque;
+      if (d.etat === 'Mauvais') document.querySelector('[name=gravite]').value = 'Severe — Hospitalisation recommandee';
+    }
+  } catch(e) {}
+});
+
+// ── Toggle allergies ──
+document.getElementById('chkAllergies').addEventListener('change', function() {
+  document.getElementById('allergiesWrap').classList.toggle('show', this.checked);
+});
+
+// ── Soumission (comme genererOrdonnance() en Java) ──
+document.getElementById('ordForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn     = document.getElementById('submitBtn');
+  const loading = document.getElementById('loadingBox');
+  const result  = document.getElementById('resultBox');
+  const error   = document.getElementById('errorBox');
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Calcul en cours...';
+  loading.classList.add('show');
+  result.classList.remove('show');
+  error.classList.remove('show');
+
+  try {
+    const resp = await fetch('{{ path("app_ordonnance_generer") }}', {
+      method: 'POST', body: new FormData(this)
+    });
+    const data = await resp.json();
+
+    if (data.error) {
+      document.getElementById('errorText').textContent = data.error;
+      error.classList.add('show');
+    } else {
+      document.getElementById('metaAnimal').textContent = data.animal;
+      document.getElementById('metaDiag').textContent   = data.diagnostic;
+      document.getElementById('metaDate').textContent   = data.date;
+      // afficherOrdonnance() — parse et affiche comme en Java
+      document.getElementById('ordBody').innerHTML = parseOrdonnance(data.ordonnance);
+      result.classList.add('show');
+      result.scrollIntoView({ behavior: 'smooth' });
+    }
+  } catch(err) {
+    document.getElementById('errorText').textContent = 'Erreur : ' + err.message;
+    error.classList.add('show');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-pills"></i> Générer l\'ordonnance';
+    loading.classList.remove('show');
+  }
+});
+
+// ── parseOrdonnance() = afficherOrdonnance() + extraireSection() en Java ──
+function parseOrdonnance(text) {
+  const sections = [
+    { key:'## MEDICAMENTS',          next:'## POSOLOGIE DETAILLEE',    icon:'💊', label:'Médicaments & Dosages',  type:'table'   },
+    { key:'## POSOLOGIE DETAILLEE',  next:'## DUREE TRAITEMENT',       icon:'⏰', label:'Posologie détaillée',    type:'text'    },
+    { key:'## DUREE TRAITEMENT',     next:'## CONTROLE VETERINAIRE',   icon:'📅', label:'Durée du traitement',    type:'success' },
+    { key:'## CONTROLE VETERINAIRE', next:'## INSTRUCTIONS ELEVEUR',   icon:'🔍', label:'Contrôle vétérinaire',   type:'text'    },
+    { key:'## INSTRUCTIONS ELEVEUR', next:'## MISES EN GARDE',         icon:'📋', label:'Instructions éleveur',   type:'text'    },
+    { key:'## MISES EN GARDE',       next:null,                         icon:'⚠️', label:'Mises en garde',         type:'warning' },
+  ];
+
+  let html = '';
+  sections.forEach(s => {
+    // extraireSection() en Java
+    const start = text.indexOf(s.key);
+    if (start < 0) return;
+    const from    = start + s.key.length;
+    const endIdx  = s.next ? text.indexOf(s.next, from) : text.length;
+    const content = text.substring(from, endIdx < 0 ? text.length : endIdx).trim();
+
+    html += `<div class="section-title">${s.icon} ${s.label}</div>`;
+
+    if (s.type === 'table') {
+      html += buildMedTable(content);
+    } else {
+      const cls = s.type === 'warning' ? 'warning' : s.type === 'success' ? 'success' : '';
+      const fmt = content
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/^[-•] (.+)$/gm, '<li style="margin:.3rem 0 .3rem 1.2rem;list-style:disc;">$1</li>')
+        .replace(/\n/g, '<br>');
+      html += `<div class="section-content ${cls}">${fmt}</div>`;
+    }
+  });
+  return html || `<div class="section-content">${text.replace(/\n/g,'<br>')}</div>`;
+}
+
+// ── buildMedTable() = creerLigneTableau() en Java ──
+function buildMedTable(content) {
+  const rows = content.split('\n').filter(l => l.includes('|') && !l.startsWith('#') && l.trim() !== '');
+  if (!rows.length) return `<div class="section-content">${content}</div>`;
+
+  let html = `<table class="med-table"><thead><tr>
+    <th>Médicament</th><th>Classe</th><th>Dose/kg</th><th>Dose totale</th><th>Fréquence</th><th>Voie</th>
+  </tr></thead><tbody>`;
+
+  rows.forEach(row => {
+    const cols = row.split('|').map(c => c.trim());
+    if (cols.length < 3) return;
+    html += `<tr>
+      <td><span class="med-name">${cols[0]||''}</span></td>
+      <td><span class="med-classe">${cols[1]||''}</span></td>
+      <td><span class="med-dose">${cols[2]||''}</span></td>
+      <td><span class="med-total">${cols[3]||''}</span></td>
+      <td><span class="med-freq">${cols[4]||''}</span></td>
+      <td><span class="med-voie">${cols[5]||''}</span></td>
+    </tr>`;
+  });
+  return html + '</tbody></table>';
+}
+
+// ── copierOrdonnance() en Java ──
+function copyOrd() {
+  const text = document.getElementById('ordBody').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ Copié !';
+    setTimeout(() => btn.textContent = '📋 Copier', 2500);
+  });
+}
+</script>
+{% endblock %}

@@ -16,8 +16,34 @@ final class Version20260407230000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
+        $schemaManager = $this->connection->createSchemaManager();
+        $equipementsExists = $schemaManager->tablesExist(['equipements']);
+        $ligneCommandeForeignKeys = [];
+        if ($schemaManager->tablesExist(['ligne_commande'])) {
+            foreach ($schemaManager->listTableForeignKeys('ligne_commande') as $foreignKey) {
+                $ligneCommandeForeignKeys[$foreignKey->getName()] = true;
+            }
+        }
+
+        if (!$equipementsExists) {
+            $this->addSql("CREATE TABLE equipements (
+                id_equipement INT AUTO_INCREMENT NOT NULL,
+                id_fournisseur INT DEFAULT NULL,
+                nom VARCHAR(255) NOT NULL,
+                type VARCHAR(255) NOT NULL,
+                prix VARCHAR(255) NOT NULL,
+                quantite INT NOT NULL,
+                image_filename VARCHAR(255) DEFAULT NULL,
+                updated_at DATETIME DEFAULT NULL COMMENT '(DC2Type:datetime_immutable)',
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                INDEX IDX_EQUIPEMENTS_FOURNISSEUR (id_fournisseur),
+                PRIMARY KEY(id_equipement)
+            ) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB");
+        }
+
         $this->addSql("ALTER TABLE equipements ADD COLUMN IF NOT EXISTS image_filename VARCHAR(255) DEFAULT NULL");
         $this->addSql("ALTER TABLE equipements ADD COLUMN IF NOT EXISTS is_active TINYINT(1) NOT NULL DEFAULT 1");
+        $this->addSql("ALTER TABLE equipements ADD COLUMN IF NOT EXISTS updated_at DATETIME DEFAULT NULL COMMENT '(DC2Type:datetime_immutable)'");
         $this->addSql("CREATE TABLE IF NOT EXISTS commande (
             id INT AUTO_INCREMENT NOT NULL,
             date_commande DATETIME NOT NULL,
@@ -36,8 +62,20 @@ final class Version20260407230000 extends AbstractMigration
             INDEX IDX_LIGNE_COMMANDE_EQUIPEMENT (equipement_id),
             PRIMARY KEY(id)
         ) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB");
-        $this->addSql("ALTER TABLE ligne_commande ADD CONSTRAINT FK_LIGNE_COMMANDE_COMMANDE FOREIGN KEY (commande_id) REFERENCES commande (id) ON DELETE CASCADE");
-        $this->addSql("ALTER TABLE ligne_commande ADD CONSTRAINT FK_LIGNE_COMMANDE_EQUIPEMENT FOREIGN KEY (equipement_id) REFERENCES equipements (id_equipement)");
+
+        if (!isset($ligneCommandeForeignKeys['FK_LIGNE_COMMANDE_COMMANDE'])) {
+            $this->addSql("ALTER TABLE ligne_commande ADD CONSTRAINT FK_LIGNE_COMMANDE_COMMANDE FOREIGN KEY (commande_id) REFERENCES commande (id) ON DELETE CASCADE");
+        }
+
+        if (!isset($ligneCommandeForeignKeys['FK_LIGNE_COMMANDE_EQUIPEMENT'])) {
+            $orphanedEquipements = (int) $this->connection->fetchOne(
+                'SELECT COUNT(*) FROM ligne_commande lc LEFT JOIN equipements e ON e.id_equipement = lc.equipement_id WHERE e.id_equipement IS NULL'
+            );
+
+            if ($orphanedEquipements === 0) {
+                $this->addSql("ALTER TABLE ligne_commande ADD CONSTRAINT FK_LIGNE_COMMANDE_EQUIPEMENT FOREIGN KEY (equipement_id) REFERENCES equipements (id_equipement)");
+            }
+        }
     }
 
     public function down(Schema $schema): void

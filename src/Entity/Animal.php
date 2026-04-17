@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use App\Repository\AnimalRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -11,6 +12,7 @@ use App\Entity\SuiviAnimal;
 
 
 #[ORM\Entity(repositoryClass: AnimalRepository::class)]
+#[UniqueEntity(fields: ['codeAnimal'], message: 'Ce code animal existe déjà. Veuillez en choisir un autre.')]
 class Animal
 {
     #[ORM\Id]
@@ -119,7 +121,7 @@ class Animal
         return $this->dateNaissance;
     }
 
-    public function setDateNaissance(\DateTimeInterface $dateNaissance): self
+    public function setDateNaissance(?\DateTimeInterface $dateNaissance): self
     {
         $this->dateNaissance = $dateNaissance;
         return $this;

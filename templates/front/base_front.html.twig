@@ -194,5 +194,70 @@
 
 {# Template Javascript #}
 <script src="{{ asset('js/main.js') }}"></script>
+
+{# AgriCore — Toast notifications automatiques #}
+{% set alertes = app.session.get('suivi_alertes') %}
+{% if alertes %}
+  {% do app.session.remove('suivi_alertes') %}
+  <div id="toast-container" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;"></div>
+  <script>
+  (function() {
+    const alertes = {{ alertes|json_encode|raw }};
+    const container = document.getElementById('toast-container');
+
+    function showToast(titre, message, niveau) {
+      const colors = { critique: '#c62828', avertissement: '#e65100', info: '#2e7d32' };
+      const icons  = { critique: '🚨', avertissement: '⚠️', info: '✅' };
+      const color  = colors[niveau] || colors.info;
+      const icon   = icons[niveau]  || icons.info;
+
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        background:#1e1e1e;color:#fff;border-radius:12px;
+        padding:14px 18px;min-width:320px;max-width:380px;
+        box-shadow:0 8px 32px rgba(0,0,0,.4);
+        border-left:5px solid ${color};
+        display:flex;align-items:flex-start;gap:12px;
+        animation:toastIn .4s ease;font-family:'Segoe UI',sans-serif;
+        cursor:pointer;
+      `;
+      toast.innerHTML = `
+        <div style="font-size:24px;line-height:1;flex-shrink:0;">${icon}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px;">${titre}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.75);line-height:1.4;">${message}</div>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);flex-shrink:0;">AgriCore</div>
+      `;
+      toast.onclick = () => toast.remove();
+      container.appendChild(toast);
+
+      // Aussi essayer la notification navigateur si permission accordée
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(icon + ' ' + titre, { body: message, requireInteraction: niveau === 'critique' });
+      }
+
+      // Auto-remove après 6s (critique reste plus longtemps)
+      const delay = niveau === 'critique' ? 10000 : 6000;
+      setTimeout(() => {
+        toast.style.animation = 'toastOut .3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, delay);
+    }
+
+    // Demander permission navigateur silencieusement
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    alertes.forEach((a, i) => setTimeout(() => showToast(a.titre, a.message, a.niveau), i * 800));
+  })();
+  </script>
+  <style>
+  @keyframes toastIn{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes toastOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(100px)}}
+  </style>
+{% endif %}
+<script src="/notif-agricore.js"></script>
 </body>
 </html>

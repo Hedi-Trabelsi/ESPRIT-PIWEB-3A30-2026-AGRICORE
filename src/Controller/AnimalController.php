@@ -31,7 +31,7 @@ final class AnimalController extends AbstractController
         $sortBy = $request->query->get('sortBy', 'codeAnimal');
         $order  = $request->query->get('order', 'ASC');
 
-        $animals = $animalRepository->search($q, $sortBy, $order, $sessionUser->getId());
+        $animals = $animalRepository->search($q, $sortBy, $order, null);
 
         if ($request->isXmlHttpRequest()) {
             return $this->render('front/suivi_animal/animal/_cards.html.twig', [
@@ -63,7 +63,7 @@ final class AnimalController extends AbstractController
         $sortBy     = $request->query->get('sortBy', 'codeAnimal');
         $order      = $request->query->get('order', 'ASC');
 
-        $animals = $animalRepository->searchStatic($codeAnimal, $espece, $race, $sexe, $sortBy, $order, $sessionUser->getId());
+        $animals = $animalRepository->searchStatic($codeAnimal, $espece, $race, $sexe, $sortBy, $order, null);
 
         return $this->render('front/suivi_animal/animal/search.html.twig', [
             'animals'    => $animals,
@@ -88,7 +88,7 @@ final class AnimalController extends AbstractController
         $sortBy = $request->query->get('sortBy', 'codeAnimal');
         $order  = $request->query->get('order', 'ASC');
 
-        $animals = $animalRepository->search($q, $sortBy, $order, $sessionUser->getId());
+        $animals = $animalRepository->search($q, $sortBy, $order, null);
 
         $html = $this->renderView('front/suivi_animal/animal/pdf.html.twig', [
             'animals' => $animals,
@@ -122,12 +122,10 @@ final class AnimalController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        $idAgriculteur = $sessionUser->getId();
-        $animals = $animalRepo->findBy(['idAgriculteur' => $idAgriculteur]);
+        $animals = $animalRepo->findAll();
+        $suivis  = $suiviRepo->findAll();
 
-        // ── Animaux stats ──────────────────────────────────────────────
         $totalAnimaux = count($animals);
-
         $parEspece = [];
         $parRace   = [];
         $parSexe   = ['Mâle' => 0, 'Femelle' => 0];
@@ -140,27 +138,99 @@ final class AnimalController extends AbstractController
         arsort($parEspece);
         arsort($parRace);
 
-        // ── Suivis stats ───────────────────────────────────────────────
-        $suivis = $suiviRepo->search('', 'dateSuivi', 'DESC', $idAgriculteur);
         $totalSuivis = count($suivis);
-
         $parEtat     = ['Bon' => 0, 'Moyen' => 0, 'Mauvais' => 0];
         $parActivite = ['Faible' => 0, 'Modéré' => 0, 'Élevé' => 0];
         $tempSum = $poidsSum = $rythmeSum = 0;
         $parMois = [];
 
         foreach ($suivis as $s) {
-            $parEtat[$s->getEtatSante()]         = ($parEtat[$s->getEtatSante()] ?? 0) + 1;
-            $parActivite[$s->getNiveauActivite()] = ($parActivite[$s->getNiveauActivite()] ?? 0) + 1;
+            $etat = $s->getEtatSante();
+            $act  = $s->getNiveauActivite();
+            if (isset($parEtat[$etat]))    $parEtat[$etat]++;
+            if (isset($parActivite[$act])) $parActivite[$act]++;
             $tempSum   += $s->getTemperature();
             $poidsSum  += $s->getPoids();
             $rythmeSum += $s->getRythmeCardiaque();
             $mois = $s->getDateSuivi()->format('Y-m');
             $parMois[$mois] = ($parMois[$mois] ?? 0) + 1;
         }
-
         ksort($parMois);
         $derniersMois = array_slice($parMois, -6, 6, true);
+
+        // ── CMENGoogleChartsBundle — création des objets charts ──────────
+
+        // 1. Donut — Animaux par espèce
+        $chartEspece = new \CMEN\GoogleChartsBundle\GoogleCharts\Charts\PieChart();
+        $especeData  = [['Espèce', 'Animaux']];
+        foreach ($parEspece as $esp => $nb) {
+            $especeData[] = [$esp, $nb];
+        }
+        $chartEspece->getData()->setArrayToDataTable($especeData);
+        $chartEspece->getOptions()->setTitle('Animaux par espèce');
+        $chartEspece->getOptions()->setPieHole(0.4);
+        $chartEspece->getOptions()->setColors(['#3B6D11','#639922','#C0DD97','#8BC34A','#27500A']);
+
+        // 2. Pie — Répartition par sexe
+        $chartSexe = new \CMEN\GoogleChartsBundle\GoogleCharts\Charts\PieChart();
+        $chartSexe->getData()->setArrayToDataTable([
+            ['Sexe', 'Animaux'],
+            ['Mâle',    $parSexe['Mâle']],
+            ['Femelle', $parSexe['Femelle']],
+        ]);
+        $chartSexe->getOptions()->setTitle('Répartition par sexe');
+        $chartSexe->getOptions()->setColors(['#3B6D11','#C0DD97']);
+
+        // 3. Colonnes — État de santé
+        $chartEtat = new \CMEN\GoogleChartsBundle\GoogleCharts\Charts\ColumnChart();
+        $chartEtat->getData()->setArrayToDataTable([
+            ['État', 'Suivis', ['role' => 'style']],
+            ['Bon',     $parEtat['Bon'],     '#16a34a'],
+            ['Moyen',   $parEtat['Moyen'],   '#ca8a04'],
+            ['Mauvais', $parEtat['Mauvais'], '#dc2626'],
+        ]);
+        $chartEtat->getOptions()->setTitle('État de santé des suivis');
+        $chartEtat->getOptions()->getLegend()->setPosition('none');
+
+        // 4. Colonnes — Niveau d'activité
+        $chartActivite = new \CMEN\GoogleChartsBundle\GoogleCharts\Charts\ColumnChart();
+        $chartActivite->getData()->setArrayToDataTable([
+            ["Activité", 'Suivis'],
+            ['Faible',  $parActivite['Faible']],
+            ['Modéré',  $parActivite['Modéré']],
+            ['Élevé',   $parActivite['Élevé']],
+        ]);
+        $chartActivite->getOptions()->setTitle("Niveau d'activité");
+        $chartActivite->getOptions()->setColors(['#3B6D11']);
+        $chartActivite->getOptions()->getLegend()->setPosition('none');
+
+        // 5. Ligne — Suivis par mois
+        $chartMois = new \CMEN\GoogleChartsBundle\GoogleCharts\Charts\LineChart();
+        $moisData  = [['Mois', 'Suivis']];
+        foreach ($derniersMois as $mois => $nb) {
+            $moisData[] = [$mois, $nb];
+        }
+        $chartMois->getData()->setArrayToDataTable($moisData);
+        $chartMois->getOptions()->setTitle('Suivis par mois (6 derniers)');
+        $chartMois->getOptions()->setColors(['#3B6D11']);
+        $chartMois->getOptions()->getLegend()->setPosition('none');
+
+        return $this->render('front/suivi_animal/animal/stats.html.twig', [
+            'totalAnimaux'  => $totalAnimaux,
+            'totalSuivis'   => $totalSuivis,
+            'moyTemp'       => $totalSuivis ? round($tempSum / $totalSuivis, 1) : 0,
+            'moyPoids'      => $totalSuivis ? round($poidsSum / $totalSuivis, 1) : 0,
+            'moyRythme'     => $totalSuivis ? round($rythmeSum / $totalSuivis, 0) : 0,
+            'parEtat'       => $parEtat,
+            'parRace'       => $parRace,
+            'parRaceMax'    => $parRace ? max($parRace) : 1,
+            'derniersMois'  => $derniersMois,
+            'chartEspece'   => $chartEspece,
+            'chartSexe'     => $chartSexe,
+            'chartEtat'     => $chartEtat,
+            'chartActivite' => $chartActivite,
+            'chartMois'     => $chartMois,
+        ]);
 
         return $this->render('front/suivi_animal/animal/stats.html.twig', [
             'totalAnimaux'      => $totalAnimaux,
@@ -206,7 +276,7 @@ final class AnimalController extends AbstractController
         ]);
     }
 
-    #[Route('/{idAnimal}', name: 'app_animal_show', methods: ['GET'])]
+    #[Route('/{idAnimal}', name: 'app_animal_show', methods: ['GET'], requirements: ['idAnimal' => '\d+'])]
     public function show(
         #[MapEntity(mapping: ['idAnimal' => 'idAnimal'])] Animal $animal
     ): Response {

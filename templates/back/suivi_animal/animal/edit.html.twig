@@ -32,6 +32,11 @@
     </div>
 
     <div class="form-card">
+        {% for msg in app.flashes('error') %}
+            <div class="alert-field show mb-3" style="display:block;">
+                <i class="fas fa-exclamation-circle me-1"></i>{{ msg }}
+            </div>
+        {% endfor %}
         <form method="post" action="{{ path('back_animal_edit', {id: animal.idAnimal}) }}" id="animalForm" novalidate>
 
             <div class="mb-3">

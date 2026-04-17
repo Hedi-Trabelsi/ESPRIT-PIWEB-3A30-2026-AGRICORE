@@ -1,4 +1,4 @@
-{{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+{{ form_start(form, {'attr': {'id': 'animalForm'}}) }}
 
 <div class="ag-form-body">
   <div class="ag-form-grid">
@@ -32,3 +32,45 @@
 </div>
 
 {{ form_end(form) }}
+
+<script>
+document.getElementById('animalForm').addEventListener('submit', function(e) {
+  var errors = [];
+
+  var code  = document.getElementById('animal_codeAnimal');
+  var espece = document.getElementById('animal_espece');
+  var race  = document.getElementById('animal_race');
+  var sexe  = document.getElementById('animal_sexe');
+  var date  = document.getElementById('animal_dateNaissance');
+
+  [code, espece, race, sexe, date].forEach(function(f) {
+    if (f) f.style.borderColor = '';
+  });
+
+  if (!code || !code.value.trim()) {
+    errors.push('Le code animal est obligatoire.');
+    if (code) code.style.borderColor = '#F87171';
+  }
+  if (!espece || !espece.value.trim()) {
+    errors.push("L'espèce est obligatoire.");
+    if (espece) espece.style.borderColor = '#F87171';
+  }
+  if (!race || !race.value.trim()) {
+    errors.push('La race est obligatoire.');
+    if (race) race.style.borderColor = '#F87171';
+  }
+  if (!sexe || !sexe.value) {
+    errors.push('Le sexe est obligatoire.');
+    if (sexe) sexe.style.borderColor = '#F87171';
+  }
+  if (!date || !date.value) {
+    errors.push('La date de naissance est obligatoire.');
+    if (date) date.style.borderColor = '#F87171';
+  }
+
+  if (errors.length > 0) {
+    e.preventDefault();
+    alert('Veuillez corriger les erreurs suivantes :\n\n' + errors.join('\n'));
+  }
+});
+</script>

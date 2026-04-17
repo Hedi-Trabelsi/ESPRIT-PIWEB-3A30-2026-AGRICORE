@@ -126,6 +126,18 @@
   <a href="{{ path('app_suivi_animal_new', {'animalId': animal.idAnimal}) }}" class="ag-btn-green" style="font-size:12px;padding:6px 13px;">
     + Ajouter un suivi
   </a>
+  <a href="{{ path('app_rapport_medical') }}" class="ag-btn-green" style="font-size:12px;padding:6px 13px;background:linear-gradient(135deg,#1b4332,#2d6a4f);">
+    🧬 Rapport IA
+  </a>
+  <a href="{{ path('app_ordonnance_ia') }}" class="ag-btn-green" style="font-size:12px;padding:6px 13px;background:linear-gradient(135deg,#0a1628,#1a237e);">
+    💊 Ordonnance IA
+  </a>
+  <a href="{{ path('app_recommandation_alimentaire') }}" class="ag-btn-green" style="font-size:12px;padding:6px 13px;background:linear-gradient(135deg,#1b4332,#e65100);">
+    🥗 Recommandation
+  </a>
+  <a href="{{ path('app_notifications_animal') }}" class="ag-btn-green" style="font-size:12px;padding:6px 13px;background:linear-gradient(135deg,#c62828,#e65100);">
+    🔔 Alertes
+  </a>
 </div>
 
 <div class="ag-grid">
@@ -159,6 +171,9 @@
     <div class="ag-suivi-footer">
       <a href="{{ path('app_suivi_animal_edit', {'idSuivi': suivi.idSuivi}) }}" class="ag-btn-sm-edit">Modifier</a>
       <a href="{{ path('app_suivi_animal_show', {'idSuivi': suivi.idSuivi}) }}" class="ag-btn-show">Détails</a>
+      <form method="post" action="{{ path('app_suivi_animal_delete', {'idSuivi': suivi.idSuivi}) }}" style="display:inline;">        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ suivi.idSuivi) }}">
+        <button type="submit" style="background:transparent;color:#A32D2D;border:0.5px solid #A32D2D;padding:4px 11px;border-radius:7px;font-size:11px;font-weight:500;cursor:pointer;">Supprimer</button>
+      </form>
     </div>
   </div>
   {% else %}
@@ -175,5 +190,26 @@
   <a href="{{ path('app_animal_edit', {'idAnimal': animal.idAnimal}) }}" class="ag-btn-green">✎ Modifier l'animal</a>
   <div>{{ include('front/suivi_animal/animal/_delete_form.html.twig') }}</div>
 </div>
+
+{% set alertes = app.session.get('suivi_alertes') %}
+{% if alertes %}
+  {% do app.session.remove('suivi_alertes') %}
+  <script>
+  (function() {
+    const alertes = {{ alertes|json_encode|raw }};
+    function sendNotif(titre, message, niveau) {
+      if (!('Notification' in window)) return;
+      if (Notification.permission === 'granted') {
+        new Notification(titre, { body: message, requireInteraction: niveau === 'critique' });
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(p => {
+          if (p === 'granted') new Notification(titre, { body: message, requireInteraction: niveau === 'critique' });
+        });
+      }
+    }
+    alertes.forEach((a, i) => setTimeout(() => sendNotif(a.titre, a.message, a.niveau), i * 700));
+  })();
+  </script>
+{% endif %}
 
 {% endblock %}

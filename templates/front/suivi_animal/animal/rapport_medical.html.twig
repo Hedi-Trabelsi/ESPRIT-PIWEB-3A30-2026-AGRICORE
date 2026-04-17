@@ -1,0 +1,496 @@
+{% extends 'front/base_front.html.twig' %}
+{% block title %}Rapport Médical IA{% endblock %}
+{% block body %}
+<style>
+:root{--g:#2d6a4f;--g2:#40916c;--g3:#74c69d;--gl:#d8f3dc;--gd:#1b4332;--gx:#52b788;}
+
+/* ── Page ── */
+.rm-page{max-width:860px;margin:0 auto;padding:2rem 1rem 5rem;}
+
+/* ── Hero ── */
+.rm-hero{
+  background:linear-gradient(135deg,#0d2b1e 0%,#1b4332 40%,#2d6a4f 100%);
+  border-radius:24px;padding:2.5rem 2.5rem 2rem;margin-bottom:2rem;
+  position:relative;overflow:hidden;
+  box-shadow:0 24px 64px rgba(13,43,30,.35);
+}
+.rm-hero-orb1{position:absolute;top:-80px;right:-80px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(82,183,136,.18),transparent 70%);}
+.rm-hero-orb2{position:absolute;bottom:-60px;left:20%;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(116,198,157,.12),transparent 70%);}
+.rm-hero-orb3{position:absolute;top:30%;left:-40px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(64,145,108,.15),transparent 70%);}
+.rm-hero-inner{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.rm-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(82,183,136,.2);border:1px solid rgba(82,183,136,.35);
+  color:#74c69d;padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;
+  letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px;
+  animation:fadeDown .5s ease;
+}
+.rm-hero-title{font-size:26px;font-weight:800;color:#fff;margin:0 0 6px;animation:fadeDown .6s ease;}
+.rm-hero-sub{font-size:13px;color:rgba(255,255,255,.6);margin:0;animation:fadeDown .7s ease;}
+.rm-back{
+  background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);
+  color:#fff;padding:9px 20px;border-radius:12px;font-size:13px;font-weight:600;
+  text-decoration:none;transition:.2s;white-space:nowrap;flex-shrink:0;
+  backdrop-filter:blur(8px);
+}
+.rm-back:hover{background:rgba(255,255,255,.2);color:#fff;transform:translateX(-3px);}
+
+/* ── Cards ── */
+.rm-card{
+  background:#fff;border-radius:20px;padding:2rem;
+  box-shadow:0 4px 32px rgba(45,106,79,.07);
+  border:1px solid rgba(116,198,157,.15);
+  margin-bottom:1.5rem;
+  animation:fadeUp .5s ease;
+}
+.rm-card-title{
+  font-size:14px;font-weight:700;color:var(--gd);
+  display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;
+  padding-bottom:12px;border-bottom:2px solid #f0fdf4;
+}
+.rm-card-icon{
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--gd),var(--g));
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:14px;flex-shrink:0;
+}
+
+/* ── Form fields ── */
+.rm-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;}
+.rm-field{display:flex;flex-direction:column;gap:7px;}
+.rm-field.full{grid-column:1/-1;}
+.rm-label{font-size:11px;font-weight:700;color:var(--g2);text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:5px;}
+.rm-select,.rm-input{
+  background:#f8fffe;border:1.5px solid #d8f3dc;border-radius:12px;
+  padding:11px 14px;font-size:13px;color:var(--gd);width:100%;
+  box-sizing:border-box;outline:none;transition:.25s;
+  appearance:none;
+}
+.rm-select:focus,.rm-input:focus{
+  border-color:var(--g);background:#fff;
+  box-shadow:0 0 0 4px rgba(45,106,79,.1);
+}
+
+/* ── Animal preview ── */
+.animal-preview{
+  background:linear-gradient(135deg,#f0fdf4,#d8f3dc);
+  border:1.5px solid #b7e4c7;border-radius:14px;
+  padding:14px 16px;margin-top:8px;
+  display:none;align-items:center;gap:14px;
+  animation:fadeUp .3s ease;
+}
+.animal-preview.show{display:flex;}
+.ap-avatar{
+  width:46px;height:46px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gd),var(--g));
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+  box-shadow:0 4px 12px rgba(45,106,79,.25);
+}
+.ap-code{font-size:17px;font-weight:800;color:var(--gd);}
+.ap-info{font-size:12px;color:var(--g2);margin-top:2px;}
+
+/* ── Style selector ── */
+.style-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;}
+.style-opt input{display:none;}
+.style-label{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:16px 10px;border-radius:14px;border:2px solid #e8f5e9;
+  cursor:pointer;transition:.25s;background:#fafffe;text-align:center;
+}
+.style-opt input:checked + .style-label{
+  border-color:var(--g);background:linear-gradient(135deg,#f0fdf4,#d8f3dc);
+  box-shadow:0 4px 16px rgba(45,106,79,.15);transform:translateY(-2px);
+}
+.style-label:hover{border-color:var(--g2);transform:translateY(-2px);}
+.style-emoji{font-size:26px;line-height:1;}
+.style-name{font-size:12px;font-weight:800;color:var(--gd);}
+.style-desc{font-size:10px;color:#9ca3af;line-height:1.3;}
+
+/* ── Submit button ── */
+.rm-btn{
+  width:100%;padding:15px;margin-top:1.5rem;
+  background:linear-gradient(135deg,#0d2b1e,#1b4332,#2d6a4f);
+  background-size:200% 200%;
+  color:#fff;border:none;border-radius:14px;
+  font-size:15px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:.3s;position:relative;overflow:hidden;
+  animation:gradientShift 4s ease infinite;
+}
+.rm-btn::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.1),transparent);
+  opacity:0;transition:.3s;
+}
+.rm-btn:hover::before{opacity:1;}
+.rm-btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(13,43,30,.35);}
+.rm-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.rm-btn:active{transform:translateY(0);}
+
+/* ── Loading ── */
+.rm-loading{
+  background:#fff;border-radius:20px;padding:3rem 2rem;
+  box-shadow:0 4px 32px rgba(45,106,79,.07);
+  border:1px solid rgba(116,198,157,.15);
+  text-align:center;display:none;margin-bottom:1.5rem;
+  animation:fadeUp .4s ease;
+}
+.rm-loading.show{display:block;}
+.dna-loader{display:flex;justify-content:center;gap:6px;margin-bottom:1.5rem;}
+.dna-bar{
+  width:6px;height:40px;border-radius:3px;
+  background:linear-gradient(180deg,var(--g),var(--g3));
+  animation:dnaWave 1.2s ease-in-out infinite;
+}
+.dna-bar:nth-child(1){animation-delay:0s;}
+.dna-bar:nth-child(2){animation-delay:.1s;}
+.dna-bar:nth-child(3){animation-delay:.2s;}
+.dna-bar:nth-child(4){animation-delay:.3s;}
+.dna-bar:nth-child(5){animation-delay:.4s;}
+.dna-bar:nth-child(6){animation-delay:.5s;}
+.dna-bar:nth-child(7){animation-delay:.4s;}
+.dna-bar:nth-child(8){animation-delay:.3s;}
+.dna-bar:nth-child(9){animation-delay:.2s;}
+.loading-title{font-size:16px;font-weight:700;color:var(--gd);margin-bottom:6px;}
+.loading-sub{font-size:13px;color:#9ca3af;}
+.loading-dots span{animation:blink 1.4s infinite;}
+.loading-dots span:nth-child(2){animation-delay:.2s;}
+.loading-dots span:nth-child(3){animation-delay:.4s;}
+
+/* ── Result ── */
+.rm-result{
+  background:#fff;border-radius:20px;
+  box-shadow:0 4px 32px rgba(45,106,79,.07);
+  border:1px solid rgba(116,198,157,.15);
+  overflow:hidden;display:none;margin-bottom:1.5rem;
+  animation:fadeUp .5s ease;
+}
+.rm-result.show{display:block;}
+.rm-result-header{
+  background:linear-gradient(135deg,#0d2b1e,#1b4332);
+  padding:1.5rem 2rem;display:flex;align-items:center;justify-content:space-between;
+}
+.rm-result-title{font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;}
+.rm-result-badge{background:rgba(116,198,157,.25);border:1px solid rgba(116,198,157,.4);color:#74c69d;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.5px;}
+.rm-actions{display:flex;gap:.5rem;}
+.rm-action-btn{
+  padding:7px 16px;border-radius:9px;font-size:12px;font-weight:700;
+  cursor:pointer;border:none;transition:.2s;display:flex;align-items:center;gap:5px;
+}
+.btn-copy{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);}
+.btn-copy:hover{background:rgba(255,255,255,.25);}
+.btn-print{background:var(--g3);color:var(--gd);}
+.btn-print:hover{background:#95d5b2;}
+.rm-rapport-body{padding:2rem;}
+.rm-rapport-text{
+  font-size:14px;line-height:1.9;color:#374151;
+  white-space:pre-wrap;font-family:'Segoe UI',system-ui,sans-serif;
+}
+
+/* ── Rapport formaté ── */
+.rm-rapport-text .rp-h1{
+  font-size:18px;font-weight:800;color:var(--gd);
+  margin:1.5rem 0 .5rem;padding-bottom:8px;
+  border-bottom:3px solid var(--gl);
+  display:flex;align-items:center;gap:8px;
+}
+.rm-rapport-text .rp-h1::before{content:'▌';color:var(--g);font-size:20px;}
+.rm-rapport-text .rp-h2{
+  font-size:15px;font-weight:700;color:var(--g);
+  margin:1.2rem 0 .4rem;
+  background:linear-gradient(135deg,#f0fdf4,#d8f3dc);
+  padding:8px 14px;border-radius:8px;border-left:4px solid var(--g);
+}
+.rm-rapport-text .rp-bold{
+  color:var(--gd);font-weight:800;
+  background:linear-gradient(135deg,#f0fdf4,#e8f5e9);
+  padding:1px 6px;border-radius:4px;
+}
+.rm-rapport-text .rp-p{
+  font-size:14px;line-height:1.9;color:#374151;
+  margin:.6rem 0;
+}
+.rm-rapport-text .rp-ul{
+  list-style:none;padding:0;margin:.5rem 0;
+}
+.rm-rapport-text .rp-li{
+  font-size:14px;line-height:1.8;color:#374151;
+  padding:4px 0 4px 24px;position:relative;
+}
+.rm-rapport-text .rp-li::before{
+  content:'🌿';position:absolute;left:0;font-size:12px;top:5px;
+}
+
+/* ── Error ── */
+.rm-error{
+  background:#fef2f2;border:1.5px solid #fca5a5;border-radius:14px;
+  padding:14px 18px;color:#dc2626;font-size:13px;font-weight:600;
+  display:none;margin-top:1rem;align-items:center;gap:8px;
+  animation:shake .4s ease;
+}
+.rm-error.show{display:flex;}
+
+/* ── Animations ── */
+@keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes dnaWave{0%,100%{transform:scaleY(1);opacity:.7}50%{transform:scaleY(1.8);opacity:1}}
+@keyframes blink{0%,80%,100%{opacity:0}40%{opacity:1}}
+@keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(45,106,79,.3)}50%{box-shadow:0 0 0 8px rgba(45,106,79,0)}}
+
+@media(max-width:600px){
+  .rm-grid{grid-template-columns:1fr;}
+  .rm-field.full{grid-column:1;}
+  .style-grid{grid-template-columns:1fr;}
+  .rm-hero-inner{flex-direction:column;align-items:flex-start;}
+}
+</style>
+
+<div class="rm-page">
+
+  {# ── Hero ── #}
+  <div class="rm-hero">
+    <div class="rm-hero-orb1"></div>
+    <div class="rm-hero-orb2"></div>
+    <div class="rm-hero-orb3"></div>
+    <div class="rm-hero-inner">
+      <div>
+        <span class="rm-badge">🤖 Groq · LLaMA 3.3 70B</span>
+        <h1 class="rm-hero-title">🧬 Rapport Médical IA</h1>
+        <p class="rm-hero-sub">Analyse vétérinaire intelligente basée sur l'historique complet des suivis sanitaires</p>
+      </div>
+      <a href="{{ path('app_animal_index') }}" class="rm-back">
+        <i class="fas fa-arrow-left me-1"></i> Retour
+      </a>
+    </div>
+  </div>
+
+  {# ── Formulaire ── #}
+  <div class="rm-card">
+    <div class="rm-card-title">
+      <div class="rm-card-icon"><i class="fas fa-stethoscope"></i></div>
+      Paramètres du rapport
+    </div>
+
+    <form id="rapportForm">
+      <div class="rm-grid">
+
+        <div class="rm-field full">
+          <label class="rm-label">🐄 Animal</label>
+          <select class="rm-select" name="animalId" id="animalSelect" required>
+            <option value="">— Sélectionner un animal —</option>
+            {% for animal in animals %}
+            <option value="{{ animal.idAnimal }}"
+                    data-code="{{ animal.codeAnimal }}"
+                    data-espece="{{ animal.espece }}"
+                    data-race="{{ animal.race }}"
+                    data-sexe="{{ animal.sexe }}">
+              {{ animal.codeAnimal }} — {{ animal.espece }} · {{ animal.race }}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="animal-preview" id="animalPreview">
+            <div class="ap-avatar">🐾</div>
+            <div>
+              <div class="ap-code" id="previewCode"></div>
+              <div class="ap-info" id="previewInfo"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rm-field">
+          <label class="rm-label">📅 Date début</label>
+          <input type="date" class="rm-input" name="dateDebut" id="dateDebut" required>
+        </div>
+
+        <div class="rm-field">
+          <label class="rm-label">📅 Date fin</label>
+          <input type="date" class="rm-input" name="dateFin" id="dateFin" required>
+        </div>
+
+        <div class="rm-field full">
+          <label class="rm-label">📝 Style du rapport</label>
+          <div class="style-grid">
+            <div class="style-opt">
+              <input type="radio" name="style" id="s1" value="complet" checked>
+              <label class="style-label" for="s1">
+                <span class="style-emoji">📋</span>
+                <span class="style-name">Complet</span>
+                <span class="style-desc">Rapport détaillé avec toutes les sections vétérinaires</span>
+              </label>
+            </div>
+            <div class="style-opt">
+              <input type="radio" name="style" id="s2" value="synthese">
+              <label class="style-label" for="s2">
+                <span class="style-emoji">⚡</span>
+                <span class="style-name">Synthèse</span>
+                <span class="style-desc">Résumé court, clair et concis</span>
+              </label>
+            </div>
+            <div class="style-opt">
+              <input type="radio" name="style" id="s3" value="urgence">
+              <label class="style-label" for="s3">
+                <span class="style-emoji">🚨</span>
+                <span class="style-name">Urgence</span>
+                <span class="style-desc">Alertes critiques et actions immédiates</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <button type="submit" class="rm-btn" id="submitBtn">
+        <i class="fas fa-brain"></i>
+        Générer le rapport médical
+      </button>
+    </form>
+
+    <div class="rm-error" id="errorBox">
+      <i class="fas fa-exclamation-circle"></i>
+      <span id="errorText"></span>
+    </div>
+  </div>
+
+  {# ── Loading ── #}
+  <div class="rm-loading" id="loadingBox">
+    <div class="dna-loader">
+      <div class="dna-bar"></div><div class="dna-bar"></div><div class="dna-bar"></div>
+      <div class="dna-bar"></div><div class="dna-bar"></div><div class="dna-bar"></div>
+      <div class="dna-bar"></div><div class="dna-bar"></div><div class="dna-bar"></div>
+    </div>
+    <p class="loading-title">🧬 LLaMA 3.3 70B analyse l'historique médical<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span></p>
+    <p class="loading-sub">Construction du rapport vétérinaire en cours — quelques secondes</p>
+  </div>
+
+  {# ── Résultat ── #}
+  <div class="rm-result" id="resultBox">
+    <div class="rm-result-header">
+      <div class="rm-result-title">
+        <i class="fas fa-file-medical"></i>
+        Rapport généré par IA
+        <span class="rm-result-badge">GROQ · LLAMA 3.3</span>
+      </div>
+      <div class="rm-actions">
+        <button class="rm-action-btn btn-copy" id="copyBtn" onclick="copyRapport()">
+          📋 Copier
+        </button>
+        <button class="rm-action-btn btn-print" onclick="window.print()">
+          🖨 Imprimer
+        </button>
+      </div>
+    </div>
+    <div class="rm-rapport-body">
+      <div class="rm-rapport-text" id="rapportText"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Dates par défaut — 30 derniers jours
+const today  = new Date();
+const before = new Date(today);
+before.setDate(before.getDate() - 30);
+document.getElementById('dateFin').value   = today.toISOString().split('T')[0];
+document.getElementById('dateDebut').value = before.toISOString().split('T')[0];
+
+// Preview animal
+document.getElementById('animalSelect').addEventListener('change', function() {
+  const opt     = this.options[this.selectedIndex];
+  const preview = document.getElementById('animalPreview');
+  if (this.value) {
+    document.getElementById('previewCode').textContent = opt.dataset.code;
+    document.getElementById('previewInfo').textContent =
+      opt.dataset.espece + ' · ' + opt.dataset.race + ' · ' + opt.dataset.sexe;
+    preview.classList.add('show');
+  } else {
+    preview.classList.remove('show');
+  }
+});
+
+// Soumission
+document.getElementById('rapportForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const btn     = document.getElementById('submitBtn');
+  const loading = document.getElementById('loadingBox');
+  const result  = document.getElementById('resultBox');
+  const error   = document.getElementById('errorBox');
+  const errText = document.getElementById('errorText');
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Génération en cours...';
+  loading.classList.add('show');
+  result.classList.remove('show');
+  error.classList.remove('show');
+
+  try {
+    const resp = await fetch('{{ path("app_rapport_medical_generer") }}', {
+      method: 'POST',
+      body: new FormData(this)
+    });
+    const data = await resp.json();
+
+    if (data.error) {
+      errText.textContent = data.error;
+      error.classList.add('show');
+    } else {
+      result.classList.add('show');
+      result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const el = document.getElementById('rapportText');
+      el.innerHTML = formatRapport(data.rapport);
+      let i = 0;
+      const txt = data.rapport;
+      const speed = txt.length > 1500 ? 8 : 15;
+      function type() {
+        if (i < txt.length) {
+          el.textContent += txt.charAt(i++);
+          setTimeout(type, speed);
+        }
+      }
+      type();
+    }
+  } catch(err) {
+    errText.textContent = 'Erreur de connexion : ' + err.message;
+    error.classList.add('show');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-brain"></i> Générer le rapport médical';
+    loading.classList.remove('show');
+  }
+});
+
+function copyRapport() {
+  const text = document.getElementById('rapportText').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ Copié !';
+    setTimeout(() => btn.textContent = '📋 Copier', 2500);
+  });
+}
+
+function formatRapport(text) {
+  return text
+    // Titres ##
+    .replace(/^## (.+)$/gm, '<h3 class="rp-h2">$1</h3>')
+    // Titres # ou **Titre :**
+    .replace(/^# (.+)$/gm, '<h2 class="rp-h1">$1</h2>')
+    // **texte** → gras coloré
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="rp-bold">$1</strong>')
+    // *texte* → italique
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Lignes avec - → liste
+    .replace(/^- (.+)$/gm, '<li class="rp-li">$1</li>')
+    // Entourer les <li> consécutifs
+    .replace(/(<li class="rp-li">.*<\/li>\n?)+/g, '<ul class="rp-ul">$&</ul>')
+    // Lignes vides → paragraphes
+    .replace(/\n{2,}/g, '</p><p class="rp-p">')
+    // Wrap global
+    .replace(/^/, '<p class="rp-p">')
+    .replace(/$/, '</p>');
+}
+</script>
+{% endblock %}

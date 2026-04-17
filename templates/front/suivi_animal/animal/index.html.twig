@@ -84,6 +84,80 @@
   </button>
 </div>
 
+{# ── AI Tools Cards ── #}
+<style>
+.ai-tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:.8rem;margin-bottom:1.5rem;}
+.ai-tile{
+  display:flex;align-items:center;gap:14px;
+  padding:16px 20px;border-radius:16px;
+  text-decoration:none;cursor:pointer;
+  transition:transform .25s, box-shadow .25s;
+  position:relative;overflow:hidden;
+  border:1.5px solid transparent;
+}
+.ai-tile::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.15),transparent 60%);
+  opacity:0;transition:.25s;
+}
+.ai-tile:hover::before{opacity:1;}
+.ai-tile:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 16px 40px rgba(0,0,0,.15);}
+.ai-tile-icon{font-size:32px;line-height:1;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(0,0,0,.2));transition:transform .25s;}
+.ai-tile:hover .ai-tile-icon{transform:scale(1.15) rotate(-5deg);}
+.ai-tile-text{}
+.ai-tile-name{font-size:14px;font-weight:800;color:#fff;margin:0 0 3px;text-shadow:0 1px 4px rgba(0,0,0,.2);}
+.ai-tile-desc{font-size:11px;color:rgba(255,255,255,.75);margin:0;line-height:1.3;}
+.ai-tile-arrow{margin-left:auto;color:rgba(255,255,255,.6);font-size:14px;transition:.25s;}
+.ai-tile:hover .ai-tile-arrow{color:#fff;transform:translateX(4px);}
+.tile-rapport{background:linear-gradient(135deg,#1b4332,#2d6a4f,#40916c);border-color:rgba(116,198,157,.3);}
+.tile-ordonnance{background:linear-gradient(135deg,#5d3a1a,#8b5e3c,#d4a574);border-color:rgba(212,165,116,.3);}
+.tile-meteo{background:linear-gradient(135deg,#0c4a6e,#0369a1,#0ea5e9);border-color:rgba(56,189,248,.3);}
+@media(max-width:640px){.ai-tiles{grid-template-columns:1fr;}}
+</style>
+
+<div class="ai-tiles">
+  <a href="{{ path('app_rapport_medical') }}" class="ai-tile tile-rapport">
+    <span class="ai-tile-icon">🧬</span>
+    <div class="ai-tile-text">
+      <p class="ai-tile-name">Rapport Médical IA</p>
+      <p class="ai-tile-desc">Analyse vétérinaire complète par LLaMA 3.3</p>
+    </div>
+    <i class="fas fa-arrow-right ai-tile-arrow"></i>
+  </a>
+  <a href="{{ path('app_ordonnance_ia') }}" class="ai-tile tile-ordonnance">
+    <span class="ai-tile-icon">💊</span>
+    <div class="ai-tile-text">
+      <p class="ai-tile-name">Ordonnance IA</p>
+      <p class="ai-tile-desc">Dosages précis calculés selon le poids</p>
+    </div>
+    <i class="fas fa-arrow-right ai-tile-arrow"></i>
+  </a>
+  <a href="{{ path('app_meteo_ia') }}" class="ai-tile tile-meteo">
+    <span class="ai-tile-icon">🌦️</span>
+    <div class="ai-tile-text">
+      <p class="ai-tile-name">Météo & Analyse IA</p>
+      <p class="ai-tile-desc">Impact météo sur votre cheptel en temps réel</p>
+    </div>
+    <i class="fas fa-arrow-right ai-tile-arrow"></i>
+  </a>
+  <a href="{{ path('app_recommandation_alimentaire') }}" class="ai-tile" style="background:linear-gradient(135deg,#1b4332,#2d6a4f,#e65100);border-color:rgba(255,204,2,.3);">
+    <span class="ai-tile-icon">🥗</span>
+    <div class="ai-tile-text">
+      <p class="ai-tile-name">Recommandation Alimentaire</p>
+      <p class="ai-tile-desc">Plan nutritionnel personnalisé par espèce</p>
+    </div>
+    <i class="fas fa-arrow-right ai-tile-arrow"></i>
+  </a>
+  <a href="{{ path('app_notifications_animal') }}" class="ai-tile" style="background:linear-gradient(135deg,#7f0000,#c62828,#e65100);border-color:rgba(255,100,100,.3);">
+    <span class="ai-tile-icon">🔔</span>
+    <div class="ai-tile-text">
+      <p class="ai-tile-name">Alertes & Notifications</p>
+      <p class="ai-tile-desc">Détection anomalies vitales + notifications desktop</p>
+    </div>
+    <i class="fas fa-arrow-right ai-tile-arrow"></i>
+  </a>
+</div>
+
 <div class="ag-count" id="ag-count">{{ animals|length }} animal(aux) trouvé(s)</div>
 
 <div id="ag-spinner"><i class="fas fa-circle-notch fa-spin fa-2x"></i></div>

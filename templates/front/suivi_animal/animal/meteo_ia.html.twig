@@ -1,0 +1,274 @@
+﻿{% extends 'front/base_front.html.twig' %}
+{% block title %}Météo & Analyse IA{% endblock %}
+{% block body %}
+<style>
+:root{--g:#2d6a4f;--g2:#40916c;--g3:#74c69d;--gl:#d8f3dc;--gd:#1b4332;--br:#5d3a1a;--br2:#8b5e3c;--br3:#d4a574;--sky:#0ea5e9;--sky2:#38bdf8;}
+.mt-page{max-width:1000px;margin:0 auto;padding:2rem 1rem 5rem;}
+.mt-hero{background:linear-gradient(135deg,#0c1445 0%,#1b4332 40%,#5d3a1a 100%);border-radius:28px;padding:2.8rem;margin-bottom:2rem;position:relative;overflow:hidden;box-shadow:0 28px 72px rgba(12,20,69,.4);}
+.mt-hero::before{content:'';position:absolute;top:-100px;right:-100px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(14,165,233,.15),transparent 70%);}
+.mt-hero::after{content:'';position:absolute;bottom:-80px;left:5%;width:250px;height:250px;border-radius:50%;background:radial-gradient(circle,rgba(116,198,157,.12),transparent 70%);}
+.mt-hero-inner{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+.mt-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(14,165,233,.2);border:1px solid rgba(14,165,233,.35);color:#38bdf8;padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px;animation:badgePulse 3s ease-in-out infinite;}
+.mt-hero-title{font-size:28px;font-weight:800;color:#fff;margin:0 0 6px;}
+.mt-hero-sub{font-size:13px;color:rgba(255,255,255,.65);margin:0;}
+.mt-back{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;padding:10px 22px;border-radius:14px;font-size:13px;font-weight:700;text-decoration:none;transition:.25s;white-space:nowrap;backdrop-filter:blur(10px);}
+.mt-back:hover{background:rgba(255,255,255,.22);color:#fff;transform:translateX(-3px);}
+.mt-card{background:#fff;border-radius:22px;padding:2rem;box-shadow:0 6px 36px rgba(45,106,79,.08);border:1px solid rgba(116,198,157,.2);margin-bottom:1.5rem;animation:fadeUp .5s ease;}
+.mt-card-title{font-size:14px;font-weight:800;color:var(--gd);display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;padding-bottom:14px;border-bottom:2px solid #f0fdf4;}
+.mt-card-icon{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--sky),var(--sky2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;flex-shrink:0;box-shadow:0 4px 12px rgba(14,165,233,.3);}
+.mt-search-row{display:flex;gap:1rem;align-items:center;}
+.mt-input{background:#f8fffe;border:1.5px solid #c8e6c9;border-radius:14px;padding:14px 18px;font-size:15px;color:var(--gd);flex:1;outline:none;transition:.25s;}
+.mt-input:focus{border-color:var(--g);background:#fff;box-shadow:0 0 0 4px rgba(45,106,79,.1);}
+.mt-btn{padding:14px 28px;background:linear-gradient(135deg,var(--gd),var(--g),var(--sky));background-size:200%;color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:800;cursor:pointer;transition:.3s;white-space:nowrap;animation:gradShift 5s ease infinite;box-shadow:0 6px 20px rgba(45,106,79,.3);}
+.mt-btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(45,106,79,.4);}
+.mt-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.mt-loading{background:#fff;border-radius:22px;padding:3.5rem 2rem;box-shadow:0 6px 36px rgba(45,106,79,.08);border:1px solid rgba(116,198,157,.2);text-align:center;display:none;margin-bottom:1.5rem;}
+.mt-loading.show{display:block;}
+.cloud-loader{display:flex;justify-content:center;gap:12px;margin-bottom:1.5rem;}
+.cloud-dot{width:16px;height:16px;border-radius:50%;animation:cloudBounce 1.4s ease-in-out infinite;}
+.cloud-dot:nth-child(1){background:var(--sky);animation-delay:0s;}
+.cloud-dot:nth-child(2){background:var(--g);animation-delay:.2s;}
+.cloud-dot:nth-child(3){background:var(--br3);animation-delay:.4s;}
+.cloud-dot:nth-child(4){background:var(--g2);animation-delay:.6s;}
+.cloud-dot:nth-child(5){background:var(--sky2);animation-delay:.4s;}
+.cloud-dot:nth-child(6){background:var(--g3);animation-delay:.2s;}
+.mt-result{display:none;margin-bottom:1.5rem;}
+.mt-result.show{display:block;}
+.meteo-widget{background:linear-gradient(135deg,#0c1445 0%,#1b4332 50%,#0ea5e9 100%);border-radius:22px;padding:2rem;margin-bottom:1.5rem;position:relative;overflow:hidden;box-shadow:0 12px 40px rgba(12,20,69,.3);}
+.meteo-widget::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.08),transparent 70%);}
+.meteo-main{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;position:relative;z-index:1;}
+.meteo-left{display:flex;align-items:center;gap:1.5rem;}
+.meteo-icon-big{font-size:72px;line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));animation:iconFloat 3s ease-in-out infinite;}
+.meteo-temp-big{font-size:64px;font-weight:900;color:#fff;line-height:1;text-shadow:0 4px 16px rgba(0,0,0,.2);}
+.meteo-temp-unit{font-size:28px;color:rgba(255,255,255,.7);}
+.meteo-city{font-size:22px;font-weight:800;color:#fff;margin:0 0 4px;}
+.meteo-desc{font-size:14px;color:rgba(255,255,255,.75);margin:0;}
+.meteo-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem;margin-top:1.5rem;position:relative;z-index:1;}
+.meteo-stat{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:12px 14px;text-align:center;backdrop-filter:blur(4px);}
+.meteo-stat-icon{font-size:20px;margin-bottom:4px;}
+.meteo-stat-val{font-size:18px;font-weight:800;color:#fff;}
+.meteo-stat-lbl{font-size:10px;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.forecast-row{display:grid;grid-template-columns:repeat(5,1fr);gap:.8rem;margin-top:1.5rem;position:relative;z-index:1;}
+.forecast-item{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:10px 8px;text-align:center;backdrop-filter:blur(4px);}
+.forecast-time{font-size:11px;color:rgba(255,255,255,.7);font-weight:600;}
+.forecast-icon{font-size:22px;margin:4px 0;}
+.forecast-temp{font-size:14px;font-weight:800;color:#fff;}
+.forecast-hum{font-size:10px;color:rgba(255,255,255,.6);}
+.risk-banner{border-radius:16px;padding:1.2rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:14px;font-size:15px;font-weight:700;}
+.risk-faible{background:linear-gradient(135deg,#f1f8e9,#dcedc8);border:2px solid #aed581;color:#33691e;}
+.risk-modere{background:linear-gradient(135deg,#fff8e1,#ffecb3);border:2px solid #ffd54f;color:#e65100;}
+.risk-eleve{background:linear-gradient(135deg,#fce4ec,#f8bbd0);border:2px solid #f48fb1;color:#880e4f;}
+.risk-critique{background:linear-gradient(135deg,#ffebee,#ffcdd2);border:2px solid #ef9a9a;color:#b71c1c;animation:criticalPulse 1.5s ease-in-out infinite;}
+.risk-icon{font-size:32px;}
+.analyse-card{background:#fff;border-radius:22px;box-shadow:0 6px 36px rgba(45,106,79,.08);border:1px solid rgba(116,198,157,.2);overflow:hidden;}
+.analyse-header{background:linear-gradient(135deg,var(--gd),var(--g),var(--br));padding:1.5rem 2rem;}
+.analyse-title{font-size:15px;font-weight:800;color:#fff;display:flex;align-items:center;gap:8px;}
+.analyse-actions{display:flex;gap:.6rem;margin-top:1rem;}
+.analyse-btn{padding:8px 18px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:.2s;}
+.btn-copy-mt{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3);}
+.btn-copy-mt:hover{background:rgba(255,255,255,.28);}
+.btn-print-mt{background:var(--br3);color:var(--br);}
+.analyse-body{padding:2rem;}
+.section-title{font-size:12px;font-weight:800;color:var(--gd);text-transform:uppercase;letter-spacing:.7px;margin:1.8rem 0 .8rem;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:2px solid #f0fdf4;}
+.section-title:first-child{margin-top:0;}
+.section-content{background:#f8fffe;border-radius:14px;padding:16px 18px;font-size:13px;line-height:1.9;color:#374151;border-left:4px solid var(--g);margin-bottom:1rem;}
+.section-content.alert{border-left-color:#ef4444;background:#fff5f5;}
+.section-content.sky{border-left-color:var(--sky);background:#f0f9ff;}
+.section-content.brown{border-left-color:var(--br);background:#fdf3e7;}
+.mt-error{background:#fef2f2;border:1.5px solid #fca5a5;border-radius:14px;padding:14px 18px;color:#dc2626;font-size:13px;font-weight:600;display:none;margin-top:1rem;align-items:center;gap:8px;}
+.mt-error.show{display:flex;}
+@keyframes badgePulse{0%,100%{box-shadow:0 0 0 0 rgba(14,165,233,.3)}50%{box-shadow:0 0 0 6px rgba(14,165,233,0)}}
+@keyframes gradShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes cloudBounce{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(-16px);opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes iconFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes criticalPulse{0%,100%{box-shadow:0 0 0 0 rgba(183,28,28,.3)}50%{box-shadow:0 0 0 10px rgba(183,28,28,0)}}
+@media(max-width:640px){.meteo-stats{grid-template-columns:repeat(2,1fr);}.forecast-row{grid-template-columns:repeat(3,1fr);}.mt-search-row{flex-direction:column;}.mt-hero-inner{flex-direction:column;}}
+</style>
+
+<div class="mt-page">
+
+  <div class="mt-hero">
+    <div class="mt-hero-inner">
+      <div>
+        <span class="mt-badge">🌤️ OpenWeatherMap + Groq LLaMA 3.3</span>
+        <h1 class="mt-hero-title">🌦️ Météo & Analyse IA du Cheptel</h1>
+        <p class="mt-hero-sub">Analyse intelligente de l'impact météorologique sur vos animaux avec conseils personnalisés</p>
+      </div>
+      <a href="{{ path('app_animal_index') }}" class="mt-back"><i class="fas fa-arrow-left me-1"></i> Retour</a>
+    </div>
+  </div>
+
+  <div class="mt-card">
+    <div class="mt-card-title">
+      <div class="mt-card-icon"><i class="fas fa-map-marker-alt"></i></div>
+      Entrez votre localisation
+    </div>
+    <div class="mt-search-row">
+      <input type="text" class="mt-input" id="villeInput" placeholder="Ex: Tunis, Sfax, Sousse, Ariana..." value="Tunis">
+      <button class="mt-btn" id="analyserBtn" onclick="analyser()">
+        <i class="fas fa-cloud-sun me-2"></i> Analyser
+      </button>
+    </div>
+    <div class="mt-error" id="errorBox">
+      <i class="fas fa-exclamation-circle"></i>
+      <span id="errorText"></span>
+    </div>
+  </div>
+
+  <div class="mt-loading" id="loadingBox">
+    <div class="cloud-loader">
+      <div class="cloud-dot"></div><div class="cloud-dot"></div><div class="cloud-dot"></div>
+      <div class="cloud-dot"></div><div class="cloud-dot"></div><div class="cloud-dot"></div>
+    </div>
+    <p style="font-size:17px;font-weight:800;color:var(--gd);margin-bottom:6px;">🌤️ Analyse météo en cours...</p>
+    <p style="font-size:13px;color:#9ca3af;">Récupération des données météo + analyse IA de votre cheptel</p>
+  </div>
+
+  <div class="mt-result" id="resultBox">
+    <div class="meteo-widget" id="meteoWidget"></div>
+    <div id="riskBanner"></div>
+    <div class="analyse-card">
+      <div class="analyse-header">
+        <div class="analyse-title"><i class="fas fa-brain"></i> Analyse IA — Impact sur le cheptel</div>
+        <div class="analyse-actions">
+          <button class="analyse-btn btn-copy-mt" id="copyBtn" onclick="copyAnalyse()">📋 Copier</button>
+          <button class="analyse-btn btn-print-mt" onclick="window.print()">🖨 Imprimer</button>
+        </div>
+      </div>
+      <div class="analyse-body" id="analyseBody"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const weatherIcons = {
+  '01d':'☀️','01n':'🌙','02d':'⛅','02n':'⛅','03d':'☁️','03n':'☁️',
+  '04d':'☁️','04n':'☁️','09d':'🌧️','09n':'🌧️','10d':'🌦️','10n':'🌧️',
+  '11d':'⛈️','11n':'⛈️','13d':'❄️','13n':'❄️','50d':'🌫️','50n':'🌫️'
+};
+function getIcon(code){ return weatherIcons[code] || '🌤️'; }
+
+async function analyser() {
+  const ville   = document.getElementById('villeInput').value.trim();
+  const btn     = document.getElementById('analyserBtn');
+  const loading = document.getElementById('loadingBox');
+  const result  = document.getElementById('resultBox');
+  const error   = document.getElementById('errorBox');
+  if (!ville) { alert('Entrez une ville !'); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i> Analyse...';
+  loading.classList.add('show');
+  result.classList.remove('show');
+  error.classList.remove('show');
+  try {
+    const fd = new FormData();
+    fd.append('ville', ville);
+    const resp = await fetch('{{ path("app_meteo_analyser") }}', { method:'POST', body:fd });
+    const data = await resp.json();
+    if (data.error) {
+      document.getElementById('errorText').textContent = data.error;
+      error.classList.add('show');
+    } else {
+      renderMeteo(data.meteo, data.previsions, data.animaux);
+      renderAnalyse(data.analyse);
+      result.classList.add('show');
+      result.scrollIntoView({ behavior:'smooth' });
+    }
+  } catch(e) {
+    document.getElementById('errorText').textContent = 'Erreur : ' + e.message;
+    error.classList.add('show');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-cloud-sun me-2"></i> Analyser';
+    loading.classList.remove('show');
+  }
+}
+
+function renderMeteo(m, previsions, nbAnimaux) {
+  const icon = getIcon(m.icon);
+  let forecastHtml = previsions.map(f => `
+    <div class="forecast-item">
+      <div class="forecast-time">${f.heure}</div>
+      <div class="forecast-icon">${getIcon(f.icon)}</div>
+      <div class="forecast-temp">${f.temp}°C</div>
+      <div class="forecast-hum">💧${f.hum}%</div>
+    </div>`).join('');
+  document.getElementById('meteoWidget').innerHTML = `
+    <div class="meteo-main">
+      <div class="meteo-left">
+        <div class="meteo-icon-big">${icon}</div>
+        <div>
+          <div class="meteo-temp-big">${m.temp}<span class="meteo-temp-unit">°C</span></div>
+          <div class="meteo-city">📍 ${m.ville}, ${m.pays}</div>
+          <div class="meteo-desc">${m.description} · Ressenti ${m.feelsLike}°C</div>
+        </div>
+      </div>
+      <div style="text-align:right;color:rgba(255,255,255,.7);font-size:13px;z-index:1;position:relative;">
+        <div style="font-size:22px;font-weight:800;color:#fff;">🐄 ${nbAnimaux} animaux</div>
+        <div>analysés</div>
+      </div>
+    </div>
+    <div class="meteo-stats">
+      <div class="meteo-stat"><div class="meteo-stat-icon">💧</div><div class="meteo-stat-val">${m.humidity}%</div><div class="meteo-stat-lbl">Humidité</div></div>
+      <div class="meteo-stat"><div class="meteo-stat-icon">💨</div><div class="meteo-stat-val">${m.windSpeed} m/s</div><div class="meteo-stat-lbl">Vent</div></div>
+      <div class="meteo-stat"><div class="meteo-stat-icon">🌡️</div><div class="meteo-stat-val">${m.tempMin}° / ${m.tempMax}°</div><div class="meteo-stat-lbl">Min / Max</div></div>
+      <div class="meteo-stat"><div class="meteo-stat-icon">🔵</div><div class="meteo-stat-val">${m.pressure} hPa</div><div class="meteo-stat-lbl">Pression</div></div>
+    </div>
+    ${forecastHtml ? `<div class="forecast-row">${forecastHtml}</div>` : ''}`;
+}
+
+function renderAnalyse(text) {
+  const sections = [
+    { key:'## SCORE DE RISQUE',    next:'## IMPACT PAR ESPÈCE',   icon:'🎯', label:'Score de risque global', type:'text'  },
+    { key:'## IMPACT PAR ESPÈCE',  next:'## ALERTES',              icon:'🐄', label:'Impact par espèce',      type:'sky'   },
+    { key:'## ALERTES',            next:'## CONSEILS PRATIQUES',   icon:'⚠️', label:'Alertes',                type:'alert' },
+    { key:'## CONSEILS PRATIQUES', next:'## PRÉVISIONS',           icon:'💡', label:'Conseils pratiques',     type:'text'  },
+    { key:'## PRÉVISIONS',         next:'## CONCLUSION',           icon:'📅', label:'Prévisions',             type:'sky'   },
+    { key:'## CONCLUSION',         next:null,                       icon:'✅', label:'Conclusion',             type:'brown' },
+  ];
+  let html = '';
+  let riskLevel = 'FAIBLE';
+  sections.forEach(s => {
+    const start = text.indexOf(s.key);
+    if (start < 0) return;
+    const from    = start + s.key.length;
+    const endIdx  = s.next ? text.indexOf(s.next, from) : text.length;
+    const content = text.substring(from, endIdx < 0 ? text.length : endIdx).trim();
+    if (s.key === '## SCORE DE RISQUE') {
+      if (content.includes('CRITIQUE')) riskLevel = 'CRITIQUE';
+      else if (content.includes('ÉLEVÉ') || content.includes('ELEVE')) riskLevel = 'ÉLEVÉ';
+      else if (content.includes('MODÉRÉ') || content.includes('MODERE')) riskLevel = 'MODÉRÉ';
+    }
+    const fmt = content
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/^[-•] (.+)$/gm,'<li style="margin:.3rem 0 .3rem 1.2rem;list-style:disc;">$1</li>')
+      .replace(/\n/g,'<br>');
+    const cls = s.type === 'alert' ? 'alert' : s.type === 'sky' ? 'sky' : s.type === 'brown' ? 'brown' : '';
+    html += `<div class="section-title">${s.icon} ${s.label}</div><div class="section-content ${cls}">${fmt}</div>`;
+  });
+  if (!html) html = `<div class="section-content">${text.replace(/\n/g,'<br>')}</div>`;
+  document.getElementById('analyseBody').innerHTML = html;
+  const riskConfig = {
+    'FAIBLE':   { cls:'risk-faible',   icon:'✅', msg:'Conditions favorables — Risque faible pour votre cheptel' },
+    'MODÉRÉ':   { cls:'risk-modere',   icon:'⚠️', msg:'Risque modéré — Surveillance recommandée' },
+    'ÉLEVÉ':    { cls:'risk-eleve',    icon:'🔴', msg:'Risque élevé — Actions préventives nécessaires' },
+    'CRITIQUE': { cls:'risk-critique', icon:'🚨', msg:'RISQUE CRITIQUE — Intervention immédiate requise !' },
+  };
+  const rc = riskConfig[riskLevel] || riskConfig['FAIBLE'];
+  document.getElementById('riskBanner').innerHTML = `<div class="risk-banner ${rc.cls}"><span class="risk-icon">${rc.icon}</span><span>${rc.msg}</span></div>`;
+}
+
+function copyAnalyse() {
+  const text = document.getElementById('analyseBody').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ Copié !';
+    setTimeout(() => btn.textContent = '📋 Copier', 2500);
+  });
+}
+
+document.getElementById('villeInput').addEventListener('keypress', e => { if(e.key==='Enter') analyser(); });
+</script>
+{% endblock %}

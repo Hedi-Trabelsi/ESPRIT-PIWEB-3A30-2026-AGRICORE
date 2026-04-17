@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; color: #193321; font-size: 12px; }
+        h1 { margin-bottom: 4px; }
+        .muted { color: #5d6e62; }
+        .stats { margin: 18px 0; }
+        .stat-box { display: inline-block; width: 23%; padding: 10px; margin-right: 1%; border: 1px solid #d8e5d8; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th, td { border: 1px solid #dfe7df; padding: 8px; text-align: left; }
+        th { background: #edf6ed; }
+    </style>
+</head>
+<body>
+    <h1>Catalogue des equipements Agricore</h1>
+    <div class="muted">Document genere le {{ generatedAt|date('d/m/Y H:i') }}</div>
+    <div class="stats">
+        <div class="stat-box"><strong>{{ stats.totals.equipements }}</strong><br>equipements</div>
+        <div class="stat-box"><strong>{{ stats.totals.stock }}</strong><br>unites en stock</div>
+        <div class="stat-box"><strong>{{ stats.totals.value|number_format(2, '.', ' ') }}</strong><br>TND de valeur</div>
+        <div class="stat-box"><strong>{{ stats.totals.low_stock }}</strong><br>stocks faibles</div>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Type</th>
+                <th>Prix</th>
+                <th>Quantite</th>
+                <th>Valeur stock</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for eq in equipements %}
+                <tr>
+                    <td>{{ eq.nom }}</td>
+                    <td>{{ eq.type }}</td>
+                    <td>{{ eq.prix }} TND</td>
+                    <td>{{ eq.quantite }}</td>
+                    <td>{{ (eq.prix * eq.quantite)|number_format(2, '.', ' ') }} TND</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

@@ -5,6 +5,10 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     equipement_images_directory: '%kernel.project_dir%/public/uploads/equipements'
+    app_secret: '%env(APP_SECRET)%'
+    groq_api_key: '%env(GROQ_API_KEY)%'
+    locationiq_api_key: '%env(LOCATIONIQ_API_KEY)%'
+    openweather_api_key: '%env(OPENWEATHER_API_KEY)%'
 
 services:
     # default configuration for services in *this* file
@@ -23,3 +27,20 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    App\Controller\RapportMedicalController:
+        arguments:
+            $groqApiKey: '%env(GROQ_API_KEY)%'
+
+    App\Controller\OrdonnanceIAController:
+        arguments:
+            $groqApiKey: '%env(GROQ_API_KEY)%'
+
+    App\Controller\MeteoIAController:
+        arguments:
+            $groqApiKey: '%env(GROQ_API_KEY)%'
+            $owmApiKey:  '%env(OPENWEATHER_API_KEY)%'
+
+    App\Service\EquipmentAiService:
+        arguments:
+            $apiKey: '%env(GROQ_API_KEY)%'

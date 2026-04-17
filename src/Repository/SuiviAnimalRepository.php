@@ -13,8 +13,21 @@ class SuiviAnimalRepository extends ServiceEntityRepository
         parent::__construct($registry, SuiviAnimal::class);
     }
 
-    public function search(string $q = '', string $sortBy = 'dateSuivi', string $order = 'DESC', ?int $idAgriculteur = null): array
+    public function findByAnimalAndPeriode(\App\Entity\Animal $animal, string $dateDebut, string $dateFin): array
     {
+        return $this->createQueryBuilder('s')
+            ->andWhere('s.animal = :animal')
+            ->andWhere('s.dateSuivi >= :debut')
+            ->andWhere('s.dateSuivi <= :fin')
+            ->setParameter('animal', $animal)
+            ->setParameter('debut', new \DateTime($dateDebut.' 00:00:00'))
+            ->setParameter('fin',   new \DateTime($dateFin.' 23:59:59'))
+            ->orderBy('s.dateSuivi', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function search(string $q = '', string $sortBy = 'dateSuivi', string $order = 'DESC', ?int $idAgriculteur = null): array    {
         $allowed = ['dateSuivi', 'temperature', 'poids', 'rythmeCardiaque', 'etatSante', 'niveauActivite'];
         $sortBy  = in_array($sortBy, $allowed) ? $sortBy : 'dateSuivi';
         $order   = strtoupper($order) === 'ASC' ? 'ASC' : 'DESC';
