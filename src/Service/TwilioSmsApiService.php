@@ -55,17 +55,15 @@ class TwilioSmsApiService
         if ($techName === '') {
             $techName = 'Technicien';
         }
-
-       $message = sprintf(
+$message = sprintf(
     "Bonjour %s,\n\n" .
-    "Une nouvelle intervention a été enregistrée pour l’équipement : %s.\n\n" .
+    "Une nouvelle intervention est prévue pour l'équipement : %s.\n\n" .
     "Date prévue : %s.\n\n" .
-    "Vous êtes enregistré comme technicien responsable de cette intervention.",
+    "Merci de consulter votre calendrier sur AgriCore.",
     $techName,
     $maintenance->getEquipement(),
-    $tache->getDatePrevue()?->format('Y-m-d') ?? 'non définie'
+    $tache->getDatePrevue()?->format('d/m/Y') ?? 'non définie'
 );
-
         $url = sprintf(
             'https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json',
             urlencode($this->accountSid)
@@ -81,13 +79,7 @@ class TwilioSmsApiService
             'timeout' => 10,
         ]);
 
-        $status = $response->getStatusCode();
-        if ($status < 200 || $status >= 300) {
-            $this->logger->warning('Twilio SMS API returned non-success status.', [
-                'status' => $status,
-                'tacheId' => $tache->getId_tache(),
-            ]);
-        }
+      $message = sprintf("Bonjour %s, nouvelle intervention pour : %s", $techName, $maintenance->getEquipement());
     }
 
     private function normalizePhone(string $phone): ?string
