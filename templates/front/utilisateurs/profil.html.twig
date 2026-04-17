@@ -693,9 +693,15 @@
         results.innerHTML = '<div class="fs-loading">Recherche en cours...</div>';
         searchTimer = setTimeout(function() {
             fetch(searchUrl + '?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
-                .then(function(r) { return r.json(); })
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
                 .then(function(data) { renderResults(data.results || []); })
-                .catch(function() { results.innerHTML = '<div class="fs-empty">Erreur de recherche.</div>'; });
+                .catch(function(err) {
+                    console.error('Friend search error:', err);
+                    results.innerHTML = '<div class="fs-empty">Erreur de recherche.</div>';
+                });
         }, 300);
     });
 

@@ -134,7 +134,7 @@ class OAuthController extends AbstractController
         /** @var GithubResourceOwner $u */
         $email = $u->getEmail();
 
-        // GitHub may not return email in profile if user has it private — fall back to /user/emails
+        // GitHub may not return email in profile if  — user has it privatefall back to /user/emails
         if (!$email) {
             try {
                 $resp = $httpClient->request('GET', 'https://api.github.com/user/emails', [

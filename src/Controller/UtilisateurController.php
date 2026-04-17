@@ -659,7 +659,7 @@ class UtilisateurController extends AbstractController
                     'nom'    => $u->getNom(),
                     'email'  => $u->getEmail(),
                     'role'   => $u->getRole(),
-                    'image'  => $u->getImage(),
+                    'image'  => $this->safeImageBase64($u->getImage()),
                 ];
             }
             if (count($matches) >= 8) break;
@@ -723,7 +723,7 @@ class UtilisateurController extends AbstractController
             'genre'      => $user->getGenre(),
             'role'       => $user->getRole(),
             'role_label' => $roleLabel,
-            'image'      => $user->getImage(),
+            'image'      => $this->safeImageBase64($user->getImage()),
             'qr_png_b64' => $qrBase64,
         ]);
     }
@@ -1053,6 +1053,22 @@ class UtilisateurController extends AbstractController
 
         $this->addFlash('success', 'Email envoye avec succes a ' . $sent . ' utilisateur(s).');
         return $this->redirectToRoute('back_utilisateurs');
+    }
+
+    /**
+     * Ensure image data is safe for JSON output. Images are expected to be base64 text,
+     * but legacy rows may hold raw binary BLOBs which would break json_encode.
+     */
+    private function safeImageBase64(?string $image): ?string
+    {
+        if ($image === null || $image === '') {
+            return null;
+        }
+        // Base64 is pure ASCII. If it's not ASCII, it's raw binary — encode it.
+        if (!mb_check_encoding($image, 'ASCII')) {
+            return base64_encode($image);
+        }
+        return $image;
     }
 
     /**

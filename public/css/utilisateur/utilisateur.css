@@ -714,6 +714,113 @@
     transform: translateY(-1px);
 }
 
+/* Weather widget */
+.weather-content {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.weather-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.weather-icon {
+    width: 70px;
+    height: 70px;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,.08));
+}
+.weather-temp {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0F4229;
+    line-height: 1;
+}
+.weather-desc {
+    font-size: 13px;
+    color: #6b7280;
+    text-transform: capitalize;
+    margin-top: 4px;
+}
+.weather-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    padding: 12px;
+    background: #f8faf8;
+    border-radius: 10px;
+    border: 1px solid #e8f5e9;
+}
+.weather-detail {
+    font-size: 12px;
+    color: #4b5563;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+}
+.weather-detail i {
+    color: #348E38;
+    font-size: 14px;
+}
+.weather-city {
+    font-size: 13px;
+    color: #4b5563;
+    text-align: center;
+    font-weight: 500;
+}
+.weather-city i {
+    color: #348E38;
+    margin-right: 4px;
+}
+.weather-error {
+    font-size: 13px;
+    color: #9ca3af;
+    text-align: center;
+    padding: 18px 8px;
+    background: #f9fafb;
+    border-radius: 10px;
+    border: 1px dashed #e5e7eb;
+}
+.weather-error i {
+    color: #f59e0b;
+    margin-right: 6px;
+}
+
+/* Leaflet map on profile */
+.profile-map {
+    width: 100%;
+    height: 220px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    z-index: 0;
+}
+
+/* Profile QR wrap */
+.profile-qr-wrap {
+    display: flex;
+    justify-content: center;
+    background: #f8faf8;
+    border-radius: 12px;
+    padding: 14px;
+    border: 1px dashed #bbf7d0;
+}
+.profile-qr-img {
+    width: 160px;
+    height: 160px;
+    display: block;
+}
+
+/* Colored info icons (profile main card) */
+.info-icon.green  { background: #dcfce7; color: #16a34a; }
+.info-icon.blue   { background: #dbeafe; color: #2563eb; }
+.info-icon.amber  { background: #fef3c7; color: #d97706; }
+.info-icon.purple { background: #ede9fe; color: #7c3aed; }
+.info-icon.rose   { background: #ffe4e6; color: #e11d48; }
+.info-icon.teal   { background: #ccfbf1; color: #0d9488; }
+
 /* Not logged in state */
 .profile-empty {
     text-align: center;

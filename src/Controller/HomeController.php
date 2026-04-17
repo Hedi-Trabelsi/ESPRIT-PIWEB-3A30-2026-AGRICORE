@@ -27,12 +27,6 @@ class HomeController extends AbstractController
         return $this->render('front/home/contact.html.twig');
     }
 
-    #[Route('/maintenance', name: 'app_maintenance')]
-    public function maintenance(): Response
-    {
-        return $this->render('front/maintenance/maintenance.html.twig');
-    }
-
     #[Route('/evenements', name: 'app_evenements')]
     public function evenements(): Response
     {
@@ -54,12 +48,6 @@ class HomeController extends AbstractController
         }
 
         return $this->redirectToRoute('app_equipement_catalogue');
-    }
-
-    #[Route('/ventes-depenses', name: 'app_ventes_depenses')]
-    public function ventesDepenses(): Response
-    {
-        return $this->render('front/ventes_depenses/ventes_depenses.html.twig');
     }
 
     #[Route('/services', name: 'app_services')]
