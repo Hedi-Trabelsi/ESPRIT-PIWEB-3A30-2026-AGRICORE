@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #374151;
+            font-size: 14px;
+            margin: 0;
+            padding: 20px;
+            background: #f3f4f6;
+        }
+        .sheet {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 700px;
+            margin: 0 auto;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #059669; /* Couleur Verte */
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+        .logo {
+            height: 70px;
+            margin-bottom: 15px;
+        }
+        h1 {
+            margin: 0;
+            font-size: 22px;
+            color: #111827;
+            text-transform: uppercase;
+        }
+        .subtitle {
+            margin-top: 8px;
+            color: #6b7280;
+            font-size: 12px;
+        }
+        .section { margin-bottom: 25px; }
+        .section-title {
+            font-size: 15px;
+            color: #059669; /* Couleur Verte */
+            margin-bottom: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .block {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            background: #ffffff;
+            padding: 5px 0;
+        }
+        .line {
+            padding: 12px 20px;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            align-items: center;
+        }
+        .line:last-child { border-bottom: 0; }
+        .label {
+            width: 200px;
+            color: #4b5563;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .value {
+            color: #111827;
+            font-weight: 500;
+        }
+        .muted {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 11px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sheet">
+        <div class="header">
+            <img class="logo" src="{{ asset('img/logo.png') }}" alt="AgriCore">
+            <h1>Rappel de maintenance planifiée</h1>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Détail du technicien</h2>
+            <div class="block">
+                <div class="line">
+                    <span class="label">Nom complet</span>
+                    <span class="value">
+                        {% if technicien %}
+                            {{ technicien.prenom }} {{ technicien.nom }}
+                        {% else %}
+                            Non assigné
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="line">
+                    <span class="label">Téléphone</span>
+                    <span class="value">{{ technicien and technicien.numeroT ? technicien.numeroT : 'Non renseigné' }}</span>
+                </div>
+                <div class="line">
+                    <span class="label">Description</span>
+                    <span class="value">{{ tache.description ?: 'Aucun commentaire.' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Informations maintenance</h2>
+            <div class="block">
+                <div class="line">
+                    <span class="label">Maintenance</span>
+                    <span class="value">{{ maintenance.nomMaintenance }}</span>
+                </div>
+                <div class="line">
+                    <span class="label">Équipement</span>
+                    <span class="value">{{ maintenance.equipement }}</span>
+                </div>
+                <div class="line">
+                    <span class="label">Date prévue</span>
+                    <span class="value">{{ tache.datePrevue|date('d/m/Y') }}</span>
+                </div>
+                <div class="line">
+                    <span class="label">Tâche</span>
+                    <span class="value">{{ tache.nomTache }}</span>
+                </div>
+                <div class="line">
+                    <span class="label">Coût estimé</span>
+                    <span class="value">{{ tache.coutEstimee }} DT</span>
+                </div>
+            </div>
+        </div>
+
+        <p class="muted"> Merci de votre confiance</p>
+    </div>
+</body>
+</html>

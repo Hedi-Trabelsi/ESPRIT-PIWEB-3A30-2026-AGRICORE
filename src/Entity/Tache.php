@@ -20,15 +20,17 @@ class Tache
     // Ajout de name: "date_prevue" pour être sûr
     #[ORM\Column(name: "date_prevue", type: "date")]
     #[Assert\NotBlank(message: "La date prévue est obligatoire.")]
-    #[Assert\GreaterThanOrEqual("today", message: "La date ne peut pas être antérieure à aujourd'hui.")]
+   #[Assert\GreaterThanOrEqual(
+    value: "today",
+    message: "La date ne peut pas être antérieure à aujourd'hui."
+)]
     private ?\DateTimeInterface $date_prevue = null;
 
     #[ORM\Column(type: "text")]
     #[Assert\NotBlank(message: "La description est obligatoire.")]
-    #[Assert\Regex(
-        // Force au moins 7 caractères ET interdit d'avoir UNIQUEMENT des chiffres
-        pattern: "/^(?![0-9]*$)[a-zA-Z0-9\s\.,!?]{7,}$/",
-        message: "La description doit faire au moins 7 caractères et ne pas contenir que des chiffres."
+    #[Assert\Length(
+        min: 7,
+        minMessage: "La description doit faire au moins 7 caractères et ne pas contenir que des chiffres."
     )]
     private ?string $description = null;
 
@@ -50,8 +52,8 @@ class Tache
     #[Assert\NotBlank(message: "Le nom de la tâche est obligatoire.")]
     #[Assert\Length(min: 3, minMessage: "Le nom de la tâche doit contenir au moins 3 caractères.")]
     #[Assert\Regex(
-        pattern: "/^[a-zA-Z\s]+$/",
-        message: "Le nom de la tâche ne doit contenir que des lettres."
+        pattern: "/^(?=(?:.*\p{L}){3,})[\p{L}0-9\s]{3,}$/u",
+        message: "Le nom de la tâche doit contenir au moins 3 des lettres."
     )]
     private ?string $nomTache = null;
 
@@ -61,6 +63,10 @@ class Tache
 
 #[Assert\Range(min: -1, max: 1, notInRangeMessage: "L'évaluation doit être -1 (Dislike), 0 (Neutre) ou 1 (Like).")]
 private int $evaluation = 0; 
+
+    #[ORM\Column(type: "integer", nullable: true, options: ["default" => 0])]
+    private ?int $etat = 0;
+
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: "taches")]
     #[ORM\JoinColumn(name: 'id_technicien', referencedColumnName: 'id', onDelete: 'CASCADE')]
     private ?User $id_technicien = null;
@@ -134,6 +140,17 @@ private int $evaluation = 0;
     public function setEvaluation(int $value): self
     {
         $this->evaluation = $value;
+        return $this;
+    }
+
+    public function getEtat(): ?int
+    {
+        return $this->etat;
+    }
+
+    public function setEtat(?int $etat): self
+    {
+        $this->etat = $etat;
         return $this;
     }
 

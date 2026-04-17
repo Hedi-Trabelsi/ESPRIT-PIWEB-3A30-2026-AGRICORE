@@ -79,6 +79,7 @@
 
     /* Carte de la liste */
     .custom-card {
+        position: relative;
         background-color: #ffffff;
         border: 1px solid #f0f0f0;
         border-radius: 0 70px 0 70px;
@@ -129,6 +130,68 @@
         font-weight: normal;
     }
 
+    .maintenance-popup .modal-content {
+        background: #ffffff;
+        border: 1px solid #f0f0f0;
+        border-radius: 0 70px 0 70px !important;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08);
+        padding: 34px 38px;
+    }
+
+    .maintenance-popup .modal-header {
+        border-bottom: 1px solid #edf2f7;
+        padding: 0 0 18px 0;
+        margin-bottom: 22px;
+        background: transparent;
+    }
+
+    .maintenance-popup .modal-title {
+        color: #0F4229;
+        font-weight: 800;
+        font-size: 1.15rem;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+
+    .maintenance-popup .popup-kicker {
+        display: inline-block;
+        margin-bottom: 10px;
+        color: #6c757d;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .maintenance-popup .popup-body {
+        color: #2f3a33;
+        line-height: 1.7;
+        font-size: 1rem;
+        text-align: left;
+    }
+
+    .maintenance-popup .popup-footer {
+        border-top: 1px solid #edf2f7;
+        padding-top: 20px;
+        margin-top: 24px;
+    }
+
+    .maintenance-popup .popup-link {
+        border: 1px solid #0F4229;
+        color: #0F4229;
+        background: transparent;
+        border-radius: 20px;
+        font-weight: 700;
+        padding: 8px 18px;
+        transition: 0.3s ease;
+        text-decoration: none;
+    }
+
+    .maintenance-popup .popup-link:hover {
+        background: #0F4229;
+        color: #fff;
+    }
+
     .btn-outline-theme {
         border: 1px solid #0F4229;
         color: #0F4229;
@@ -139,6 +202,18 @@
     .btn-outline-theme:hover {
         background-color: #0F4229;
         color: #fff;
+    }
+
+    .status-badge-front {
+        position: absolute;
+        top: 20px;
+        right: 40px;
+        font-size: 0.7rem;
+        padding: 3px 10px;
+        border-radius: 15px;
+        margin-top: 0;
+        font-weight: 700;
+        text-transform: uppercase;
     }
 
     .btn-outline-gray {
@@ -196,6 +271,19 @@
             {% for m in listeMaintenances %}
                 <div class="col-lg-3 col-md-6 maintenance-item">
                     <div class="custom-card shadow-sm">
+                        {# Affichage du statut en haut à droite #}
+                        {% set statusClass = 'bg-secondary text-white' %}
+                        {% if m.Statut == 'En attente' %}
+                            {% set statusClass = 'bg-warning text-dark' %}
+                        {% elseif m.Statut == 'Planifiée' %}
+                            {% set statusClass = 'bg-info text-white' %}
+                        {% elseif m.Statut in ['Résolue', 'Résolu'] %}
+                            {% set statusClass = 'bg-success text-white' %}
+                        {% elseif m.Statut in ['Refusée', 'Refusé'] %}
+                            {% set statusClass = 'bg-danger text-white' %}
+                        {% endif %}
+                        <span class="status-badge-front {{ statusClass }}">{{ m.Statut }}</span>
+
                         <h5 class="card-title-custom">{{ m.nomMaintenance }}</h5>
                         <div class="card-info-val text-muted small">{{ m.Equipement }}</div>
                         <div class="card-lieu-val small text-muted">
@@ -299,5 +387,102 @@
         document.getElementById('statusInput').value = status;
         document.getElementById('searchForm').submit();
     }
+</script>
+
+<div class="modal fade maintenance-popup" id="maintenanceDateChangeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header">
+                <div>
+                   
+                    <h5 class="modal-title mb-0">Maintenance mise à jour</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body p-0">
+                <p class="mb-2 fw-semibold text-uppercase text-success small" data-role="title"></p>
+                <p class="popup-body mb-0" data-role="body"></p>
+            </div>
+            <div class="popup-footer d-flex justify-content-end">
+                <a href="#" class="popup-link" data-role="link">Voir le détail</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const hasLoggedUser = {% if app.session.get('user') %}true{% else %}false{% endif %};
+        const modalElement = document.getElementById('maintenanceDateChangeModal');
+
+        if (!hasLoggedUser || !modalElement || typeof bootstrap === 'undefined') {
+            return;
+        }
+
+        const modal = new bootstrap.Modal(modalElement);
+        const titleElement = modalElement.querySelector('[data-role="title"]');
+        const bodyElement = modalElement.querySelector('[data-role="body"]');
+        const linkElement = modalElement.querySelector('[data-role="link"]');
+        const endpoint = '{{ path('app_maintenance_date_change_notifications') }}';
+        const POLL_MS = 10000;
+        const shownIds = new Set();
+
+        const showNotification = (notification) => {
+            if (!notification) {
+                return;
+            }
+
+            const notificationId = String(notification.id || '');
+            if (notificationId !== '' && shownIds.has(notificationId)) {
+                return;
+            }
+
+            const maintenanceName = notification.maintenance_name || 'votre demande';
+            const taskName = notification.task_name || 'la tâche concernée';
+            const previousDate = notification.previous_date || 'une ancienne date';
+            const newDate = notification.new_date || 'une nouvelle date';
+            const technicianName = notification.technician_name ? ` ${notification.technician_name}` : '';
+
+            titleElement.textContent = `Maintenance "${maintenanceName}"`;
+            bodyElement.textContent = `Le technicien${technicianName} a changé la date prévue de ${taskName} : du ${previousDate} au ${newDate}.`;
+            linkElement.href = notification.detail_url || '{{ path('app_maintenance') }}';
+            modal.show();
+
+            if (notificationId !== '') {
+                shownIds.add(notificationId);
+            }
+        };
+
+        const loadNotifications = () => {
+            fetch(endpoint, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                cache: 'no-store'
+            })
+                .then((response) => response.ok ? response.json() : null)
+                .then((payload) => {
+                    if (!payload || !payload.success || payload.count === 0) {
+                        return;
+                    }
+
+                    showNotification(payload.notification);
+                })
+                .catch(() => {});
+        };
+
+        loadNotifications();
+
+        window.addEventListener('focus', loadNotifications);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                loadNotifications();
+            }
+        });
+
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                loadNotifications();
+            }
+        }, POLL_MS);
+    });
 </script>
 {% endblock %}

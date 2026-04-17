@@ -22,16 +22,15 @@ class Maintenance
     #[Assert\NotBlank(message: "Le nom est obligatoire.")]
     #[Assert\Length(min: 3, minMessage: "Le nom doit contenir au moins 3 caractères.")]
     #[Assert\Regex(
-    pattern: "/^[a-zA-Z\s]+$/",
-    message: "Le nom ne doit contenir que des lettres."
-)]
+        pattern: "/^(?=(?:.*\p{L}){3,})[\p{L}0-9\s]{3,}$/u",
+        message: "Le nom  doit contenir au moins 3 des lettres."
+    )]
 private string $nom_maintenance;
 
   #[ORM\Column(type: "string", length: 150)]
     #[Assert\NotBlank(message: "L'équipement est obligatoire.")]
     #[Assert\Regex(
-        // Force au moins 3 lettres ET au moins 3 caractères au total
-        pattern: "/^(?=(?:.*[a-zA-Z]){3,})[a-zA-Z0-9\s]{3,}$/",
+        pattern: "/^(?=(?:.*\p{L}){3,})[\p{L}0-9\s]{3,}$/u",
         message: "L'équipement doit contenir au moins 3 lettres."
     )]
     private string $equipement;
@@ -45,10 +44,9 @@ private string $lieu;
 
    #[ORM\Column(type: "text")]
     #[Assert\NotBlank(message: "La description est obligatoire.")]
-    #[Assert\Regex(
-        // Force au moins 7 caractères ET interdit d'avoir UNIQUEMENT des chiffres
-        pattern: "/^(?![0-9]*$)[a-zA-Z0-9\s\.,!?]{7,}$/",
-        message: "La description doit faire au moins 7 caractères et ne pas contenir que des chiffres."
+    #[Assert\Length(
+        min: 7,
+        minMessage: "La description doit faire au moins 7 caractères et ne pas contenir que des chiffres."
     )]
     private string $description;
 
@@ -63,6 +61,9 @@ private string $lieu;
 
     #[ORM\Column(type: "string", length: 20)]
     private string $priorite;
+
+    #[ORM\Column(type: "boolean", options: ["default" => false], nullable: true)]
+    private ?bool $is_read = false;
 
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: "maintenances")]
     #[ORM\JoinColumn(name: 'id_agriculteur', referencedColumnName: 'id', onDelete: 'CASCADE')]
@@ -168,6 +169,17 @@ private string $lieu;
     public function setPriorite(string $value): self
     {
         $this->priorite = $value;
+        return $this;
+    }
+
+    public function isRead(): bool
+    {
+        return (bool) $this->is_read;
+    }
+
+    public function setIsRead(bool $value): self
+    {
+        $this->is_read = $value;
         return $this;
     }
 
