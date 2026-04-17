@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; color: #1f3525; font-size: 12px; }
+        .header { margin-bottom: 18px; }
+        .title { font-size: 24px; font-weight: bold; margin-bottom: 6px; }
+        .muted { color: #647565; }
+        .box { border: 1px solid #d7e6d6; border-radius: 8px; padding: 12px; margin: 14px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+        th, td { border: 1px solid #dfe8df; padding: 8px; text-align: left; }
+        th { background: #eef6ee; }
+        .total { margin-top: 16px; text-align: right; font-size: 16px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">Bon de commande Agricore</div>
+        <div class="muted">Document genere le {{ generatedAt|date('d/m/Y H:i') }}</div>
+    </div>
+
+    <div class="box">
+        <div><strong>Commande :</strong> n{{ commande.id }}</div>
+        <div><strong>Date :</strong> {{ commande.dateCommande|date_modify('+1 hour')|date('d/m/Y H:i') }}</div>
+        <div><strong>Agriculteur :</strong> #{{ commande.agriculteurId }}</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Equipement</th>
+                <th>Quantite</th>
+                <th>Prix unitaire</th>
+                <th>Total ligne</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ligne in commande.lignes %}
+                <tr>
+                    <td>{{ ligne.equipement.nom }}</td>
+                    <td>{{ ligne.quantite }}</td>
+                    <td>{{ ligne.prixUnitaire }} TND</td>
+                    <td>{{ ligne.totalLigne }} TND</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="total">Total commande : {{ commande.total }} TND</div>
+</body>
+</html>

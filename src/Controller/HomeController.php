@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -45,9 +46,14 @@ class HomeController extends AbstractController
     }
 
     #[Route('/achat-equipement', name: 'app_achat_equipement')]
-    public function achatEquipement(): Response
+    public function achatEquipement(Request $request): Response
     {
-        return $this->render('front/achat_equipement/achat_equipement.html.twig');
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        return $this->redirectToRoute('app_equipement_catalogue');
     }
 
     #[Route('/ventes-depenses', name: 'app_ventes_depenses')]

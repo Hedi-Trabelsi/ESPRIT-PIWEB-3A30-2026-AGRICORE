@@ -40,3 +40,7 @@ services:
         arguments:
             $groqApiKey: '%env(GROQ_API_KEY)%'
             $owmApiKey:  '%env(OPENWEATHER_API_KEY)%'
+
+    App\Service\EquipmentAiService:
+        arguments:
+            $apiKey: '%env(GROQ_API_KEY)%'

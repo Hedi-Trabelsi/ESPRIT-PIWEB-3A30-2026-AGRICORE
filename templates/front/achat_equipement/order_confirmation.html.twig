@@ -1,20 +1,456 @@
 {% extends 'front/base_front.html.twig' %}
 
+{% block title %}Commande confirmee | Agricore{% endblock %}
+
 {% block body %}
-<div class="container mt-5">
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
-        <h2>Commande confirmee !</h2>
-        <p>Commande n°{{ commande.id }} du {{ commande.dateCommande|date('d/m/Y H:i') }}</p>
-        <p>Total : {{ commande.total }} TND</p>
-        <hr>
-        <h5>Detail :</h5>
-        <ul>
-            {% for ligne in commande.lignes %}
-                <li>{{ ligne.quantite }} x {{ ligne.equipement.nom }} -> {{ ligne.totalLigne }} TND</li>
-            {% endfor %}
-        </ul>
-        <a href="{{ path('app_equipement_catalogue') }}" class="btn btn-primary">Retour au catalogue</a>
+<style>
+    .order-confirmation-page {
+        --forest: #103b2d;
+        --leaf: #1f7a57;
+        --moss: #d8f0e4;
+        --cream: #f7f5ec;
+        --gold: #f2c14e;
+        --ink: #244538;
+        position: relative;
+        overflow: hidden;
+        padding: 5rem 0;
+        background:
+            radial-gradient(circle at top left, rgba(242, 193, 78, 0.22), transparent 30%),
+            radial-gradient(circle at 85% 15%, rgba(31, 122, 87, 0.18), transparent 24%),
+            linear-gradient(135deg, #f8fbf7 0%, #eef8f1 45%, #f5efe1 100%);
+    }
+
+    .order-confirmation-page::before,
+    .order-confirmation-page::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        z-index: 0;
+        filter: blur(10px);
+        opacity: 0.8;
+    }
+
+    .order-confirmation-page::before {
+        width: 320px;
+        height: 320px;
+        top: -120px;
+        right: -90px;
+        background: rgba(31, 122, 87, 0.15);
+    }
+
+    .order-confirmation-page::after {
+        width: 220px;
+        height: 220px;
+        bottom: -70px;
+        left: -40px;
+        background: rgba(242, 193, 78, 0.16);
+    }
+
+    .order-confirmation-shell {
+        position: relative;
+        z-index: 1;
+    }
+
+    .order-confirmation-card {
+        position: relative;
+        overflow: hidden;
+        border: 0;
+        border-radius: 32px;
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 28px 70px rgba(16, 59, 45, 0.14);
+    }
+
+    .order-confirmation-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(135deg, rgba(31, 122, 87, 0.08), transparent 42%),
+            linear-gradient(315deg, rgba(242, 193, 78, 0.12), transparent 38%);
+        pointer-events: none;
+    }
+
+    .order-confirmation-header {
+        position: relative;
+        padding: 2.4rem;
+        color: #fff;
+        background: linear-gradient(135deg, var(--forest) 0%, var(--leaf) 100%);
+    }
+
+    .order-confirmation-header::after {
+        content: "";
+        position: absolute;
+        inset: auto -40px -70px auto;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    .confirmation-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.6rem 1rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.14);
+        font-size: 0.92rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .confirmation-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.18);
+        font-size: 1rem;
+    }
+
+    .confirmation-title {
+        margin: 1.3rem 0 0.75rem;
+        font-family: 'Jost', sans-serif;
+        font-size: clamp(2.2rem, 5vw, 3.4rem);
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .confirmation-subtitle {
+        max-width: 38rem;
+        margin: 0;
+        color: rgba(255, 255, 255, 0.84);
+        font-size: 1.05rem;
+    }
+
+    .order-confirmation-body {
+        position: relative;
+        padding: 2.4rem;
+    }
+
+    .confirmation-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: -2.2rem;
+        margin-bottom: 2rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    .confirmation-stat {
+        padding: 1.2rem 1.1rem;
+        border: 1px solid rgba(16, 59, 45, 0.08);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 10px 30px rgba(16, 59, 45, 0.08);
+    }
+
+    .confirmation-stat-label {
+        margin-bottom: 0.35rem;
+        color: #6b7d74;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .confirmation-stat-value {
+        margin: 0;
+        color: var(--forest);
+        font-family: 'Jost', sans-serif;
+        font-size: 1.35rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .confirmation-grid {
+        display: grid;
+        grid-template-columns: 1.35fr 0.95fr;
+        gap: 1.4rem;
+        align-items: start;
+    }
+
+    .summary-panel,
+    .info-panel {
+        border-radius: 26px;
+        padding: 1.6rem;
+    }
+
+    .summary-panel {
+        background: linear-gradient(180deg, rgba(216, 240, 228, 0.55), rgba(255, 255, 255, 0.95));
+        border: 1px solid rgba(31, 122, 87, 0.12);
+    }
+
+    .info-panel {
+        background: var(--cream);
+        border: 1px solid rgba(16, 59, 45, 0.08);
+    }
+
+    .panel-title {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        margin-bottom: 1.1rem;
+        color: var(--forest);
+        font-family: 'Jost', sans-serif;
+        font-size: 1.45rem;
+        font-weight: 600;
+    }
+
+    .panel-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 16px;
+        background: rgba(31, 122, 87, 0.12);
+        color: var(--leaf);
+    }
+
+    .summary-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .summary-item {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 0.9rem;
+        align-items: center;
+        padding: 0.95rem 0;
+        border-bottom: 1px dashed rgba(16, 59, 45, 0.12);
+    }
+
+    .summary-item:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .summary-qty {
+        min-width: 2.5rem;
+        padding: 0.35rem 0.6rem;
+        border-radius: 999px;
+        background: #fff;
+        color: var(--leaf);
+        text-align: center;
+        font-weight: 700;
+        box-shadow: 0 6px 16px rgba(31, 122, 87, 0.1);
+    }
+
+    .summary-name {
+        color: var(--ink);
+        font-weight: 600;
+    }
+
+    .summary-price {
+        color: var(--forest);
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .info-copy {
+        margin-bottom: 1.4rem;
+        color: #5f6f67;
+        line-height: 1.75;
+    }
+
+    .info-note {
+        display: flex;
+        gap: 0.85rem;
+        padding: 1rem 1.1rem;
+        border-radius: 20px;
+        background: #fff;
+        color: var(--ink);
+        box-shadow: inset 0 0 0 1px rgba(16, 59, 45, 0.06);
+    }
+
+    .info-note i {
+        color: var(--gold);
+        font-size: 1.2rem;
+        margin-top: 0.15rem;
+    }
+
+    .confirmation-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.9rem;
+        margin-top: 1.8rem;
+    }
+
+    .confirmation-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding: 0.95rem 1.35rem;
+        border-radius: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, color 0.25s ease;
+    }
+
+    .confirmation-btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .confirmation-btn-primary {
+        color: #fff;
+        background: linear-gradient(135deg, #db4c40 0%, #b9342b 100%);
+        box-shadow: 0 16px 28px rgba(185, 52, 43, 0.24);
+    }
+
+    .confirmation-btn-primary:hover {
+        color: #fff;
+        box-shadow: 0 20px 34px rgba(185, 52, 43, 0.28);
+    }
+
+    .confirmation-btn-secondary {
+        color: var(--forest);
+        background: #fff;
+        box-shadow: inset 0 0 0 1px rgba(31, 122, 87, 0.25);
+    }
+
+    .confirmation-btn-secondary:hover {
+        color: var(--forest);
+        background: rgba(216, 240, 228, 0.5);
+    }
+
+    @media (max-width: 991.98px) {
+        .confirmation-stat-grid,
+        .confirmation-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .confirmation-stat-grid {
+            margin-top: 1.5rem;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .order-confirmation-page {
+            padding: 3rem 0;
+        }
+
+        .order-confirmation-header,
+        .order-confirmation-body {
+            padding: 1.5rem;
+        }
+
+        .summary-item {
+            grid-template-columns: auto 1fr;
+        }
+
+        .summary-price {
+            grid-column: 2;
+        }
+
+        .confirmation-title {
+            line-height: 1.08;
+        }
+    }
+</style>
+
+<section class="order-confirmation-page">
+    <div class="container order-confirmation-shell">
+        <div class="row justify-content-center">
+            <div class="col-xl-10">
+                <div class="order-confirmation-card">
+                    <div class="order-confirmation-header">
+                        <div class="confirmation-badge">
+                            <span class="confirmation-icon"><i class="bi bi-patch-check-fill"></i></span>
+                            Paiement valide et traite
+                        </div>
+                        <h1 class="confirmation-title">Commande confirmee</h1>
+                        <p class="confirmation-subtitle">
+                            Votre commande a bien ete enregistree. Le bon de commande PDF s'ouvre automatiquement pour vous permettre de l'enregistrer ou de l'imprimer.
+                        </p>
+                    </div>
+
+                    <div class="order-confirmation-body">
+                        <div class="confirmation-stat-grid">
+                            <div class="confirmation-stat">
+                                <div class="confirmation-stat-label">Reference</div>
+                                <p class="confirmation-stat-value">CMD-{{ commande.id }}</p>
+                            </div>
+                            <div class="confirmation-stat">
+                                <div class="confirmation-stat-label">Date</div>
+                                <p class="confirmation-stat-value">{{ commande.dateCommande|date_modify('+1 hour')|date('d/m/Y H:i') }}</p>
+                            </div>
+                            <div class="confirmation-stat">
+                                <div class="confirmation-stat-label">Total</div>
+                                <p class="confirmation-stat-value">{{ commande.total }} TND</p>
+                            </div>
+                        </div>
+
+                        <div class="confirmation-grid">
+                            <div class="summary-panel">
+                                <h2 class="panel-title">
+                                    <span class="panel-icon"><i class="bi bi-basket2-fill"></i></span>
+                                    Recapitulatif de la commande
+                                </h2>
+
+                                <ul class="summary-list">
+                                    {% for ligne in commande.lignes %}
+                                        <li class="summary-item">
+                                            <span class="summary-qty">{{ ligne.quantite }}x</span>
+                                            <span class="summary-name">{{ ligne.equipement.nom }}</span>
+                                            <span class="summary-price">{{ ligne.totalLigne }} TND</span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+
+                            <aside class="info-panel">
+                                <h2 class="panel-title">
+                                    <span class="panel-icon"><i class="bi bi-file-earmark-arrow-down-fill"></i></span>
+                                    Prochaine etape
+                                </h2>
+
+                                <p class="info-copy">
+                                    Si le PDF ne s'affiche pas automatiquement, utilisez le bouton principal ci-dessous. Vous pouvez ensuite continuer vos achats depuis le catalogue.
+                                </p>
+
+                                <div class="info-note">
+                                    <i class="bi bi-stars"></i>
+                                    <div>
+                                        Conservez ce document comme justificatif. Il contient tous les details utiles de votre commande.
+                                    </div>
+                                </div>
+                            </aside>
+                        </div>
+
+                        <div class="confirmation-actions">
+                            <a href="{{ pdfUrl }}" target="_blank" rel="noopener" class="confirmation-btn confirmation-btn-primary" id="order-pdf-link">
+                                <i class="bi bi-box-arrow-up-right"></i>
+                                Ouvrir le PDF
+                            </a>
+                            <a href="{{ path('app_equipement_catalogue') }}" class="confirmation-btn confirmation-btn-secondary">
+                                <i class="bi bi-arrow-left"></i>
+                                Retour au catalogue
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+</section>
+
+<iframe src="{{ pdfUrl }}" style="display:none;" title="Bon de commande PDF"></iframe>
+
+<script>
+    window.addEventListener('load', function () {
+        const pdfLink = document.getElementById('order-pdf-link');
+        if (pdfLink) {
+            pdfLink.click();
+        } else {
+            window.open('{{ pdfUrl }}', '_blank', 'noopener');
+        }
+    });
+</script>
 {% endblock %}

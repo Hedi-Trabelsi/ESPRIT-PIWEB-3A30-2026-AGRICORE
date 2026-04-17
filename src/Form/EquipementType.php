@@ -4,11 +4,11 @@ namespace App\Form;
 
 use App\Entity\Equipement;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Vich\UploaderBundle\Form\Type\VichImageType;
 
 class EquipementType extends AbstractType
 {
@@ -33,10 +33,13 @@ class EquipementType extends AbstractType
                 'attr' => ['class' => 'form-control'],
                 'invalid_message' => 'Veuillez entrer un nombre valide.',
             ])
-            ->add('imageFile', FileType::class, [
+            ->add('imageFile', VichImageType::class, [
                 'label' => 'Image (JPG/PNG)',
                 'required' => false,
-                'mapped' => false,
+                'allow_delete' => false,
+                'download_uri' => false,
+                'image_uri' => false,
+                'asset_helper' => true,
                 'attr' => ['class' => 'form-control'],
             ]);
     }
