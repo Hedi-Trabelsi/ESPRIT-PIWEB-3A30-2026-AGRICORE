@@ -10,6 +10,9 @@ use Symfony\Component\Routing\Annotation\Route;
 use App\Repository\UserRepository;
 use App\Repository\VenteRepository;
 use App\Repository\DepenseRepository;
+use App\Service\AnomalyService;
+
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class HomeController extends AbstractController
 {
@@ -103,7 +106,7 @@ class HomeController extends AbstractController
     }
 
     #[Route('/ventes-depenses/user/{id}', name: 'app_user_details_front')]
-    public function userDetails(int $id, UserRepository $userRepository): Response
+    public function userDetails(int $id, UserRepository $userRepository, AnomalyService $anomalyService): Response
     {
         $user = $userRepository->find($id);
         if (!$user) {
@@ -138,12 +141,46 @@ class HomeController extends AbstractController
         }
         ksort($monthlyStats);
 
+        // Totals for KPIs
+        $totalExpenses = 0;
+        foreach ($user->getDepenses() as $depense) {
+            $totalExpenses += $depense->getMontant();
+        }
+        $totalSales = 0;
+        foreach ($user->getVentes() as $vente) {
+            $totalSales += $vente->getChiffreAffaires();
+        }
+        $netProfit = $totalSales - $totalExpenses;
+
+        // Anomalies Analysis
+        $allDepenses = $user->getDepenses()->toArray();
+        $anomalyResults = $anomalyService->analyzeAll($allDepenses);
+
+        $anomaliesCount = 0;
+        $maxZScore = 0;
+        foreach ($anomalyResults as $res) {
+            if ($res['analysis']['isAnomaly']) {
+                $anomaliesCount++;
+            }
+            if ($res['analysis']['score'] > $maxZScore) {
+                $maxZScore = $res['analysis']['score'];
+            }
+        }
+        $anomalyRate = count($allDepenses) > 0 ? ($anomaliesCount / count($allDepenses)) * 100 : 0;
+
         return $this->render('front/ventes_depenses/user_details.html.twig', [
             'user' => $user,
             'depenses' => $user->getDepenses(),
             'ventes' => $user->getVentes(),
+            'totalExpenses' => $totalExpenses,
+            'totalSales' => $totalSales,
+            'netProfit' => $netProfit,
             'expensesByCategory' => $expensesByCategory,
             'monthlyStats' => $monthlyStats,
+            'anomalyResults' => $anomalyResults,
+            'anomaliesCount' => $anomaliesCount,
+            'maxZScore' => $maxZScore,
+            'anomalyRate' => $anomalyRate
         ]);
     }
 

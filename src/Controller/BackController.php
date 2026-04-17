@@ -118,6 +118,50 @@ class BackController extends AbstractController
         ]);
     }
 
+    #[Route('/back/ventes-depenses/{id}/analyse', name: 'back_user_analyse')]
+    public function userAnalyse(int $id, UserRepository $userRepository): Response
+    {
+        $user = $userRepository->find($id);
+        
+        if (!$user) {
+            throw $this->createNotFoundException('Utilisateur non trouvé');
+        }
+
+        // Data for Pie Chart (Expenses by Category)
+        $expensesByCategory = [];
+        foreach ($user->getDepenses() as $depense) {
+            $category = $depense->getType();
+            if (!isset($expensesByCategory[$category])) {
+                $expensesByCategory[$category] = 0;
+            }
+            $expensesByCategory[$category] += $depense->getMontant();
+        }
+
+        // Data for Bar Chart (Expenses vs Sales by Month)
+        $monthlyStats = [];
+        foreach ($user->getDepenses() as $depense) {
+            $month = $depense->getDate()->format('Y-m');
+            if (!isset($monthlyStats[$month])) {
+                $monthlyStats[$month] = ['expenses' => 0, 'sales' => 0];
+            }
+            $monthlyStats[$month]['expenses'] += $depense->getMontant();
+        }
+        foreach ($user->getVentes() as $vente) {
+            $month = $vente->getDate()->format('Y-m');
+            if (!isset($monthlyStats[$month])) {
+                $monthlyStats[$month] = ['expenses' => 0, 'sales' => 0];
+            }
+            $monthlyStats[$month]['sales'] += $vente->getChiffreAffaires();
+        }
+        ksort($monthlyStats);
+
+        return $this->render('back/ventes_depenses/vente_depense_analyse.html.twig', [
+            'user' => $user,
+            'expensesByCategory' => $expensesByCategory,
+            'monthlyStats' => $monthlyStats,
+        ]);
+    }
+
     #[Route('/back/ventes-depenses/{id}/outils', name: 'back_user_outils')]
     public function userOutils(int $id, UserRepository $userRepository): Response
     {

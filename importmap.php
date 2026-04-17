@@ -25,4 +25,13 @@ return [
     '@hotwired/turbo' => [
         'version' => '7.3.0',
     ],
+    'chart.js' => [
+        'version' => '3.9.1',
+    ],
+    '@symfony/ux-chartjs' => [
+        'version' => '2.35.0',
+    ],
+    '@kurkle/color' => [
+        'version' => '0.3.4',
+    ],
 ];
