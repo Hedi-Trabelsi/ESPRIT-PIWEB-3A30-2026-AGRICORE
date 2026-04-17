@@ -62,5 +62,7 @@ Agricore provides modules for users, animals, equipment, events, finance, and ma
 
 
 ---
-
-git clone https://github.com/Hedi-Trabelsi/ESPRIT-PIWEB-3A30-2026-AGRICORE
+## Getting Started
+1. Clone the repository:  
+   ```bash
+   git clone https://github.com/toncompte/Esprit-PIDEV-3A10-2026-Agricore.git
