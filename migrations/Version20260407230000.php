@@ -17,7 +17,7 @@ final class Version20260407230000 extends AbstractMigration
     public function up(Schema $schema): void
     {
         $schemaManager = $this->connection->createSchemaManager();
-        $columns = $schemaManager->listTableColumns('equipements');
+        $equipementsExists = $schemaManager->tablesExist(['equipements']);
         $ligneCommandeForeignKeys = [];
         if ($schemaManager->tablesExist(['ligne_commande'])) {
             foreach ($schemaManager->listTableForeignKeys('ligne_commande') as $foreignKey) {
@@ -25,8 +25,25 @@ final class Version20260407230000 extends AbstractMigration
             }
         }
 
+        if (!$equipementsExists) {
+            $this->addSql("CREATE TABLE equipements (
+                id_equipement INT AUTO_INCREMENT NOT NULL,
+                id_fournisseur INT DEFAULT NULL,
+                nom VARCHAR(255) NOT NULL,
+                type VARCHAR(255) NOT NULL,
+                prix VARCHAR(255) NOT NULL,
+                quantite INT NOT NULL,
+                image_filename VARCHAR(255) DEFAULT NULL,
+                updated_at DATETIME DEFAULT NULL COMMENT '(DC2Type:datetime_immutable)',
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                INDEX IDX_EQUIPEMENTS_FOURNISSEUR (id_fournisseur),
+                PRIMARY KEY(id_equipement)
+            ) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB");
+        }
+
         $this->addSql("ALTER TABLE equipements ADD COLUMN IF NOT EXISTS image_filename VARCHAR(255) DEFAULT NULL");
         $this->addSql("ALTER TABLE equipements ADD COLUMN IF NOT EXISTS is_active TINYINT(1) NOT NULL DEFAULT 1");
+        $this->addSql("ALTER TABLE equipements ADD COLUMN IF NOT EXISTS updated_at DATETIME DEFAULT NULL COMMENT '(DC2Type:datetime_immutable)'");
         $this->addSql("CREATE TABLE IF NOT EXISTS commande (
             id INT AUTO_INCREMENT NOT NULL,
             date_commande DATETIME NOT NULL,

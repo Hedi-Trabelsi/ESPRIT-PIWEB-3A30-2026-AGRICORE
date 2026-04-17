@@ -16,15 +16,35 @@ final class Version20260417160000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE vente MODIFY idVente INT NOT NULL AUTO_INCREMENT');
-        $this->addSql('ALTER TABLE commande MODIFY id INT NOT NULL AUTO_INCREMENT');
-        $this->addSql('ALTER TABLE ligne_commande MODIFY id INT NOT NULL AUTO_INCREMENT');
+        $schemaManager = $this->connection->createSchemaManager();
+
+        if ($schemaManager->tablesExist(['vente'])) {
+            $this->addSql('ALTER TABLE vente MODIFY idVente INT NOT NULL AUTO_INCREMENT');
+        }
+
+        if ($schemaManager->tablesExist(['commande'])) {
+            $this->addSql('ALTER TABLE commande MODIFY id INT NOT NULL AUTO_INCREMENT');
+        }
+
+        if ($schemaManager->tablesExist(['ligne_commande'])) {
+            $this->addSql('ALTER TABLE ligne_commande MODIFY id INT NOT NULL AUTO_INCREMENT');
+        }
     }
 
     public function down(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE vente MODIFY idVente INT NOT NULL');
-        $this->addSql('ALTER TABLE commande MODIFY id INT NOT NULL');
-        $this->addSql('ALTER TABLE ligne_commande MODIFY id INT NOT NULL');
+        $schemaManager = $this->connection->createSchemaManager();
+
+        if ($schemaManager->tablesExist(['vente'])) {
+            $this->addSql('ALTER TABLE vente MODIFY idVente INT NOT NULL');
+        }
+
+        if ($schemaManager->tablesExist(['commande'])) {
+            $this->addSql('ALTER TABLE commande MODIFY id INT NOT NULL');
+        }
+
+        if ($schemaManager->tablesExist(['ligne_commande'])) {
+            $this->addSql('ALTER TABLE ligne_commande MODIFY id INT NOT NULL');
+        }
     }
 }
