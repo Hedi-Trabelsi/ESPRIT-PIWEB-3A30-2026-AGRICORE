@@ -52,6 +52,34 @@ class EvenementController extends AbstractController
         return $result;
     }
 
+    private function getUserCoins(mixed $sessionUser, EntityManagerInterface $em): int
+    {
+        if (!$sessionUser) return 0;
+        
+        $participations = $em->getRepository(Participants::class)->findBy([
+            'id_utilisateur' => $sessionUser->getId()
+        ]);
+
+        $totalPresents = 0;
+        $totalUsed = 0;
+        foreach ($participations as $p) {
+            $totalPresents += $p->getNbr_presents();
+            $totalUsed += $p->getUsedCoins();
+        }
+        // 10 coins for every 2 attendances
+        $lifetimeEarned = floor($totalPresents / 2) * 10;
+        
+        // Return remaining balance (not below 0)
+        return max(0, (int)($lifetimeEarned - $totalUsed));
+    }
+
+    private function getDiscountPercentage(int $coins): int
+    {
+        // 10% for every 10 coins
+        $pct = floor($coins / 10) * 10;
+        return min(100, (int)$pct);
+    }
+
     #[Route('/evenements', name: 'app_evenement')]
     public function index(Request $request, EvennementagricoleRepository $repo, EntityManagerInterface $em): Response
     {
@@ -142,11 +170,14 @@ class EvenementController extends AbstractController
 
         // Past events the logged-in user participated in
         $mesEvenementsPassés = [];
+        $userCoins = 0;
         $sessionUser = $request->getSession()->get('user');
         if ($sessionUser) {
+            $userCoins = $this->getUserCoins($sessionUser, $em);
             $participations = $em->getRepository(Participants::class)->findBy([
                 'id_utilisateur' => $sessionUser->getId()
             ]);
+
             foreach ($participations as $p) {
                 $ev = $p->getEvenement();
                 if ($ev && $ev->getDateFin() < $now) {
@@ -168,216 +199,264 @@ class EvenementController extends AbstractController
             'sortPrice'           => $sortPrice,
             'budgetMax'           => (int)$budgetMax,
             'mesEvenementsPassés' => $mesEvenementsPassés,
+            'userCoins'           => $userCoins,
+            'discountPct'         => $this->getDiscountPercentage($userCoins),
         ]);
     }
 
 #[Route('/evenement/{id}', name: 'app_evenement_show')]
-public function show(Evennementagricole $ev, Request $request, EntityManagerInterface $em, MailerInterface $mailer): Response
-{
-    $totalReserved = $this->getTotalReservedPlaces($ev, $em);
-    $placesRestantes = max(0, $ev->getCapaciteMax() - $totalReserved);
+    public function show(Evennementagricole $ev, Request $request, EntityManagerInterface $em, MailerInterface $mailer): Response
+    {
+        $totalReserved = $this->getTotalReservedPlaces($ev, $em);
+        $placesRestantes = max(0, $ev->getCapaciteMax() - $totalReserved);
 
-    $sessionUser = $request->getSession()->get('user');
-    $dejaInscrit = false;
-    $onWaitlist  = false;
-    $participantConfirmation = 'pending';
+        $sessionUser = $request->getSession()->get('user');
+        $dejaInscrit = false;
+        $onWaitlist  = false;
+        $participantConfirmation = 'pending';
+        $userCoins = 0;
+        $discountPct = 0;
 
-    if ($sessionUser) {
-        $allParticipations = $em->getRepository(Participants::class)->findBy([
-            'evenement' => $ev, 'id_utilisateur' => $sessionUser->getId()
+        if ($sessionUser) {
+            $userCoins = $this->getUserCoins($sessionUser, $em);
+            $discountPct = $this->getDiscountPercentage($userCoins);
+
+            $allParticipations = $em->getRepository(Participants::class)->findBy([
+                'evenement' => $ev, 'id_utilisateur' => $sessionUser->getId()
+            ]);
+
+            foreach ($allParticipations as $p) {
+                if ($p->getStatutParticipation() !== 'waitlist') {
+                    $dejaInscrit = true;
+                    $participantConfirmation = $p->getConfirmation();
+                    break;
+                }
+            }
+
+            if (!$dejaInscrit && count($allParticipations) > 0) {
+                $onWaitlist = true;
+            }
+        }
+
+        $now    = new \DateTime();
+        $isPast = $ev->getDateFin() < $now;
+
+        $conflictingEvent = null;
+        if ($sessionUser && !$dejaInscrit && !$isPast) {
+            foreach ($em->getRepository(Participants::class)->findBy(['id_utilisateur' => $sessionUser->getId()]) as $p) {
+                $other = $p->getEvenement();
+
+                if (!$other || $other->getIdEv() === $ev->getIdEv()) continue;
+                if ($p->getStatutParticipation() === 'waitlist') continue;
+
+                if (
+                    $other->getDateDebut() <= $ev->getDateFin() &&
+                    $other->getDateFin() >= $ev->getDateDebut() &&
+                    $other->getDateFin() >= $now
+                ) {
+                    $conflictingEvent = $other;
+                    break;
+                }
+            }
+        }
+
+        $participant = new Participants();
+        $form = $this->createForm(ParticipantsType::class, $participant, [
+            'max_places' => $placesRestantes,
+            'action'     => $this->generateUrl('app_evenement_show', ['id' => $ev->getIdEv()]),
         ]);
 
-        foreach ($allParticipations as $p) {
-            if ($p->getStatutParticipation() !== 'waitlist') {
-                $dejaInscrit = true;
-                $participantConfirmation = $p->getConfirmation();
-                break;
-            }
-        }
+        $form->handleRequest($request);
 
-        if (!$dejaInscrit && count($allParticipations) > 0) {
-            $onWaitlist = true;
-        }
-    }
+        if ($form->isSubmitted() && $form->isValid() && $sessionUser && !$isPast) {
 
-    $now    = new \DateTime();
-    $isPast = $ev->getDateFin() < $now;
-
-    $conflictingEvent = null;
-    if ($sessionUser && !$dejaInscrit && !$isPast) {
-        foreach ($em->getRepository(Participants::class)->findBy(['id_utilisateur' => $sessionUser->getId()]) as $p) {
-            $other = $p->getEvenement();
-
-            if (!$other || $other->getIdEv() === $ev->getIdEv()) continue;
-            if ($p->getStatutParticipation() === 'waitlist') continue;
-
-            if (
-                $other->getDateDebut() <= $ev->getDateFin() &&
-                $other->getDateFin() >= $ev->getDateDebut() &&
-                $other->getDateFin() >= $now
-            ) {
-                $conflictingEvent = $other;
-                break;
-            }
-        }
-    }
-
-    $participant = new Participants();
-    $form = $this->createForm(ParticipantsType::class, $participant, [
-        'max_places' => $placesRestantes,
-        'action'     => $this->generateUrl('app_evenement_show', ['id' => $ev->getIdEv()]),
-    ]);
-
-    $form->handleRequest($request);
-
-    if ($form->isSubmitted() && $form->isValid() && $sessionUser && !$isPast) {
-
-        $entryCode    = random_int(100000, 999999);
-        $confirmToken = bin2hex(random_bytes(32));
-        $montant      = $participant->getNbrPlaces() * (float) $ev->getFraisInscription();
-
-        $participant->setEvenement($ev);
-        $participant->setIdUtilisateur($sessionUser->getId());
-        $participant->setDateInscription(new \DateTime());
-        $participant->setStatutParticipation('En attente');
-        $participant->setEntryCode($entryCode);
-        $participant->setConfirmation('pending');
-        $participant->setMontantPayee((string) $montant);
-        $participant->setConfirmToken($confirmToken);
-
-        $em->persist($participant);
-        $em->flush();
-
-        try {
-            $html = $this->renderView('emails/inscription_confirmation.html.twig', [
-                'nom'         => $participant->getNomParticipant(),
-                'evenement'   => $ev->getTitre(),
-                'date_debut'  => $ev->getDateDebut()?->format('d/m/Y H:i'),
-                'date_fin'    => $ev->getDateFin()?->format('d/m/Y H:i'),
-                'lieu'        => $ev->getLieu(),
-                'nbr_places'  => $participant->getNbrPlaces(),
-                'montant'     => $montant,
-                'entry_code'  => $entryCode,
-                'confirm_url' => $this->generateUrl(
-                    'app_confirmer_inscription',
-                    ['token' => $confirmToken],
-                    UrlGeneratorInterface::ABSOLUTE_URL
-                ),
-                'url'         => $this->generateUrl(
-                    'app_evenement_show',
-                    ['id' => $ev->getIdEv()],
-                    UrlGeneratorInterface::ABSOLUTE_URL
-                ),
+            $entryCode    = random_int(100000, 999999);
+            $confirmToken = bin2hex(random_bytes(32));
+            
+            $useDiscount  = $request->request->get('use_discount') === '1';
+            $effectiveDiscount = $useDiscount ? $discountPct : 0;
+            
+            // Check for unique participant name in this event
+            $existing = $em->getRepository(Participants::class)->findOneBy([
+                'evenement' => $ev,
+                'nom_participant' => $participant->getNomParticipant()
             ]);
 
-            $email = (new Email())
-                ->from('noreply@agricore.tn')
-                ->to($participant->getEmail())
-                ->subject('✅ Confirmation — ' . $ev->getTitre())
-                ->html($html);
+            if ($existing) {
+                $this->addFlash('error', "Un participant nommé '{$participant->getNomParticipant()}' est déjà inscrit à cet événement. Veuillez utiliser un nom unique.");
+                return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv(), 'showModal' => 1]);
+            }
 
-            $mailer->send($email);
+            $rawMontant   = $participant->getNbrPlaces() * (float) $ev->getFraisInscription();
+            $montant      = $rawMontant * (1 - ($effectiveDiscount / 100));
 
-        } catch (\Exception $e) {}
+            $participant->setEvenement($ev);
+            $participant->setIdUtilisateur($sessionUser->getId());
+            $participant->setDateInscription(new \DateTime());
+            $participant->setStatutParticipation('En attente');
+            $participant->setEntryCode($entryCode);
+            $participant->setConfirmation('pending');
+            $participant->setMontantPayee((string) $montant);
+            $participant->setConfirmToken($confirmToken);
+            $participant->setUsedCoins($effectiveDiscount);
 
-        $this->addFlash('info', "Vérifiez votre email ({$participant->getEmail()}) et cliquez sur le lien de confirmation.");
-        return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
+            $em->persist($participant);
+            $em->flush();
+
+            try {
+                $html = $this->renderView('emails/inscription_confirmation.html.twig', [
+                    'nom'         => $participant->getNomParticipant(),
+                    'evenement'   => $ev->getTitre(),
+                    'date_debut'  => $ev->getDateDebut()?->format('d/m/Y H:i'),
+                    'date_fin'    => $ev->getDateFin()?->format('d/m/Y H:i'),
+                    'lieu'        => $ev->getLieu(),
+                    'nbr_places'  => $participant->getNbrPlaces(),
+                    'montant'     => $montant,
+                    'discount_pct'=> $effectiveDiscount,
+                    'entry_code'  => $entryCode,
+                    'confirm_url' => $this->generateUrl(
+                        'app_confirmer_inscription',
+                        ['token' => $confirmToken],
+                        UrlGeneratorInterface::ABSOLUTE_URL
+                    ),
+                    'url'         => $this->generateUrl(
+                        'app_evenement_show',
+                        ['id' => $ev->getIdEv()],
+                        UrlGeneratorInterface::ABSOLUTE_URL
+                    ),
+                ]);
+
+                $email = (new Email())
+                    ->from('noreply@agricore.tn')
+                    ->to($participant->getEmail())
+                    ->subject('✅ Confirmation — ' . $ev->getTitre())
+                    ->html($html);
+
+                $mailer->send($email);
+
+            } catch (\Exception $e) {}
+
+            $this->addFlash('info', "Vérifiez votre email ({$participant->getEmail()}) et cliquez sur le lien de confirmation.");
+            return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
+        }
+
+        return $this->render('front/evenements/show.html.twig', [
+            'evenement'              => $ev,
+            'placesRestantes'        => $placesRestantes,
+            'dejaInscrit'            => $dejaInscrit,
+            'onWaitlist'             => $onWaitlist,
+            'participantConfirmation'=> $participantConfirmation,
+            'isPast'                 => $isPast,
+            'conflictingEvent'       => $conflictingEvent,
+            'form'                   => $form->createView(),
+            'showParticipationModal' => $form->isSubmitted() && !$form->isValid(),
+            'participants'           => $this->buildParticipantList($ev, $em),
+            'userCoins'              => $userCoins,
+            'discountPct'            => $discountPct,
+        ]);
     }
 
-    return $this->render('front/evenements/show.html.twig', [
-        'evenement'              => $ev,
-        'placesRestantes'        => $placesRestantes,
-        'dejaInscrit'            => $dejaInscrit,
-        'onWaitlist'             => $onWaitlist,
-        'participantConfirmation'=> $participantConfirmation,
-        'isPast'                 => $isPast,
-        'conflictingEvent'       => $conflictingEvent,
-        'form'                   => $form->createView(),
-        'showParticipationModal' => $form->isSubmitted() && !$form->isValid(),
-        'participants'           => $this->buildParticipantList($ev, $em),
-    ]);
-}
+    #[Route('/evenement/{id}/participer', name: 'app_participer', methods: ['POST'])]
+    public function participer(Evennementagricole $ev, Request $request, EntityManagerInterface $em, MailerInterface $mailer): Response
+    {
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser) return $this->redirectToRoute('front_login');
 
-#[Route('/evenement/{id}/participer', name: 'app_participer', methods: ['POST'])]
-public function participer(Evennementagricole $ev, Request $request, EntityManagerInterface $em, MailerInterface $mailer): Response
-{
-    $sessionUser = $request->getSession()->get('user');
-    if (!$sessionUser) return $this->redirectToRoute('front_login');
+        if ($ev->getDateFin() < new \DateTime()) {
+            $this->addFlash('error', 'Cet événement est terminé.');
+            return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
+        }
 
-    if ($ev->getDateFin() < new \DateTime()) {
-        $this->addFlash('error', 'Cet événement est terminé.');
-        return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
-    }
+        $totalReserved = $this->getTotalReservedPlaces($ev, $em);
+        $dispo = max(0, $ev->getCapaciteMax() - $totalReserved);
 
-    $totalReserved = $this->getTotalReservedPlaces($ev, $em);
-    $dispo = max(0, $ev->getCapaciteMax() - $totalReserved);
+        $participant = new Participants();
+        $form = $this->createForm(ParticipantsType::class, $participant, [
+            'max_places' => $dispo
+        ]);
 
-    $participant = new Participants();
-    $form = $this->createForm(ParticipantsType::class, $participant, [
-        'max_places' => $dispo
-    ]);
+        $form->handleRequest($request);
 
-    $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
 
-    if ($form->isSubmitted() && $form->isValid()) {
+            $entryCode    = random_int(100000, 999999);
+            $confirmToken = bin2hex(random_bytes(32));
+            
+            $userCoins    = $this->getUserCoins($sessionUser, $em);
+            $discountPct  = $this->getDiscountPercentage($userCoins);
+            
+            $useDiscount  = $request->request->get('use_discount') === '1';
+            $effectiveDiscount = $useDiscount ? $discountPct : 0;
 
-        $entryCode    = random_int(100000, 999999);
-        $confirmToken = bin2hex(random_bytes(32));
-        $montant      = $participant->getNbrPlaces() * (float) $ev->getFraisInscription();
-
-        $participant->setEvenement($ev);
-        $participant->setIdUtilisateur($sessionUser->getId());
-        $participant->setDateInscription(new \DateTime());
-        $participant->setStatutParticipation('En attente');
-        $participant->setEntryCode($entryCode);
-        $participant->setConfirmation('pending');
-        $participant->setMontantPayee((string) $montant);
-        $participant->setConfirmToken($confirmToken);
-
-        $em->persist($participant);
-        $em->flush();
-
-        try {
-            $html = $this->renderView('emails/inscription_confirmation.html.twig', [
-                'nom'         => $participant->getNomParticipant(),
-                'evenement'   => $ev->getTitre(),
-                'date_debut'  => $ev->getDateDebut()?->format('d/m/Y H:i'),
-                'date_fin'    => $ev->getDateFin()?->format('d/m/Y H:i'),
-                'lieu'        => $ev->getLieu(),
-                'nbr_places'  => $participant->getNbrPlaces(),
-                'montant'     => $montant,
-                'entry_code'  => $entryCode,
-                'confirm_url' => $this->generateUrl(
-                    'app_confirmer_inscription',
-                    ['token' => $confirmToken],
-                    UrlGeneratorInterface::ABSOLUTE_URL
-                ),
-                'url'         => $this->generateUrl(
-                    'app_evenement_show',
-                    ['id' => $ev->getIdEv()],
-                    UrlGeneratorInterface::ABSOLUTE_URL
-                ),
+            // Check for unique participant name in this event
+            $existing = $em->getRepository(Participants::class)->findOneBy([
+                'evenement' => $ev,
+                'nom_participant' => $participant->getNomParticipant()
             ]);
 
-            $email = (new Email())
-                ->from('noreply@agricore.tn')
-                ->to($participant->getEmail())
-                ->subject('✅ Confirmation — ' . $ev->getTitre())
-                ->html($html);
+            if ($existing) {
+                $this->addFlash('error', "Un participant nommé '{$participant->getNomParticipant()}' est déjà inscrit à cet événement. Veuillez utiliser un nom unique.");
+                return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv(), 'showModal' => 1]);
+            }
+            
+            $rawMontant   = $participant->getNbrPlaces() * (float) $ev->getFraisInscription();
+            $montant      = $rawMontant * (1 - ($effectiveDiscount / 100));
 
-            $mailer->send($email);
+            $participant->setEvenement($ev);
+            $participant->setIdUtilisateur($sessionUser->getId());
+            $participant->setDateInscription(new \DateTime());
+            $participant->setStatutParticipation('En attente');
+            $participant->setEntryCode($entryCode);
+            $participant->setConfirmation('pending');
+            $participant->setMontantPayee((string) $montant);
+            $participant->setConfirmToken($confirmToken);
+            $participant->setUsedCoins($effectiveDiscount);
 
-        } catch (\Exception $e) {}
+            $em->persist($participant);
+            $em->flush();
 
-        $this->addFlash('info', "Vérifiez votre email ({$participant->getEmail()}) et cliquez sur le lien de confirmation.");
-        return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
+            try {
+                $html = $this->renderView('emails/inscription_confirmation.html.twig', [
+                    'nom'         => $participant->getNomParticipant(),
+                    'evenement'   => $ev->getTitre(),
+                    'date_debut'  => $ev->getDateDebut()?->format('d/m/Y H:i'),
+                    'date_fin'    => $ev->getDateFin()?->format('d/m/Y H:i'),
+                    'lieu'        => $ev->getLieu(),
+                    'nbr_places'  => $participant->getNbrPlaces(),
+                    'montant'     => $montant,
+                    'discount_pct'=> $effectiveDiscount,
+                    'entry_code'  => $entryCode,
+                    'confirm_url' => $this->generateUrl(
+                        'app_confirmer_inscription',
+                        ['token' => $confirmToken],
+                        UrlGeneratorInterface::ABSOLUTE_URL
+                    ),
+                    'url'         => $this->generateUrl(
+                        'app_evenement_show',
+                        ['id' => $ev->getIdEv()],
+                        UrlGeneratorInterface::ABSOLUTE_URL
+                    ),
+                ]);
+
+                $email = (new Email())
+                    ->from('noreply@agricore.tn')
+                    ->to($participant->getEmail())
+                    ->subject('✅ Confirmation — ' . $ev->getTitre())
+                    ->html($html);
+
+                $mailer->send($email);
+
+            } catch (\Exception $e) {}
+
+            $this->addFlash('info', "Vérifiez votre email ({$participant->getEmail()}) et cliquez sur le lien de confirmation.");
+            return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
+        }
+
+        return $this->redirectToRoute('app_evenement_show', [
+            'id'     => $ev->getIdEv(),
+            'modal'  => 1
+        ]);
     }
-
-    return $this->redirectToRoute('app_evenement_show', [
-        'id'     => $ev->getIdEv(),
-        'modal'  => 1
-    ]);
-}
 
     #[Route('/inscription/confirmer/{token}', name: 'app_confirmer_inscription')]
     public function confirmerInscription(string $token, EntityManagerInterface $em): Response

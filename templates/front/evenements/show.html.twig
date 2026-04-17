@@ -387,7 +387,7 @@
                             {% endif %}
                             {% if app.session.get('user') %}
                                 <button type="button" class="cta-btn btn w-100 mb-3"
-                                    onclick="{% if conflictingEvent %}openConflictModal(){% else %}document.getElementById('participModal').style.display='flex'{% endif %}">
+                                    onclick="{% if conflictingEvent %}openConflictModal(){% else %}document.getElementById('participModal').style.display='flex'; if(window.refreshPricing) window.refreshPricing();{% endif %}">
                                     <i class="fas fa-check-circle me-2"></i> Confirmer l'inscription
                                 </button>
                                 {% if onWaitlist %}
@@ -457,7 +457,7 @@
 {# ===== Participation Modal ===== #}
 {% if app.session.get('user') and placesRestantes > 0 and not dejaInscrit %}
 <div class="particip-overlay" id="participModal"
-     style="display: {{ showParticipationModal ? 'flex' : 'none' }}"
+     style="display: {{ showParticipationModal or app.request.query.get('showModal') ? 'flex' : 'none' }}"
      onclick="if(event.target===this)this.style.display='none'">
     <div class="particip-modal">
         <button class="modal-close" onclick="document.getElementById('participModal').style.display='none'">
@@ -495,16 +495,84 @@
 
             <div class="particip-field">
                 {{ form_label(form.nbr_places, 'Nombre de places (max ' ~ placesRestantes ~ ')') }}
-                {{ form_widget(form.nbr_places, {'attr': {'class': 'particip-field-input', 'min': 1, 'id': 'nbr_places_input', 'oninput': "document.getElementById('total_display').textContent=(this.value*" ~ evenement.frais_inscription ~ ").toFixed(2)+' DT'"}}) }}
+                {{ form_widget(form.nbr_places, {'attr': {
+                    'class': 'particip-field-input', 
+                    'min': 1,
+                    'oninput': 'updatePricingRealTime()'
+                }}) }}
                 <div class="text-danger small mt-1">{{ form_errors(form.nbr_places) }}</div>
             </div>
 
-            <div class="mb-4 p-3 rounded-4 bg-light border d-flex justify-content-between align-items-center">
-                <span class="small fw-bold text-muted">Total à payer :</span>
-                <span class="h5 mb-0 fw-black text-success" id="total_display">
-                    {{ (1 * evenement.frais_inscription)|number_format(2) }} DT
-                </span>
+            {% if discountPct > 0 %}
+            <div class="mb-3 p-3 rounded-4" style="background:#f0fdf4; border:1px solid #bbf7d0;">
+                <div class="form-check form-switch d-flex align-items-center gap-2">
+                    <input class="form-check-input" type="checkbox" id="useDiscountToggle" name="use_discount" value="1" checked onchange="updatePricingRealTime()">
+                    <label class="form-check-label fw-bold mb-0" for="useDiscountToggle" style="color:#16a34a; cursor:pointer; font-size:14px;">
+                        <i class="fas fa-gift me-1"></i> Utiliser mon coupon (-{{ discountPct }}%)
+                    </label>
+                </div>
             </div>
+            {% endif %}
+
+            <div style="background:#f8fafc;border-radius:16px;padding:20px;margin-bottom:24px;border:1px dashed #e2e8f0;">
+                <div class="d-flex justify-content-between mb-2">
+                    <span style="color:#64748b;font-size:14px;font-weight:600;">Prix unitaire:</span>
+                    <span style="color:#1e293b;font-weight:700;">{{ evenement.frais_inscription }} DT</span>
+                </div>
+                <div id="discount_row" style="display:none;">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span style="color:#16a34a;font-size:14px;font-weight:700;">
+                            <i class="fas fa-tag me-1"></i> Réduction Fidélité ({{ discountPct }}%):
+                        </span>
+                        <span style="color:#16a34a;font-weight:700;" id="discount_amount_display">-0.00 DT</span>
+                    </div>
+                    <div class="small mb-3" style="color:#64748b;font-style:italic;">
+                        Grâce à vos <strong>{{ userCoins }} AgriCoins</strong>
+                    </div>
+                </div>
+                <hr style="margin:12px 0;opacity:.1;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span style="color:#1e293b;font-size:16px;font-weight:800;">Total à payer:</span>
+                    <span style="color:var(--agri-green);font-size:20px;font-weight:900;" id="final_total_display">{{ evenement.frais_inscription }} DT</span>
+                </div>
+            </div>
+
+            <script>
+                function updatePricingRealTime() {
+                    const price = parseFloat("{{ evenement.frais_inscription }}") || 0;
+                    const discountPct = parseFloat("{{ discountPct }}") || 0;
+                    
+                    const qtyInput = document.querySelector('input[name*="[nbr_places]"]');
+                    const toggle = document.getElementById('useDiscountToggle');
+                    const totalDisplay = document.getElementById('final_total_display');
+                    const discRow = document.getElementById('discount_row');
+                    const discAmountElem = document.getElementById('discount_amount_display');
+                    
+                    if (!qtyInput || !totalDisplay) return;
+                    
+                    let qty = parseInt(qtyInput.value);
+                    if (isNaN(qty) || qty < 1) qty = 1;
+                    
+                    const rawTotal = qty * price;
+                    const isDiscountApplied = toggle && toggle.checked;
+                    const discountAmount = isDiscountApplied ? (rawTotal * (discountPct / 100)) : 0;
+                    const finalTotal = rawTotal - discountAmount;
+                    
+                    totalDisplay.textContent = finalTotal.toFixed(2) + ' DT';
+                    
+                    if (discRow && discAmountElem) {
+                        if (isDiscountApplied && discountPct > 0) {
+                            discRow.style.display = 'block';
+                            discAmountElem.textContent = '-' + discountAmount.toFixed(2) + ' DT';
+                        } else {
+                            discRow.style.display = 'none';
+                        }
+                    }
+                }
+                
+                // Initialize on open
+                window.refreshPricing = updatePricingRealTime;
+            </script>
 
             <button type="submit" class="particip-submit">
                 <i class="fas fa-check-circle me-2"></i> Confirmer mon inscription
@@ -535,27 +603,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        // --- LOGIQUE DE CALCUL DU MONTANT ---
-        const nbrPlacesInput = document.querySelector('input[name="nbr_places"]');
-        const displayTotal = document.getElementById('display_total');
-        const montantHidden = document.getElementById('montant_payee_hidden');
-        const prixUnitaire = parseFloat("{{ evenement.frais_inscription }}") || 0;
-
-        function updatePrice() {
-            if (nbrPlacesInput) {
-                let qty = parseInt(nbrPlacesInput.value) || 0;
-                let total = (qty * prixUnitaire).toFixed(2);
-                if (displayTotal) displayTotal.innerText = total + " DT";
-                if (montantHidden) montantHidden.value = total;
-            }
-        }
-
-        if (nbrPlacesInput) {
-            nbrPlacesInput.addEventListener('input', updatePrice);
-            nbrPlacesInput.addEventListener('change', updatePrice);
-            updatePrice();
-        }
-
         // --- LOGIQUE DE LA CARTE ---
         var lieu = "{{ evenement.lieu|e('js') }}";
         var coordRegex = /^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/;
@@ -636,9 +683,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'fr-FR';
-    recognition.continuous = true;        // keep listening
-    recognition.interimResults = true;    // show partial results
-    recognition.maxAlternatives = 3;      // get multiple candidates
+    recognition.continuous = true;
+    recognition.interimResults = true;
 
     let listening = false, savedValue = '', bestTranscript = '', silenceTimer = null;
 
@@ -647,59 +693,88 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.style.color = on ? '#fff' : '#16a34a';
         btn.innerHTML = on ? '<i class="fas fa-stop"></i>' : '<i class="fas fa-microphone"></i>';
         btn.title = on ? 'Arrêter' : 'Dicter votre nom';
+        if (on) {
+            btn.classList.add('animate__animated', 'animate__pulse', 'animate__infinite');
+        } else {
+            btn.classList.remove('animate__animated', 'animate__pulse', 'animate__infinite');
+        }
     }
 
     function stopListening() {
+        if (!listening) return;
         recognition.stop();
         listening = false;
         setBtn(false);
         statusBar.style.display = 'none';
         clearTimeout(silenceTimer);
-        if (bestTranscript.trim()) {
-            document.getElementById('sttPreviewText').textContent = bestTranscript.trim();
-            confirmBar.style.display = 'flex';
-        }
+        
+        setTimeout(() => {
+            if (bestTranscript.trim()) {
+                document.getElementById('sttPreviewText').textContent = bestTranscript.trim();
+                confirmBar.style.display = 'flex';
+            }
+        }, 100);
     }
 
     btn.addEventListener('click', function() {
         if (listening) { stopListening(); return; }
+        
         savedValue = input.value;
         bestTranscript = '';
         confirmBar.style.display = 'none';
         statusBar.style.display = 'flex';
-        document.getElementById('sttStatus').textContent = 'Parlez maintenant...';
-        try { recognition.start(); } catch(e) {}
+        document.getElementById('sttStatus').textContent = 'Écoute en cours...';
+        
+        try { 
+            recognition.start(); 
+        } catch(e) {
+            console.error("Erreur recognition:", e);
+            recognition.stop();
+            setTimeout(() => recognition.start(), 100);
+        }
     });
 
-    recognition.onstart = () => { listening = true; setBtn(true); };
-    recognition.onerror = (e) => { listening = false; setBtn(false); statusBar.style.display = 'none'; };
+    recognition.onstart = () => { 
+        listening = true; 
+        setBtn(true);
+        console.log("Recognition started");
+    };
 
     recognition.onresult = (e) => {
         clearTimeout(silenceTimer);
-        let interim = '', final = '';
+        let interim = '';
         for (let i = e.resultIndex; i < e.results.length; i++) {
-            // Pick highest confidence alternative
-            let best = e.results[i][0].transcript;
-            for (let j = 1; j < e.results[i].length; j++) {
-                if (e.results[i][j].confidence > e.results[i][0].confidence) {
-                    best = e.results[i][j].transcript;
-                }
+            let transcript = e.results[i][0].transcript;
+            if (e.results[i].isFinal) { 
+                bestTranscript += transcript; 
+            } else { 
+                interim += transcript; 
             }
-            if (e.results[i].isFinal) { final += best; }
-            else { interim += best; }
         }
-        if (final) bestTranscript = final;
+        
         const display = (bestTranscript + interim).trim();
-        if (display) document.getElementById('sttStatus').textContent = '🎤 ' + display;
+        if (display) {
+            document.getElementById('sttStatus').textContent = '🎤 ' + display;
+        }
 
-        // Auto-stop after 1.5s of silence
-        silenceTimer = setTimeout(() => stopListening(), 1500);
+        silenceTimer = setTimeout(() => stopListening(), 2000);
+    };
+
+    recognition.onerror = (e) => { 
+        console.error("Speech Recognition Error:", e.error);
+        if (e.error === 'no-speech') {
+            document.getElementById('sttStatus').textContent = 'Aucune voix détectée...';
+            silenceTimer = setTimeout(() => stopListening(), 1000);
+        } else {
+            stopListening();
+        }
     };
 
     recognition.onend = () => {
         if (listening) {
-            // Restart if still supposed to be listening (handles auto-stop by browser)
-            try { recognition.start(); } catch(e) { listening = false; setBtn(false); }
+            listening = false;
+            setBtn(false);
+            statusBar.style.display = 'none';
         }
     };
 

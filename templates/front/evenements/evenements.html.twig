@@ -368,7 +368,26 @@ body { background: #f8fafc; }
             {% endif %}
         </div>
 
-        <div class="d-flex justify-content-end mt-3">
+        <div class="d-flex justify-content-end mt-3 align-items-center gap-3">
+            {% if app.session.get('user') %}
+            <div class="coin-balance d-flex align-items-center gap-2 px-3 py-2" 
+                 title="Gagnez 10 coins tous les 2 événements auxquels vous participez !"
+                 style="background: #fff7ed; border: 1px solid #ffedd5; border-radius: 12px; box-shadow: 0 2px 10px rgba(251,146,60,0.1); cursor: help;">
+                <div style="background: #fb923c; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .8rem; box-shadow: 0 0 10px rgba(251,146,60,0.3);">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div>
+                    <div style="font-size: .65rem; font-weight: 800; color: #9a3412; text-transform: uppercase; letter-spacing: .5px; line-height: 1;">Mes AgriCoins</div>
+                    <div style="font-size: 1rem; font-weight: 900; color: #7c2d12; line-height: 1;">
+                        {{ userCoins }} <small style="font-size: .65rem; font-weight: 700;">coins</small>
+                        {% if discountPct > 0 %}
+                            <span class="badge bg-success ms-1" style="font-size: .6rem; vertical-align: middle;">-{{ discountPct }}%</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="view-toggle">
                 <button class="vtab active" id="btnGrid" title="Grille"><i class="fas fa-th-large"></i></button>
                 <button class="vtab" id="btnCal" title="Calendrier"><i class="fas fa-calendar-alt"></i></button>

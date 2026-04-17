@@ -49,6 +49,12 @@ class Participants
     #[ORM\Column(type: "string", length: 64, nullable: true)]
     private ?string $confirm_token = null;
 
+    #[ORM\Column(type: "integer", options: ["default" => 0])]
+    private int $nbr_presents = 0;
+
+    #[ORM\Column(type: "integer", options: ["default" => 0])]
+    private int $used_coins = 0;
+
     public function getId_participant()
     {
         return $this->id_participant;
@@ -257,4 +263,12 @@ class Participants
 
     public function getConfirmToken(): ?string { return $this->confirm_token; }
     public function setConfirmToken(?string $token): static { $this->confirm_token = $token; return $this; }
+
+    public function getNbr_presents(): int { return $this->nbr_presents; }
+    public function setNbr_presents(int $nbr_presents): self { $this->nbr_presents = $nbr_presents; return $this; }
+    public function getNbrPresents(): int { return $this->nbr_presents; }
+    public function setNbrPresents(int $nbr_presents): self { $this->nbr_presents = $nbr_presents; return $this; }
+
+    public function getUsedCoins(): int { return $this->used_coins; }
+    public function setUsedCoins(int $used_coins): self { $this->used_coins = $used_coins; return $this; }
 }
