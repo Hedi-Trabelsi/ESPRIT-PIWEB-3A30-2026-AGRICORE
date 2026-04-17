@@ -104,7 +104,7 @@ class EvenementBackController extends AbstractController
     }
 
     // =========================
-    // MARK ATTENDED (server-side code verification)
+    // MARK ATTENDED (Initial verification)
     // =========================
     #[Route('/back/participants/{id}/attend', name: 'back_participant_attend', methods: ['POST'])]
     public function markAttended(int $id, Request $request, EntityManagerInterface $em): \Symfony\Component\HttpFoundation\JsonResponse
@@ -120,9 +120,42 @@ class EvenementBackController extends AbstractController
             return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Code incorrect'], 400);
         }
 
+        // Once the code is verified, we allow the admin to start marking individual presences
         $participant->setConfirmation('attended');
+        $participant->setNbrPresents(0); // Start at 0, admin will click one by one
         $em->flush();
-        return new \Symfony\Component\HttpFoundation\JsonResponse(['success' => true]);
+        
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+            'success' => true,
+            'nbr_presents' => 0
+        ]);
+    }
+
+    // =========================
+    // UPDATE ATTENDANCE (Granular)
+    // =========================
+    #[Route('/back/participants/{id}/update-attendance', name: 'back_participant_update_attendance', methods: ['POST'])]
+    public function updateAttendance(int $id, Request $request, EntityManagerInterface $em): \Symfony\Component\HttpFoundation\JsonResponse
+    {
+        $participant = $em->getRepository(\App\Entity\Participants::class)->find($id);
+        if (!$participant) {
+            return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Not found'], 404);
+        }
+
+        $count = (int) $request->request->get('count');
+        if ($count < 0 || $count > $participant->getNbrPlaces()) {
+            return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Invalide'], 400);
+        }
+
+        $participant->setNbrPresents($count);
+        $participant->setConfirmation($count > 0 ? 'attended' : 'confirmed');
+        $em->flush();
+
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+            'success' => true,
+            'nbr_presents' => $participant->getNbrPresents(),
+            'status' => $participant->getConfirmation()
+        ]);
     }
 
     // =========================

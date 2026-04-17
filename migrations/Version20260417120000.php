@@ -16,14 +16,31 @@ final class Version20260417120000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
+<<<<<<< HEAD
         $columns = $this->connection->createSchemaManager()->listTableColumns('equipements');
         if (!isset($columns['updated_at'])) {
             $this->addSql('ALTER TABLE equipements ADD COLUMN updated_at DATETIME DEFAULT NULL');
+=======
+        if (!$this->connection->createSchemaManager()->tablesExist(['equipements'])) {
+            return;
+        }
+
+        $columns = $this->connection->createSchemaManager()->listTableColumns('equipements');
+        if (!isset($columns['updated_at'])) {
+            $this->addSql("ALTER TABLE equipements ADD COLUMN updated_at DATETIME DEFAULT NULL COMMENT '(DC2Type:datetime_immutable)'");
+>>>>>>> main
         }
     }
 
     public function down(Schema $schema): void
     {
+<<<<<<< HEAD
+=======
+        if (!$this->connection->createSchemaManager()->tablesExist(['equipements'])) {
+            return;
+        }
+
+>>>>>>> main
         $columns = $this->connection->createSchemaManager()->listTableColumns('equipements');
         if (isset($columns['updated_at'])) {
             $this->addSql('ALTER TABLE equipements DROP COLUMN updated_at');
