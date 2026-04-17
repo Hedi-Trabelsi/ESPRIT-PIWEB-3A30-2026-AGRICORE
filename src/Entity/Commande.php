@@ -16,13 +16,13 @@ class Commande
     #[ORM\Column(type: 'integer')]
     private ?int $id = null;
 
-    #[ORM\Column(type: 'datetime')]
+    #[ORM\Column(name: 'date_commande', type: 'datetime')]
     private ?\DateTimeInterface $dateCommande = null;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
     private ?string $total = null;
 
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(name: 'agriculteur_id', type: 'integer')]
     private ?int $agriculteurId = null;
 
     #[ORM\OneToMany(mappedBy: 'commande', targetEntity: LigneCommande::class, cascade: ['persist', 'remove'])]
