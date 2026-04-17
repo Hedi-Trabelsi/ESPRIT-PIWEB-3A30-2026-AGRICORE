@@ -137,6 +137,95 @@
         color: #718096;
     }
 
+    .forecast-alert {
+        background: #fffaf0;
+        border-left: 5px solid #ed8936;
+        border-radius: 15px;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .forecast-alert-icon {
+        color: #ed8936;
+        font-size: 1.25rem;
+    }
+
+    .advice-container {
+        background: #f0fff4;
+        border: 1px solid #c6f6d5;
+        border-radius: 24px;
+        padding: 30px;
+        margin-top: 30px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        gap: 40px;
+    }
+    .advice-watermark {
+        position: absolute;
+        right: 20px;
+        bottom: -20px;
+        font-size: 10rem;
+        color: #38a169;
+        opacity: 0.05;
+        transform: rotate(-10deg);
+        pointer-events: none;
+    }
+    .ai-badge {
+        position: absolute;
+        top: 20px;
+        left: 30px;
+        background: #10b981;
+        color: white;
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+    }
+    .forecast-left {
+        min-width: 200px;
+        padding-top: 20px;
+        border-right: 1px solid #c6f6d5;
+        padding-right: 40px;
+    }
+    .forecast-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #718096;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+    .forecast-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #059669;
+    }
+    .advice-right {
+        flex-grow: 1;
+        padding-top: 20px;
+    }
+    .advice-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #064e3b;
+        margin-bottom: 10px;
+    }
+    .advice-quote {
+        font-size: 1.05rem;
+        color: #065f46;
+        font-style: italic;
+        line-height: 1.6;
+    }
+
     .anomaly-alert {
         background: #fff5f5;
         border-left: 5px solid #e53e3e;
@@ -364,7 +453,7 @@
         </div>
 
         <!-- AI Anomaly Analysis Section -->
-        <div class="row g-4">
+        <div class="row g-4 mb-5">
             <div class="col-lg-4">
                 <div class="card-detail">
                     <h3 class="card-title-custom danger">Distribution Z-Scores</h3>
@@ -431,6 +520,51 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forecasting Section -->
+        <div class="row g-4">
+            <div class="col-lg-12">
+                <div class="card-detail">
+                    <h3 class="card-title-custom info">Prévisions des Ventes (Lissage Exponentiel)</h3>
+                    
+                    {% if forecastData.alerts is not empty %}
+                        {% for alert in forecastData.alerts %}
+                            <div class="forecast-alert">
+                                <div class="forecast-alert-icon">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                </div>
+                                <div class="small fw-bold text-warning">{{ alert }}</div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <div id="forecastChart"></div>
+
+                    <div class="advice-container">
+                        <div class="ai-badge">
+                            <i class="bi bi-robot"></i> Agricore Intelligence
+                        </div>
+                        <div class="advice-watermark">
+                            <i class="bi bi-robot"></i>
+                        </div>
+                        
+                        <div class="forecast-left text-center">
+                            <div class="forecast-label">Prévision mois prochain</div>
+                            <div class="forecast-value">
+                                {{ forecastData.nextMonthValue|number_format(2, '.', ' ') }} DT
+                            </div>
+                        </div>
+                        
+                        <div class="advice-right">
+                            <div class="advice-title">Conseil Stratégique :</div>
+                            <div class="advice-quote">
+                                "{{ forecastData.advice }}"
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -596,6 +730,88 @@
             grid: { borderColor: '#edf2f7', strokeDashArray: 4 }
         };
         new ApexCharts(document.querySelector("#zScoreChart"), zScoreOptions).render();
+
+        // Forecast Chart
+        const historyData = {{ forecastData.history|json_encode|raw }};
+        const forecastData = {{ forecastData.forecast|json_encode|raw }};
+        
+        const allDates = [...historyData.map(h => h.date), ...forecastData.map(f => f.date)];
+        const historySeries = historyData.map(h => h.value);
+        const forecastSeries = [...Array(historyData.length).fill(null), ...forecastData.map(f => f.value)];
+        const lowerSeries = [...Array(historyData.length).fill(null), ...forecastData.map(f => f.lower)];
+        const upperSeries = [...Array(historyData.length).fill(null), ...forecastData.map(f => f.upper)];
+
+        const forecastOptions = {
+            series: [
+                { name: 'Historique', type: 'line', data: historySeries },
+                { name: 'Prévision', type: 'line', data: forecastSeries },
+                { 
+                    name: 'Intervalle de Confiance', 
+                    type: 'area', 
+                    data: upperSeries.map((u, i) => ({
+                        x: allDates[i],
+                        y: [lowerSeries[i], u]
+                    })).filter(p => p.y[0] !== null)
+                }
+            ],
+            chart: {
+                height: 380,
+                type: 'line',
+                toolbar: { show: false },
+                fontFamily: 'Plus Jakarta Sans, sans-serif'
+            },
+            colors: ['#38a169', '#3182ce', '#cbd5e0'],
+            stroke: {
+                width: [4, 4, 0],
+                curve: 'smooth',
+                dashArray: [0, 8, 0]
+            },
+            fill: {
+                type: ['solid', 'solid', 'gradient'],
+                gradient: {
+                    inverseColors: false,
+                    shade: 'light',
+                    type: "vertical",
+                    opacityFrom: 0.3,
+                    opacityTo: 0.1,
+                    stops: [0, 100]
+                }
+            },
+            markers: {
+                size: [5, 5, 0],
+                strokeWidth: 0,
+                hover: { size: 7 }
+            },
+            xaxis: {
+                categories: allDates.map(d => {
+                    const [year, month] = d.split('-');
+                    const date = new Date(year, month - 1);
+                    return date.toLocaleString('default', { month: 'short', year: '2-digit' });
+                }),
+                axisBorder: { show: false },
+                labels: { style: { colors: '#718096', fontWeight: 600 } }
+            },
+            yaxis: {
+                labels: { 
+                    style: { colors: '#718096', fontWeight: 600 },
+                    formatter: (val) => val ? val.toLocaleString() + ' DT' : '0 DT'
+                }
+            },
+            grid: { borderColor: '#edf2f7', strokeDashArray: 4 },
+            legend: { 
+                position: 'top', 
+                horizontalAlign: 'right',
+                fontWeight: 600,
+                markers: { radius: 12 }
+            },
+            tooltip: {
+                shared: true,
+                intersect: false,
+                theme: 'light',
+                y: { formatter: (val) => val ? val.toLocaleString() + ' DT' : null }
+            }
+        };
+        new ApexCharts(document.querySelector("#forecastChart"), forecastOptions).render();
     });
 </script>
 {% endblock %}

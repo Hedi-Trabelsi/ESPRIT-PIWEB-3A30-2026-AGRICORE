@@ -11,6 +11,7 @@ use App\Repository\UserRepository;
 use App\Repository\VenteRepository;
 use App\Repository\DepenseRepository;
 use App\Service\AnomalyService;
+use App\Service\ForecastService;
 
 use Symfony\Component\HttpFoundation\JsonResponse;
 
@@ -106,7 +107,7 @@ class HomeController extends AbstractController
     }
 
     #[Route('/ventes-depenses/user/{id}', name: 'app_user_details_front')]
-    public function userDetails(int $id, UserRepository $userRepository, AnomalyService $anomalyService): Response
+    public function userDetails(int $id, UserRepository $userRepository, AnomalyService $anomalyService, ForecastService $forecastService): Response
     {
         $user = $userRepository->find($id);
         if (!$user) {
@@ -168,6 +169,10 @@ class HomeController extends AbstractController
         }
         $anomalyRate = count($allDepenses) > 0 ? ($anomaliesCount / count($allDepenses)) * 100 : 0;
 
+        // Forecasting Analysis
+        $ventes = $user->getVentes()->toArray();
+        $forecastData = $forecastService->forecastUserSales($ventes);
+
         return $this->render('front/ventes_depenses/user_details.html.twig', [
             'user' => $user,
             'depenses' => $user->getDepenses(),
@@ -180,7 +185,8 @@ class HomeController extends AbstractController
             'anomalyResults' => $anomalyResults,
             'anomaliesCount' => $anomaliesCount,
             'maxZScore' => $maxZScore,
-            'anomalyRate' => $anomalyRate
+            'anomalyRate' => $anomalyRate,
+            'forecastData' => $forecastData
         ]);
     }
 
