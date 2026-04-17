@@ -9,6 +9,8 @@ use App\Form\VenteType;
 use App\Repository\UserRepository;
 use App\Repository\VenteRepository;
 use App\Repository\DepenseRepository;
+use App\Service\AnomalyService;
+use App\Service\ForecastService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -103,7 +105,7 @@ class BackController extends AbstractController
     }
 
     #[Route('/back/ventes-depenses/{id}/details', name: 'back_user_details')]
-    public function userDetails(int $id, UserRepository $userRepository): Response
+    public function userDetails(int $id, UserRepository $userRepository, AnomalyService $anomalyService, ForecastService $forecastService): Response
     {
         $user = $userRepository->find($id);
         
@@ -111,15 +113,49 @@ class BackController extends AbstractController
             throw $this->createNotFoundException('Utilisateur non trouvé');
         }
 
+        // Totals for KPIs
+        $totalExpenses = 0;
+        foreach ($user->getDepenses() as $depense) {
+            $totalExpenses += $depense->getMontant();
+        }
+        $totalSales = 0;
+        foreach ($user->getVentes() as $vente) {
+            $totalSales += $vente->getChiffreAffaires();
+        }
+        $netProfit = $totalSales - $totalExpenses;
+
+        // Anomalies Analysis
+        $allDepenses = $user->getDepenses()->toArray();
+        $anomalyResults = $anomalyService->analyzeAll($allDepenses);
+
+        $anomaliesCount = 0;
+        foreach ($anomalyResults as $res) {
+            if ($res['analysis']['isAnomaly']) {
+                $anomaliesCount++;
+            }
+        }
+        $anomalyRate = count($allDepenses) > 0 ? ($anomaliesCount / count($allDepenses)) * 100 : 0;
+
+        // Forecasting Analysis (for the advice box)
+        $ventes = $user->getVentes()->toArray();
+        $forecastData = $forecastService->forecastUserSales($ventes);
+
         return $this->render('back/ventes_depenses/vente_depense_details.html.twig', [
             'user' => $user,
             'ventes' => $user->getVentes(),
             'depenses' => $user->getDepenses(),
+            'totalExpenses' => $totalExpenses,
+            'totalSales' => $totalSales,
+            'netProfit' => $netProfit,
+            'anomalyResults' => $anomalyResults,
+            'anomaliesCount' => $anomaliesCount,
+            'anomalyRate' => $anomalyRate,
+            'forecastData' => $forecastData
         ]);
     }
 
     #[Route('/back/ventes-depenses/{id}/analyse', name: 'back_user_analyse')]
-    public function userAnalyse(int $id, UserRepository $userRepository): Response
+    public function userAnalyse(int $id, UserRepository $userRepository, AnomalyService $anomalyService, ForecastService $forecastService): Response
     {
         $user = $userRepository->find($id);
         
@@ -155,10 +191,49 @@ class BackController extends AbstractController
         }
         ksort($monthlyStats);
 
+        // Totals for KPIs
+        $totalExpenses = 0;
+        foreach ($user->getDepenses() as $depense) {
+            $totalExpenses += $depense->getMontant();
+        }
+        $totalSales = 0;
+        foreach ($user->getVentes() as $vente) {
+            $totalSales += $vente->getChiffreAffaires();
+        }
+        $netProfit = $totalSales - $totalExpenses;
+
+        // Anomalies Analysis
+        $allDepenses = $user->getDepenses()->toArray();
+        $anomalyResults = $anomalyService->analyzeAll($allDepenses);
+
+        $anomaliesCount = 0;
+        $maxZScore = 0;
+        foreach ($anomalyResults as $res) {
+            if ($res['analysis']['isAnomaly']) {
+                $anomaliesCount++;
+            }
+            if ($res['analysis']['score'] > $maxZScore) {
+                $maxZScore = $res['analysis']['score'];
+            }
+        }
+        $anomalyRate = count($allDepenses) > 0 ? ($anomaliesCount / count($allDepenses)) * 100 : 0;
+
+        // Forecasting Analysis
+        $ventes = $user->getVentes()->toArray();
+        $forecastData = $forecastService->forecastUserSales($ventes);
+
         return $this->render('back/ventes_depenses/vente_depense_analyse.html.twig', [
             'user' => $user,
             'expensesByCategory' => $expensesByCategory,
             'monthlyStats' => $monthlyStats,
+            'totalExpenses' => $totalExpenses,
+            'totalSales' => $totalSales,
+            'netProfit' => $netProfit,
+            'anomalyResults' => $anomalyResults,
+            'anomaliesCount' => $anomaliesCount,
+            'maxZScore' => $maxZScore,
+            'anomalyRate' => $anomalyRate,
+            'forecastData' => $forecastData
         ]);
     }
 

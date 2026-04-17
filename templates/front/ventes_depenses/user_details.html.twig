@@ -237,6 +237,83 @@
         gap: 20px;
         box-shadow: 0 4px 6px rgba(229, 62, 62, 0.05);
     }
+
+    /* World Bank Section Styles */
+    .wb-header {
+        background: #1a4d2e;
+        border-radius: 20px 20px 0 0;
+        padding: 20px 30px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .wb-title {
+        color:white;    
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    .wb-subtitle {
+        font-size: 0.85rem;
+        opacity: 0.8;
+    }
+    .wb-badge-api {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .wb-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: #e2e8f0;
+        border: 1px solid #e2e8f0;
+        border-radius: 0 0 20px 20px;
+        overflow: hidden;
+    }
+    .wb-card {
+        background: white;
+        padding: 25px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .wb-icon-box {
+        width: 40px;
+        height: 40px;
+        background: #f0fff4;
+        color: #38a169;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+    .wb-label {
+        font-size: 0.85rem;
+        color: #718096;
+        font-weight: 600;
+    }
+    .wb-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #1a202c;
+    }
+    .wb-unit {
+        font-size: 0.75rem;
+        color: #a0aec0;
+        margin-top: -5px;
+    }
+    .wb-loading {
+        font-size: 0.9rem;
+        color: #a0aec0;
+        font-style: italic;
+    }
+
     .anomaly-alert-icon {
         width: 50px;
         height: 50px;
@@ -520,6 +597,75 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- World Bank Agriculture Section -->
+        <div class="row g-4 mb-5">
+            <div class="col-12">
+                <div class="wb-header">
+                    <div>
+                        <h3 class="wb-title" >Matériels Agricoles en Tunisie</h3>
+                        <p class="wb-subtitle mb-0">Indicateurs officiels — Source : World Bank API</p>
+                    </div>
+                    <div class="wb-badge-api">World Bank API</div>
+                </div>
+                <div class="wb-grid" id="wb-indicators">
+                    <!-- Tracteurs -->
+                    <div class="wb-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="wb-icon-box"><i class="bi bi-truck"></i></div>
+                            <span class="wb-label">Tracteurs / 100 km²</span>
+                        </div>
+                        <div class="wb-value" id="wb-tractors"><span class="wb-loading">Chargement...</span></div>
+                        <div class="wb-unit" id="wb-tractors-year"></div>
+                    </div>
+                    <!-- Terres arables -->
+                    <div class="wb-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="wb-icon-box"><i class="bi bi-tree"></i></div>
+                            <span class="wb-label">Terres arables</span>
+                        </div>
+                        <div class="wb-value" id="wb-arable"><span class="wb-loading">Chargement...</span></div>
+                        <div class="wb-unit" id="wb-arable-year"></div>
+                    </div>
+                    <!-- Terres agricoles -->
+                    <div class="wb-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="wb-icon-box"><i class="bi bi-patch-check"></i></div>
+                            <span class="wb-label">Terres agricoles</span>
+                        </div>
+                        <div class="wb-value" id="wb-agri-land"><span class="wb-loading">Chargement...</span></div>
+                        <div class="wb-unit" id="wb-agri-land-year"></div>
+                    </div>
+                    <!-- Agriculture / PIB -->
+                    <div class="wb-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="wb-icon-box"><i class="bi bi-bar-chart-line"></i></div>
+                            <span class="wb-label">Agriculture / PIB</span>
+                        </div>
+                        <div class="wb-value" id="wb-gdp"><span class="wb-loading">Chargement...</span></div>
+                        <div class="wb-unit" id="wb-gdp-year"></div>
+                    </div>
+                    <!-- Emploi agricole -->
+                    <div class="wb-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="wb-icon-box"><i class="bi bi-people"></i></div>
+                            <span class="wb-label">Emploi agricole</span>
+                        </div>
+                        <div class="wb-value" id="wb-employment"><span class="wb-loading">Chargement...</span></div>
+                        <div class="wb-unit" id="wb-employment-year"></div>
+                    </div>
+                    <!-- Rendement céréalier -->
+                    <div class="wb-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="wb-icon-box"><i class="bi bi-moisture"></i></div>
+                            <span class="wb-label">Rendement céréalier</span>
+                        </div>
+                        <div class="wb-value" id="wb-yield"><span class="wb-loading">Chargement...</span></div>
+                        <div class="wb-unit" id="wb-yield-year"></div>
                     </div>
                 </div>
             </div>
@@ -812,6 +958,36 @@
             }
         };
         new ApexCharts(document.querySelector("#forecastChart"), forecastOptions).render();
+
+        // World Bank API Fetch
+        async function fetchWBData(indicator, elementId, yearElementId) {
+            try {
+                const response = await fetch(`https://api.worldbank.org/v2/country/TUN/indicator/${indicator}?format=json&per_page=5`);
+                const data = await response.json();
+                
+                if (data && data[1]) {
+                    // Find first non-null value
+                    const latest = data[1].find(item => item.value !== null);
+                    if (latest) {
+                        document.getElementById(elementId).innerText = latest.value.toLocaleString(undefined, { maximumFractionDigits: 1 });
+                        document.getElementById(yearElementId).innerText = `. ${latest.date}`;
+                    } else {
+                        document.getElementById(elementId).innerText = "N/A";
+                    }
+                }
+            } catch (error) {
+                console.error(`Error fetching ${indicator}:`, error);
+                document.getElementById(elementId).innerText = "Err.";
+            }
+        }
+
+        // Fetch all indicators
+        fetchWBData('AG.LND.TRAC.ZS', 'wb-tractors', 'wb-tractors-year'); // Tractors
+        fetchWBData('AG.LND.ARBL.ZS', 'wb-arable', 'wb-arable-year');     // Arable land %
+        fetchWBData('AG.LND.AGRI.ZS', 'wb-agri-land', 'wb-agri-land-year'); // Agricultural land %
+        fetchWBData('NV.AGR.TOTL.ZS', 'wb-gdp', 'wb-gdp-year');           // Agri % GDP
+        fetchWBData('SL.AGR.EMPL.ZS', 'wb-employment', 'wb-employment-year'); // Agri employment %
+        fetchWBData('AG.YLD.CREL.KG', 'wb-yield', 'wb-yield-year');      // Cereal yield
     });
 </script>
 {% endblock %}
