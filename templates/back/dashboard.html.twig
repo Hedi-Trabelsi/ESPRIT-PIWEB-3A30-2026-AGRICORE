@@ -1,0 +1,456 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block title %}Agricore | Precision Intelligence{% endblock %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+    :root {
+        --agri-forest: #064e3b;
+        --agri-emerald: #10b981;
+        --agri-lime: #84cc16;
+        --agri-soft-bg: #fdfdfd;
+        --agri-glass: rgba(255, 255, 255, 0.95);
+        --agri-border: rgba(6, 78, 59, 0.06);
+    }
+
+    body { 
+        background-color: #f4f7f5; 
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: var(--agri-forest);
+        letter-spacing: -0.01em;
+    }
+
+    /* Bento Grid Logic */
+    .bento-card {
+        background: white;
+        border: 1px solid var(--agri-border);
+        border-radius: 28px;
+        padding: 1.75rem;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(6, 78, 59, 0.02);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .bento-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(6, 78, 59, 0.06);
+        border-color: var(--agri-emerald);
+    }
+
+    .bento-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(255, 255, 255, 0) 50%);
+        pointer-events: none;
+    }
+
+    /* Smart Typography */
+    .heading-smart { font-weight: 800; letter-spacing: -0.03em; color: var(--agri-forest); }
+    .label-smart { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #94a3b8; }
+
+    /* Performance Pills */
+    .pills-nav {
+        background: #f1f5f9;
+        padding: 4px;
+        border-radius: 12px;
+        display: inline-flex;
+    }
+    .pill-link {
+        padding: 6px 16px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-decoration: none;
+        color: #64748b;
+    }
+    .pill-link.active { background: white; color: var(--agri-emerald); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+    /* Progress Indicators */
+    .agri-progress {
+        height: 8px;
+        background: #f1f5f9;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    /* Animated Status Icons */
+    .icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        transition: 0.3s;
+    }
+    .bento-card:hover .icon-box { transform: scale(1.1) rotate(5deg); }
+
+    /* Custom Table Style */
+    .smart-table thead th {
+        background: #f8fafc;
+        border: none;
+        font-size: 0.7rem;
+        padding: 1rem;
+        color: #64748b;
+    }
+    .smart-table td { border-bottom: 1px solid #f1f5f9; padding: 1.25rem 1rem; }
+
+    .financial-stat {
+        padding: 1rem;
+        border-radius: 20px;
+        background: #f8fafc;
+    }
+</style>
+
+<div class="container-fluid py-5 px-lg-5">
+    
+    <div class="d-flex justify-content-between align-items-end mb-5">
+        <div>
+            <span class="label-smart">Intelligence Opérationnelle</span>
+            <h2 class="heading-smart mb-0">Centre de Commandement <span class="text-success">AgriCore</span></h2>
+        </div>
+        <div class="d-flex gap-3 align-items-center">
+            <div class="text-end d-none d-md-block me-2">
+                <div class="fw-bold small">Administration Système</div>
+                <div class="text-muted" style="font-size: 0.7rem;">Dashboard v4.5 (Optimisé)</div>
+            </div>
+            <button class="btn btn-dark rounded-pill px-4 shadow-sm fw-bold border-0 d-flex align-items-center gap-2" onclick="window.location.reload()">
+                <i class="ti ti-refresh"></i> Synchroniser
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Insights Row -->
+    <div class="row g-4 mb-4">
+        {% set items = [
+            {'name': 'Utilisateurs', 'val': totalUsers, 'icon': 'ti-users', 'col': '#dcfce7', 'txt': '#166534', 'progress': metrics.userGrowth},
+            {'name': 'Événements', 'val': totalEvenements, 'icon': 'ti-calendar-event', 'col': '#ecfdf5', 'txt': '#059669', 'progress': metrics.eventSaturation},
+            {'name': 'Maintenances', 'val': totalMaintenances, 'icon': 'ti-tools', 'col': '#fef3c7', 'txt': '#92400e', 'progress': metrics.maintenanceEfficiency},
+            {'name': 'Patrimoine Animal', 'val': totalAnimaux, 'icon': 'ti-paw', 'col': '#f0fdf4', 'txt': '#15803d', 'progress': metrics.animalHealthIndex}
+        ] %}
+        
+        {% for i in items %}
+        <div class="col-xl-3 col-md-6">
+            <div class="bento-card card border-0 h-100">
+                <div class="d-flex justify-content-between mb-4">
+                    <div class="icon-box" style="background: {{ i.col }}; color: {{ i.txt }};">
+                        <i class="ti {{ i.icon }}"></i>
+                    </div>
+                    <span class="badge bg-light text-muted rounded-pill px-3 py-2 align-self-start" style="font-size: 0.65rem;">Actualisé</span>
+                </div>
+                <h2 class="heading-smart mb-1">{{ i.val }}</h2>
+                <div class="label-smart">{{ i.name }}</div>
+                <div class="agri-progress mt-3">
+                    <div class="progress-bar bg-success" style="width: {{ i.progress }}%"></div>
+                </div>
+                <div class="mt-2 small text-muted" style="font-size: 0.6rem;">{{ i.progress|round }}% de l'objectif atteint</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Main Analytics Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="bento-card card border-0 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-5">
+                    <div>
+                        <h5 class="heading-smart m-0"><i class="ti ti-chart-line me-2 text-success"></i>Performance Financière</h5>
+                        <p class="text-muted small m-0">Revenus vs Dépenses (Année {{ "now"|date("Y") }})</p>
+                    </div>
+                    <div class="text-end">
+                        <div class="h4 heading-smart m-0 text-success">+{{ profit|number_format(0, ',', ' ') }} €</div>
+                        <div class="label-smart">Bénéfice Net Global</div>
+                    </div>
+                </div>
+                <div style="height: 300px;">
+                    <canvas id="agriCoreMainChart"></canvas>
+                </div>
+                <div class="row g-3 mt-4">
+                    <div class="col-md-4">
+                        <div class="financial-stat d-flex align-items-center gap-3">
+                            <div class="icon-box bg-white text-success shadow-sm" style="width: 40px; height: 40px;">
+                                <i class="ti ti-trending-up"></i>
+                            </div>
+                            <div>
+                                <div class="label-smart">Ventes ce mois</div>
+                                <div class="h5 heading-smart m-0">{{ ventesThisMonth|number_format(0, ',', ' ') }} €</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="financial-stat d-flex align-items-center gap-3">
+                            <div class="icon-box bg-white text-primary shadow-sm" style="width: 40px; height: 40px;">
+                                <i class="ti ti-sum"></i>
+                            </div>
+                            <div>
+                                <div class="label-smart">Total Ventes</div>
+                                <div class="h5 heading-smart m-0">{{ totalVentes|number_format(0, ',', ' ') }} €</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="financial-stat d-flex align-items-center gap-3">
+                            <div class="icon-box bg-white text-danger shadow-sm" style="width: 40px; height: 40px;">
+                                <i class="ti ti-wallet"></i>
+                            </div>
+                            <div>
+                                <div class="label-smart">Total Dépenses</div>
+                                <div class="h5 heading-smart m-0 text-danger">{{ totalDepenses|number_format(0, ',', ' ') }} €</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="bento-card card border-0 h-100">
+                <h5 class="heading-smart mb-4 text-center"><i class="ti ti-users me-2 text-primary"></i>Structure de l'Équipe</h5>
+                <div style="height: 240px; position: relative;">
+                    <canvas id="agriCoreTeamChart"></canvas>
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                        <div class="h3 fw-800 m-0">{{ totalUsers }}</div>
+                        <div class="label-smart" style="font-size: 0.55rem;">Membres</div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light">
+                        <span class="small fw-600 text-muted"><i class="ti ti-circle-filled text-success me-2"></i> Agriculteurs</span>
+                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3">{{ roleCounts[1] }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light">
+                        <span class="small fw-600 text-muted"><i class="ti ti-circle-filled text-warning me-2"></i> Techniciens</span>
+                        <span class="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3">{{ roleCounts[2] }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-2">
+                        <span class="small fw-600 text-muted"><i class="ti ti-circle-filled text-primary me-2"></i> Administrateurs</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3">{{ roleCounts[0] }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Insights Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-7">
+            <div class="bento-card card border-0 p-0 overflow-hidden h-100">
+                <div class="p-4 d-flex justify-content-between align-items-center border-bottom border-light">
+                    <div>
+                        <h6 class="heading-smart m-0"><i class="ti ti-alert-circle me-2 text-danger"></i>Alertes de Maintenance</h6>
+                        <p class="text-muted small m-0">Interventions récentes et critiques</p>
+                    </div>
+                    <a href="{{ path('back_maintenance') }}" class="btn btn-light btn-sm rounded-pill px-3 fw-bold" style="font-size: 0.7rem;">Voir tout</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table smart-table m-0">
+                        <thead>
+                            <tr>
+                                <th>Équipement</th>
+                                <th>Priorité</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in recentMaintenances %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="icon-box bg-light-primary text-primary" style="width: 35px; height: 35px; border-radius: 10px; font-size: 0.9rem;">
+                                            <i class="ti ti-tool"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-700 text-dark" style="font-size: 0.85rem;">{{ m.equipement }}</div>
+                                            <div class="text-muted" style="font-size: 0.7rem;">Déclaré le {{ m.dateDeclaration|date('d M Y') }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge {% if m.priorite == 'Urgente' %}bg-danger{% else %}bg-success{% endif %} bg-opacity-10 text-{% if m.priorite == 'Urgente' %}danger{% else %}success{% endif %} rounded-pill px-3 py-2" style="font-size: 0.65rem;">
+                                        {{ m.priorite }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2 fw-bold text-dark" style="font-size: 0.8rem;">
+                                        <span class="d-inline-block" style="width: 8px; height: 8px; border-radius: 50%; background: {{ m.statut == 'Resolu' ? '#10b981' : '#f59e0b' }};"></span>
+                                        {{ m.statut }}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center py-4 text-muted">Aucune alerte récente</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-5">
+            <div class="bento-card card border-0 h-100">
+                <h6 class="heading-smart mb-4"><i class="ti ti-calendar-event me-2 text-success"></i>Flux Événementiel</h6>
+                <div class="timeline-agri">
+                    {% for ev in upcomingEvents %}
+                    <div class="d-flex gap-3 mb-4 last-child-mb-0">
+                        <div class="text-center p-2 rounded-4 bg-light" style="min-width: 58px; height: 58px;">
+                            <div class="fw-800 text-success h5 m-0">{{ ev.dateDebut|date('d') }}</div>
+                            <div class="label-smart" style="font-size: 0.6rem;">{{ ev.dateDebut|date('M') }}</div>
+                        </div>
+                        <div class="flex-grow-1 border-bottom border-light pb-3">
+                            <h6 class="fw-700 text-dark mb-1" style="font-size: 0.9rem;">{{ ev.titre }}</h6>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="text-muted small"><i class="ti ti-map-pin-filled me-1 text-success"></i> {{ ev.lieu }}</span>
+                                <span class="fw-800 text-success small">{{ ev.fraisInscription }}€</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted py-4">Aucun événement à venir</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Animal Analysis Row -->
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="bento-card card border-0 h-100">
+                <h6 class="heading-smart mb-4"><i class="ti ti-chart-pie me-2 text-primary"></i>Répartition des Espèces</h6>
+                <div style="height: 250px;">
+                    <canvas id="animalSpeciesChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="bento-card card border-0 h-100">
+                <h6 class="heading-smart mb-4"><i class="ti ti-activity me-2 text-success"></i>État de Santé Global (Suivis)</h6>
+                <div style="height: 250px;">
+                    <canvas id="animalHealthChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+    Chart.defaults.color = '#94a3b8';
+
+    // Main Performance Chart
+    const ctxLine = document.getElementById('agriCoreMainChart').getContext('2d');
+    const lineGradVentes = ctxLine.createLinearGradient(0, 0, 0, 400);
+    lineGradVentes.addColorStop(0, 'rgba(16, 185, 129, 0.12)');
+    lineGradVentes.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+    new Chart(ctxLine, {
+        type: 'line',
+        data: {
+            labels: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'],
+            datasets: [
+                {
+                    label: 'Ventes',
+                    data: {{ ventesChartData|json_encode|raw }},
+                    borderColor: '#10b981',
+                    borderWidth: 4,
+                    pointRadius: 2,
+                    tension: 0.45,
+                    fill: true,
+                    backgroundColor: lineGradVentes
+                },
+                {
+                    label: 'Dépenses',
+                    data: {{ depensesChartData|json_encode|raw }},
+                    borderColor: '#fa896b',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    tension: 0.45,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { display: true, position: 'bottom' },
+                tooltip: { mode: 'index', intersect: false }
+            },
+            scales: {
+                y: { display: true, grid: { borderDash: [5, 5] } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // Team Structure Chart
+    new Chart(document.getElementById('agriCoreTeamChart'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ roleLabels|json_encode|raw }},
+            datasets: [{
+                data: {{ roleCounts|json_encode|raw }},
+                backgroundColor: ['#064e3b', '#10b981', '#f59e0b'],
+                borderWidth: 0,
+                borderRadius: 20,
+                spacing: 10
+            }]
+        },
+        options: {
+            cutout: '85%',
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // Animal Species Chart
+    new Chart(document.getElementById('animalSpeciesChart'), {
+        type: 'polarArea',
+        data: {
+            labels: {{ speciesLabels|json_encode|raw }},
+            datasets: [{
+                data: {{ speciesCounts|json_encode|raw }},
+                backgroundColor: ['rgba(6, 78, 59, 0.7)', 'rgba(16, 185, 129, 0.7)', 'rgba(132, 204, 22, 0.7)', 'rgba(245, 158, 11, 0.7)']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'right' } }
+        }
+    });
+
+    // Animal Health Chart
+    new Chart(document.getElementById('animalHealthChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ healthLabels|json_encode|raw }},
+            datasets: [{
+                label: 'Nombre d\'animaux',
+                data: {{ healthCounts|json_encode|raw }},
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                borderRadius: 12
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { borderDash: [5, 5] } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+</script>
+{% endblock %}
