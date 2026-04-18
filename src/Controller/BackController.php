@@ -10,6 +10,7 @@ use App\Repository\UserRepository;
 use App\Repository\VenteRepository;
 use App\Repository\DepenseRepository;
 use App\Service\AnomalyService;
+use App\Service\EmailService;
 use App\Service\ForecastService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -254,7 +255,7 @@ class BackController extends AbstractController
     }
 
     #[Route('/back/ventes-depenses/{id}/add-depense', name: 'back_add_depense')]
-    public function addDepense(int $id, Request $request, UserRepository $userRepository, EntityManagerInterface $em): Response
+    public function addDepense(int $id, Request $request, UserRepository $userRepository, EntityManagerInterface $em, AnomalyService $anomalyService, EmailService $emailService): Response
     {
         $user = $userRepository->find($id);
         if (!$user) throw $this->createNotFoundException('User not found');
@@ -267,6 +268,21 @@ class BackController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $em->persist($depense);
             $em->flush();
+
+            // Check for anomaly
+            $history = $user->getDepenses()->toArray();
+            // Remove the newly added depense from history for analysis
+            $history = array_filter($history, fn($d) => $d->getId() !== $depense->getId());
+            
+            $analysis = $anomalyService->analyzeDepense($history, $depense);
+             if ($analysis['isAnomaly']) {
+                 if ($emailService->sendAnomalyAlert($user, $depense, $analysis)) {
+                     $this->addFlash('warning', 'Une anomalie a été détectée et un email d\'alerte a été envoyé à l\'utilisateur.');
+                 } else {
+                     $this->addFlash('error', 'Une anomalie a été détectée mais l\'envoi de l\'email a échoué. Veuillez vérifier la configuration SMTP.');
+                 }
+             }
+
             return $this->redirectToRoute('back_user_outils', ['id' => $id]);
         }
 
@@ -278,7 +294,7 @@ class BackController extends AbstractController
     }
 
     #[Route('/back/depense/{id}/edit', name: 'back_edit_depense')]
-    public function editDepense(int $id, Request $request, DepenseRepository $depenseRepository, EntityManagerInterface $em): Response
+    public function editDepense(int $id, Request $request, DepenseRepository $depenseRepository, EntityManagerInterface $em, AnomalyService $anomalyService, EmailService $emailService): Response
     {
         $depense = $depenseRepository->find($id);
         if (!$depense) throw $this->createNotFoundException('Dépense non trouvée');
@@ -289,6 +305,20 @@ class BackController extends AbstractController
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $em->flush();
+
+            // Check for anomaly after edit
+            $history = $user->getDepenses()->toArray();
+            $history = array_filter($history, fn($d) => $d->getId() !== $depense->getId());
+            
+            $analysis = $anomalyService->analyzeDepense($history, $depense);
+            if ($analysis['isAnomaly']) {
+                if ($emailService->sendAnomalyAlert($user, $depense, $analysis)) {
+                    $this->addFlash('warning', 'Une anomalie a été détectée après modification et un email d\'alerte a été envoyé.');
+                } else {
+                    $this->addFlash('error', 'Une anomalie a été détectée mais l\'envoi de l\'email a échoué.');
+                }
+            }
+
             return $this->redirectToRoute('back_user_outils', ['id' => $user->getId()]);
         }
 
@@ -371,6 +401,27 @@ class BackController extends AbstractController
         $em->flush();
 
         return $this->redirectToRoute('back_user_outils', ['id' => $userId]);
+    }
+
+    #[Route('/back/depense/{id}/send-alert', name: 'back_send_anomaly_alert')]
+    public function sendManualAlert(int $id, DepenseRepository $depenseRepository, AnomalyService $anomalyService, EmailService $emailService): Response
+    {
+        $depense = $depenseRepository->find($id);
+        if (!$depense) throw $this->createNotFoundException('Dépense non trouvée');
+
+        $user = $depense->getUser();
+        $history = $user->getDepenses()->toArray();
+        $history = array_filter($history, fn($d) => $d->getId() !== $depense->getId());
+        
+        $analysis = $anomalyService->analyzeDepense($history, $depense);
+        
+        if ($emailService->sendAnomalyAlert($user, $depense, $analysis)) {
+            $this->addFlash('success', 'Email d\'alerte envoyé avec succès à ' . $user->getEmail());
+        } else {
+            $this->addFlash('error', 'L\'envoi de l\'email a échoué. Vérifiez la configuration de MAILER_DSN dans .env');
+        }
+
+        return $this->redirectToRoute('back_user_details', ['id' => $user->getId()]);
     }
 
     #[Route('/back/utilisateurs', name: 'back_utilisateurs')]

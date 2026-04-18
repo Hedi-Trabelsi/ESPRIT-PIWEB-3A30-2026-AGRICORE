@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use App\Repository\UserRepository;
 use App\Repository\VenteRepository;
 use App\Repository\DepenseRepository;
-use App\Service\AnomalyService;
+use App\Service\AnomalyService; 
 use App\Service\ForecastService;
 
 use Dompdf\Dompdf;

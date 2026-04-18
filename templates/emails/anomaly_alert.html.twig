@@ -1,0 +1,24 @@
+{% extends 'base_email.html.twig' %}
+
+{% block body %}
+    <h1>Bonjour {{ user.prenom }} {{ user.nom }},</h1>
+    <p>Une anomalie a été détectée dans vos dépenses récentes.</p>
+    
+    <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <strong>Détails de la dépense :</strong><br>
+        Date : {{ depense.date|date('d/m/Y') }}<br>
+        Type : {{ depense.type }}<br>
+        Montant : {{ depense.montant }} DT
+    </div>
+
+    <p><strong>Analyse du système :</strong></p>
+    <ul>
+        <li>Message : {{ analysis.message }}</li>
+        <li>Score d'anomalie : {{ analysis.score|number_format(2) }}</li>
+        <li>Moyenne habituelle : {{ analysis.mean|number_format(2) }} DT</li>
+    </ul>
+
+    <p>Nous vous recommandons de vérifier cette dépense dans votre tableau de bord.</p>
+    
+    <p>Cordialement,<br>L'équipe Agricore</p>
+{% endblock %}
