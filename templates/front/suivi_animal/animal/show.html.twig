@@ -118,6 +118,50 @@
 </div>
 
 {# ── Section suivis ── #}
+<style>
+.show-ai-tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:.8rem;margin-bottom:1.5rem;}
+.show-ai-tile{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;text-decoration:none;cursor:pointer;transition:transform .25s,box-shadow .25s;position:relative;overflow:hidden;border:1.5px solid transparent;}
+.show-ai-tile::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15),transparent 60%);opacity:0;transition:.25s;}
+.show-ai-tile:hover::before{opacity:1;}
+.show-ai-tile:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 16px 40px rgba(0,0,0,.15);}
+.show-ai-icon{font-size:26px;line-height:1;flex-shrink:0;transition:transform .25s;}
+.show-ai-tile:hover .show-ai-icon{transform:scale(1.15) rotate(-5deg);}
+.show-ai-name{font-size:12px;font-weight:800;color:#fff;margin:0 0 2px;}
+.show-ai-desc{font-size:10px;color:rgba(255,255,255,.75);margin:0;line-height:1.3;}
+.show-ai-arrow{margin-left:auto;color:rgba(255,255,255,.6);font-size:12px;transition:.25s;flex-shrink:0;}
+.show-ai-tile:hover .show-ai-arrow{color:#fff;transform:translateX(4px);}
+@media(max-width:768px){.show-ai-tiles{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:480px){.show-ai-tiles{grid-template-columns:1fr;}}
+</style>
+
+<div class="show-ai-tiles">
+  <a href="{{ path('app_rapport_medical') }}" class="show-ai-tile" style="background:linear-gradient(135deg,#1b4332,#2d6a4f,#40916c);border-color:rgba(116,198,157,.3);">
+    <span class="show-ai-icon">🧬</span>
+    <div><p class="show-ai-name">Rapport Médical IA</p><p class="show-ai-desc">Analyse vétérinaire par LLaMA 3.3</p></div>
+    <i class="fas fa-arrow-right show-ai-arrow"></i>
+  </a>
+  <a href="{{ path('app_ordonnance_ia') }}" class="show-ai-tile" style="background:linear-gradient(135deg,#5d3a1a,#8b5e3c,#d4a574);border-color:rgba(212,165,116,.3);">
+    <span class="show-ai-icon">💊</span>
+    <div><p class="show-ai-name">Ordonnance IA</p><p class="show-ai-desc">Dosages précis selon le poids</p></div>
+    <i class="fas fa-arrow-right show-ai-arrow"></i>
+  </a>
+  <a href="{{ path('app_meteo_ia') }}" class="show-ai-tile" style="background:linear-gradient(135deg,#0c4a6e,#0369a1,#0ea5e9);border-color:rgba(56,189,248,.3);">
+    <span class="show-ai-icon">🌦️</span>
+    <div><p class="show-ai-name">Météo & Analyse IA</p><p class="show-ai-desc">Impact météo sur votre cheptel</p></div>
+    <i class="fas fa-arrow-right show-ai-arrow"></i>
+  </a>
+  <a href="{{ path('app_recommandation_alimentaire') }}" class="show-ai-tile" style="background:linear-gradient(135deg,#1b4332,#2d6a4f,#e65100);border-color:rgba(255,204,2,.3);">
+    <span class="show-ai-icon">🥗</span>
+    <div><p class="show-ai-name">Nutritionniste IA</p><p class="show-ai-desc">Plan nutritionnel personnalisé</p></div>
+    <i class="fas fa-arrow-right show-ai-arrow"></i>
+  </a>
+  <a href="{{ path('app_notifications_animal') }}" class="show-ai-tile" style="background:linear-gradient(135deg,#7f0000,#c62828,#e65100);border-color:rgba(255,100,100,.3);">
+    <span class="show-ai-icon">🔔</span>
+    <div><p class="show-ai-name">Alertes & Notifications</p><p class="show-ai-desc">Détection anomalies vitales</p></div>
+    <i class="fas fa-arrow-right show-ai-arrow"></i>
+  </a>
+</div>
+
 <div class="ag-section-header">
   <span class="ag-section-title">
     <span class="ag-section-dot"></span>
@@ -125,18 +169,6 @@
   </span>
   <a href="{{ path('app_suivi_animal_new', {'animalId': animal.idAnimal}) }}" class="ag-btn-green" style="font-size:12px;padding:6px 13px;">
     + Ajouter un suivi
-  </a>
-  <a href="{{ path('app_rapport_medical') }}" class="ag-btn-green" style="font-size:12px;padding:6px 13px;background:linear-gradient(135deg,#1b4332,#2d6a4f);">
-    🧬 Rapport IA
-  </a>
-  <a href="{{ path('app_ordonnance_ia') }}" class="ag-btn-green" style="font-size:12px;padding:6px 13px;background:linear-gradient(135deg,#0a1628,#1a237e);">
-    💊 Ordonnance IA
-  </a>
-  <a href="{{ path('app_recommandation_alimentaire') }}" class="ag-btn-green" style="font-size:12px;padding:6px 13px;background:linear-gradient(135deg,#1b4332,#e65100);">
-    🥗 Recommandation
-  </a>
-  <a href="{{ path('app_notifications_animal') }}" class="ag-btn-green" style="font-size:12px;padding:6px 13px;background:linear-gradient(135deg,#c62828,#e65100);">
-    🔔 Alertes
   </a>
 </div>
 
@@ -190,26 +222,5 @@
   <a href="{{ path('app_animal_edit', {'idAnimal': animal.idAnimal}) }}" class="ag-btn-green">✎ Modifier l'animal</a>
   <div>{{ include('front/suivi_animal/animal/_delete_form.html.twig') }}</div>
 </div>
-
-{% set alertes = app.session.get('suivi_alertes') %}
-{% if alertes %}
-  {% do app.session.remove('suivi_alertes') %}
-  <script>
-  (function() {
-    const alertes = {{ alertes|json_encode|raw }};
-    function sendNotif(titre, message, niveau) {
-      if (!('Notification' in window)) return;
-      if (Notification.permission === 'granted') {
-        new Notification(titre, { body: message, requireInteraction: niveau === 'critique' });
-      } else if (Notification.permission !== 'denied') {
-        Notification.requestPermission().then(p => {
-          if (p === 'granted') new Notification(titre, { body: message, requireInteraction: niveau === 'critique' });
-        });
-      }
-    }
-    alertes.forEach((a, i) => setTimeout(() => sendNotif(a.titre, a.message, a.niveau), i * 700));
-  })();
-  </script>
-{% endif %}
 
 {% endblock %}
