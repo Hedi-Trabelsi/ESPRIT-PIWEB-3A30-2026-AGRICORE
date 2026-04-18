@@ -13,6 +13,9 @@ use App\Repository\DepenseRepository;
 use App\Service\AnomalyService;
 use App\Service\ForecastService;
 
+use Dompdf\Dompdf;
+use Dompdf\Options;
+
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 class HomeController extends AbstractController
@@ -107,9 +110,18 @@ class HomeController extends AbstractController
     }
 
     #[Route('/ventes-depenses/user/{id}', name: 'app_user_details_front')]
-    public function userDetails(int $id, UserRepository $userRepository, AnomalyService $anomalyService, ForecastService $forecastService): Response
+    #[Route('/mes-details', name: 'app_my_details')]
+    public function userDetails(int $id = null, UserRepository $userRepository, AnomalyService $anomalyService, ForecastService $forecastService): Response
     {
-        $user = $userRepository->find($id);
+        if ($id === null) {
+            $user = $this->getUser();
+            if (!$user) {
+                return $this->redirectToRoute('front_login');
+            }
+        } else {
+            $user = $userRepository->find($id);
+        }
+
         if (!$user) {
             throw $this->createNotFoundException('Utilisateur non trouvé');
         }
@@ -190,12 +202,69 @@ class HomeController extends AbstractController
         ]);
     }
 
+    #[Route('/ventes-depenses/user/{id}/report', name: 'app_user_report_pdf')]
+    public function generateReport(int $id, UserRepository $userRepository, ForecastService $forecastService): Response
+    {
+        $user = $userRepository->find($id);
+        if (!$user) {
+            throw $this->createNotFoundException('Utilisateur non trouvé');
+        }
+
+        // Calculation of totals
+        $totalExpenses = 0;
+        foreach ($user->getDepenses() as $depense) {
+            $totalExpenses += $depense->getMontant();
+        }
+        $totalSales = 0;
+        foreach ($user->getVentes() as $vente) {
+            $totalSales += $vente->getChiffreAffaires();
+        }
+        $netProfit = $totalSales - $totalExpenses;
+
+        // Forecast Data (AI Goals)
+        $forecastData = $forecastService->forecastUserSales($user->getVentes()->toArray());
+
+        // Configure Dompdf
+        $pdfOptions = new Options();
+        $pdfOptions->set('defaultFont', 'Arial');
+        $pdfOptions->set('isRemoteEnabled', true);
+
+        $dompdf = new Dompdf($pdfOptions);
+
+        $html = $this->renderView('front/ventes_depenses/report_pdf.html.twig', [
+            'user' => $user,
+            'ventes' => $user->getVentes(),
+            'depenses' => $user->getDepenses(),
+            'totalExpenses' => $totalExpenses,
+            'totalSales' => $totalSales,
+            'netProfit' => $netProfit,
+            'forecastData' => $forecastData,
+        ]);
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $fileName = 'rapport_mensuel_' . $user->getNom() . '_' . date('m_Y') . '.pdf';
+
+        return new Response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"'
+        ]);
+    }
+
     // ← AJOUTE CE QUI SUIT
     #[Route('/profil', name: 'app_profile')]
     public function profile(): Response
     {
         return $this->render('front/utilisateurs/profil.html.twig');
     }
+    #[Route('/logout', name: 'app_logout')]
+    public function logout(): void
+    {
+        throw new \LogicException('This method can be blank - it will be intercepted by the logout key on your firewall.');
+    }
+
     #[Route('/services', name: 'app_services')]
 public function services(): Response
 {

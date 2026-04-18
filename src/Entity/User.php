@@ -7,10 +7,12 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
-class User
+class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -247,6 +249,43 @@ class User
             $depense->setUser($this);
         }
         return $this;
+    }
+
+    /**
+     * A visual identifier that represents this user.
+     *
+     * @see UserInterface
+     */
+    public function getUserIdentifier(): string
+    {
+        return (string) $this->email;
+    }
+
+    /**
+     * @see UserInterface
+     */
+    public function getRoles(): array
+    {
+        $roles = [];
+        // Map the integer role to Symfony roles
+        // Assuming 1 is ADMIN, 0 is USER
+        if ($this->role === 1) {
+            $roles[] = 'ROLE_ADMIN';
+        }
+        
+        // guarantee every user at least has ROLE_USER
+        $roles[] = 'ROLE_USER';
+
+        return array_unique($roles);
+    }
+
+    /**
+     * @see UserInterface
+     */
+    public function eraseCredentials(): void
+    {
+        // If you store any temporary, sensitive data on the user, clear it here
+        // $this->plainPassword = null;
     }
 
     public function removeDepense(Depense $depense): static

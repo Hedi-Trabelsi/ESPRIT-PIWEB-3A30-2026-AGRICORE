@@ -60,8 +60,13 @@
             </div>
             <div class="col-lg-5 px-5 text-end">
                 <div class="h-100 d-inline-flex align-items-center">
-                    <a href="{{ path('front_login') }}" class="topbar-link me-3">Connexion</a>
-                    <a href="{{ path('front_register') }}" class="topbar-link">Créer un compte</a>
+                    {% if app.user %}
+                        <span class="me-3">Bienvenue, {{ app.user.prenom }}</span>
+                        <a href="{{ path('app_logout') }}" class="topbar-link">Déconnexion</a>
+                    {% else %}
+                        <a href="{{ path('front_login') }}" class="topbar-link me-3">Connexion</a>
+                        <a href="{{ path('front_register') }}" class="topbar-link">Créer un compte</a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -88,7 +93,11 @@
                     <a href="{{ path('app_evenements') }}" class="dropdown-item{% if app.request.attributes.get('_route') == 'app_evenements' %} active{% endif %}">Événements</a>
                     <a href="{{ path('app_suivi_animal') }}" class="dropdown-item{% if app.request.attributes.get('_route') == 'app_suivi_animal' %} active{% endif %}">Suivi animal</a>
                     <a href="{{ path('app_achat_equipement') }}" class="dropdown-item{% if app.request.attributes.get('_route') == 'app_achat_equipement' %} active{% endif %}">Achat d'équipement</a>
-                    <a href="{{ path('app_ventes_depenses') }}" class="dropdown-item{% if app.request.attributes.get('_route') == 'app_ventes_depenses' %} active{% endif %}">Ventes & dépenses</a>
+                    {% if app.user %}
+                        <a href="{{ path('app_my_details') }}" class="dropdown-item{% if app.request.attributes.get('_route') == 'app_my_details' %} active{% endif %}">Mes Ventes & dépenses</a>
+                    {% else %}
+                        <a href="{{ path('app_ventes_depenses') }}" class="dropdown-item{% if app.request.attributes.get('_route') == 'app_ventes_depenses' %} active{% endif %}">Ventes & dépenses</a>
+                    {% endif %}
                 </div>
             </div>
            
@@ -135,7 +144,11 @@
                     <li><a class="btn btn-link text-white ps-0" href="{{ path('app_evenements') }}">Événements</a></li>
                     <li><a class="btn btn-link text-white ps-0" href="{{ path('app_suivi_animal') }}">Suivi animal</a></li>
                     <li><a class="btn btn-link text-white ps-0" href="{{ path('app_achat_equipement') }}">Achat d'équipement</a></li>
-                    <li><a class="btn btn-link text-white ps-0" href="{{ path('app_ventes_depenses') }}">Suivi des ventes & dépenses</a></li>
+                    {% if app.user %}
+                        <li><a class="btn btn-link text-white ps-0" href="{{ path('app_my_details') }}">Mes Ventes & dépenses</a></li>
+                    {% else %}
+                        <li><a class="btn btn-link text-white ps-0" href="{{ path('app_ventes_depenses') }}">Suivi des ventes & dépenses</a></li>
+                    {% endif %}
                 </ul>
             </div>
 

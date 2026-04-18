@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport Mensuel - {{ user.nom }} {{ user.prenom }}</title>
+    <style>
+        body { font-family: 'Helvetica', sans-serif; color: #333; line-height: 1.5; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #38a169; padding-bottom: 10px; }
+        .header h1 { color: #38a169; margin: 0; }
+        .user-info { margin-bottom: 20px; }
+        .summary-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 25px; }
+        .summary-grid { display: table; width: 100%; }
+        .summary-item { display: table-cell; width: 33.33%; text-align: center; }
+        .summary-label { font-size: 12px; color: #718096; text-transform: uppercase; font-weight: bold; }
+        .summary-value { font-size: 18px; font-weight: bold; margin-top: 5px; }
+        .section-title { font-size: 16px; font-weight: bold; color: #2d3748; margin-top: 30px; margin-bottom: 15px; border-left: 4px solid #38a169; padding-left: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th { background: #f1f5f9; text-align: left; padding: 10px; font-size: 12px; color: #4a5568; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 10px; border-bottom: 1px solid #edf2f7; font-size: 12px; }
+        .text-success { color: #38a169; font-weight: bold; }
+        .text-danger { color: #e53e3e; font-weight: bold; }
+        .ai-box { background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 8px; padding: 15px; margin-top: 25px; }
+        .ai-title { color: #2b6cb0; font-weight: bold; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; }
+        .ai-content { font-size: 12px; color: #2c5282; font-style: italic; }
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 10px; color: #a0aec0; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Rapport Financier Mensuel</h1>
+        <p>Généré le {{ "now"|date("d/m/Y H:i") }}</p>
+    </div>
+
+    <div class="user-info">
+        <p><strong>Utilisateur :</strong> {{ user.nom }} {{ user.prenom }}</p>
+        <p><strong>Email :</strong> {{ user.email }}</p>
+    </div>
+
+    <div class="summary-box">
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="summary-label">Total Ventes</div>
+                <div class="summary-value text-success">{{ totalSales|number_format(2, '.', ' ') }} DT</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Total Dépenses</div>
+                <div class="summary-value text-danger">{{ totalExpenses|number_format(2, '.', ' ') }} DT</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Bénéfice Net</div>
+                <div class="summary-value {% if netProfit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ netProfit|number_format(2, '.', ' ') }} DT
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">Ventes Récentes</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Produit</th>
+                <th>Date</th>
+                <th>Quantité</th>
+                <th>Prix Unit.</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vente in ventes %}
+                <tr>
+                    <td>{{ vente.produit }}</td>
+                    <td>{{ vente.date|date('d/m/Y') }}</td>
+                    <td>{{ vente.quantite }}</td>
+                    <td>{{ vente.prixUnitaire|number_format(2, '.', ' ') }} DT</td>
+                    <td class="text-success">+{{ vente.chiffreAffaires|number_format(2, '.', ' ') }} DT</td>
+                </tr>
+            {% endfor %}
+            {% if ventes is empty %}
+                <tr><td colspan="5" style="text-align: center;">Aucune vente enregistrée.</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <div class="section-title">Dépenses Récentes</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Type de Dépense</th>
+                <th>Date</th>
+                <th>Montant</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for depense in depenses %}
+                <tr>
+                    <td>{{ depense.type }}</td>
+                    <td>{{ depense.date|date('d/m/Y') }}</td>
+                    <td class="text-danger">-{{ depense.montant|number_format(2, '.', ' ') }} DT</td>
+                </tr>
+            {% endfor %}
+            {% if depenses is empty %}
+                <tr><td colspan="3" style="text-align: center;">Aucune dépense enregistrée.</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    {% if forecastData %}
+        <div class="ai-box">
+            <div class="ai-title">
+                🤖 Objectifs Futurs (Analyse IA)
+            </div>
+            <div class="ai-content">
+                <p><strong>Prévision des ventes pour le mois prochain :</strong> {{ forecastData.nextMonthValue|number_format(2, '.', ' ') }} DT</p>
+                <p><strong>Conseil stratégique :</strong> {{ forecastData.advice }}</p>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="footer">
+        © {{ "now"|date("Y") }} Agricore - Rapport généré automatiquement pour {{ user.nom }} {{ user.prenom }}
+    </div>
+</body>
+</html>
