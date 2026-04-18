@@ -190,6 +190,7 @@
                         <tr class="p-row"
                             data-name="{{ p.nom_participant|lower }}"
                             data-status="{{ p.confirmation }}"
+                            data-presence="{{ p.presenceData|json_encode }}"
                             id="prow-{{ p.id_participant }}"
                             style="border-left: 4px solid {% if p.confirmation == 'attended' %}#16a34a{% elseif p.confirmation == 'confirmed' %}#f59e0b{% else %}#e2e8f0{% endif %};">
 
@@ -208,13 +209,18 @@
 
                             <td class="text-center">
                                 <div class="d-flex flex-column align-items-center gap-2">
-                                    {% set pct = p.nbr_places > 0 ? (p.nbr_presents / p.nbr_places * 100)|round(0) : 0 %}
+                                    {% set lastPresence = p.lastDayPresence %}
+                                    {% set count = lastPresence.count %}
+                                    {% set day = lastPresence.day %}
+                                    {% set pct = p.nbr_places > 0 ? (count / p.nbr_places * 100)|round(0) : 0 %}
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="d-flex flex-column align-items-end">
                                             <span class="fw-bold text-dark" style="font-size: 0.9rem;">
-                                                <span id="row-present-count-{{ p.id_participant }}">{{ p.nbr_presents }}</span> / {{ p.nbr_places }}
+                                                <span id="row-present-count-{{ p.id_participant }}">{{ count }}</span> / {{ p.nbr_places }}
                                             </span>
-                                            <span class="text-muted" id="row-pct-{{ p.id_participant }}" style="font-size: 0.65rem; font-weight: 800; color: #16a34a !important;">{{ pct }}% PRÉSENT</span>
+                                            <span class="text-muted" id="row-pct-{{ p.id_participant }}" style="font-size: 0.65rem; font-weight: 800; color: #16a34a !important;">
+                                                {% if nbrJours > 1 %}JOUR {{ day }}: {% endif %}{{ pct }}% PRÉSENT
+                                            </span>
                                         </div>
                                         <div class="progress-compact">
                                             <div class="progress-bar-fill" id="bar-{{ p.id_participant }}" style="width: {{ pct }}%;"></div>
@@ -223,7 +229,7 @@
 
                                     {% if p.confirmation == 'attended' %}
                                         <button class="btn-modify-presence" 
-                                                onclick="openAttendanceModal({{ p.id_participant }}, '{{ p.nom_participant|escape('js') }}', {{ p.nbr_places }}, {{ p.nbr_presents }})">
+                                                onclick="openAttendanceModal({{ p.id_participant }}, '{{ p.nom_participant|escape('js') }}', {{ p.nbr_places }}, {{ count }}, {{ day }})">
                                             <i class="fas fa-user-check"></i>
                                             Gérer présences
                                         </button>
@@ -279,6 +285,18 @@
             <button class="btn-close" onclick="closeAttendanceModal()" style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer;">&times;</button>
         </div>
         <div class="modal-body">
+            {% if nbrJours > 1 %}
+            <div class="d-flex justify-content-center gap-2 mb-4" id="modalDaySelector">
+                {% for i in 1..nbrJours %}
+                <button class="tab-pill {% if i == 1 %}active{% endif %}" 
+                        style="padding: 6px 16px; font-size: 0.75rem;" 
+                        onclick="switchAttendanceDay({{ i }})"
+                        id="btn-day-{{ i }}">
+                    Jour {{ i }}
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
             <div id="modalAttendanceGrid" class="d-flex flex-wrap gap-3 justify-content-center py-2">
                 <!-- Les tuiles seront injectées ici via JS -->
             </div>
@@ -347,18 +365,42 @@ document.querySelectorAll('.tab-pill').forEach(btn => {
 
 // ── Attendance Modal ──
 let currentModalId = null;
+let currentDay = 1;
+let currentPresenceData = {};
 
-function openAttendanceModal(id, name, maxPlaces, currentPresents) {
+function openAttendanceModal(id, name, maxPlaces, currentPresents, initialDay = 1) {
     currentModalId = id;
+    currentDay = initialDay;
+    
+    // Get full presence data from row
+    const row = document.getElementById('prow-' + id);
+    try {
+        currentPresenceData = JSON.parse(row.dataset.presence || '{}');
+    } catch(e) {
+        currentPresenceData = { 1: currentPresents };
+    }
+
     document.getElementById('modalParticipantName').textContent = name;
     document.getElementById('modalMaxCount').textContent = maxPlaces;
-    document.getElementById('modalCurrentCount').textContent = currentPresents;
     
+    // Reset day selector if it exists
+    document.querySelectorAll('#modalDaySelector .tab-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.id === `btn-day-${currentDay}`);
+    });
+
+    renderAttendanceGrid(maxPlaces);
+    document.getElementById('attendanceModal').style.display = 'flex';
+}
+
+function renderAttendanceGrid(maxPlaces) {
     const grid = document.getElementById('modalAttendanceGrid');
     grid.innerHTML = '';
     
+    const dayPresents = currentPresenceData[currentDay] || 0;
+    document.getElementById('modalCurrentCount').textContent = dayPresents;
+
     for (let i = 1; i <= maxPlaces; i++) {
-        const isActive = i <= currentPresents;
+        const isActive = i <= dayPresents;
         const tile = document.createElement('div');
         tile.className = 'person-tile-modal' + (isActive ? ' active' : '');
         tile.id = `modal-tile-${i}`;
@@ -369,8 +411,16 @@ function openAttendanceModal(id, name, maxPlaces, currentPresents) {
         `;
         grid.appendChild(tile);
     }
+}
+
+function switchAttendanceDay(day) {
+    currentDay = day;
+    document.querySelectorAll('#modalDaySelector .tab-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.id === `btn-day-${day}`);
+    });
     
-    document.getElementById('attendanceModal').style.display = 'flex';
+    const maxPlaces = parseInt(document.getElementById('modalMaxCount').textContent);
+    renderAttendanceGrid(maxPlaces);
 }
 
 function closeAttendanceModal() {
@@ -383,23 +433,28 @@ async function updateModalAttendance(clickedIndex) {
     
     const grid = document.getElementById('modalAttendanceGrid');
     const tiles = grid.querySelectorAll('.person-tile-modal');
-    const currentlyPresentCount = Array.from(tiles).filter(t => t.classList.contains('active')).length;
+    const dayPresents = currentPresenceData[currentDay] || 0;
     
     let newCount = clickedIndex;
-    if (clickedIndex === currentlyPresentCount) {
+    if (clickedIndex === dayPresents) {
         newCount = clickedIndex - 1;
     }
 
     const body = new FormData();
     body.append('count', newCount);
+    body.append('day', currentDay);
 
     try {
         const res = await fetch('/back/participants/' + currentModalId + '/update-attendance', { method: 'POST', body });
         const data = await res.json();
         if (data.success) {
-            document.getElementById('modalCurrentCount').textContent = data.nbr_presents;
+            // Update local state
+            currentPresenceData = data.presence_data;
+            document.getElementById('modalCurrentCount').textContent = newCount;
+            
+            // Update UI grid
             tiles.forEach((tile, index) => {
-                const isActive = (index + 1 <= data.nbr_presents);
+                const isActive = (index + 1 <= newCount);
                 tile.className = 'person-tile-modal' + (isActive ? ' active' : '');
                 const icon = tile.querySelector('i');
                 const span = tile.querySelector('span');
@@ -407,17 +462,36 @@ async function updateModalAttendance(clickedIndex) {
                 span.style.color = isActive ? '#16a34a' : '#94a3b8';
             });
             
-            // Update Table Row UI
+            // Update Table Row Data Attribute
+            const row = document.getElementById('prow-' + currentModalId);
+            row.dataset.presence = JSON.stringify(data.presence_data);
+
+            // Update Table Row Summary UI (Last day marked)
             const rowCount = document.getElementById('row-present-count-' + currentModalId);
             const rowBar = document.getElementById('bar-' + currentModalId);
             const rowPct = document.getElementById('row-pct-' + currentModalId);
             
             const max = parseInt(document.getElementById('modalMaxCount').textContent);
-            const newPct = Math.round((data.nbr_presents / max) * 100);
+            
+            // Find the last day recorded (highest index with data)
+            const days = Object.keys(data.presence_data).map(Number);
+            const lastDay = Math.max(...days);
+            const displayCount = data.presence_data[lastDay] || 0;
+            const newPct = Math.round((displayCount / max) * 100);
 
-            if (rowCount) rowCount.textContent = data.nbr_presents;
+            if (rowCount) rowCount.textContent = displayCount;
             if (rowBar) rowBar.style.width = newPct + '%';
-            if (rowPct) rowPct.textContent = newPct + '% PRÉSENT';
+            if (rowPct) {
+                const nbrJours = {{ nbrJours }};
+                rowPct.textContent = (nbrJours > 1 ? 'JOUR ' + lastDay + ': ' : '') + newPct + '% PRÉSENT';
+            }
+            
+            // Update the button's onclick to use the new last day/count
+            const btn = row.querySelector('.btn-modify-presence');
+            if (btn) {
+                const escapedName = document.getElementById('modalParticipantName').textContent.replace(/'/g, "\\'");
+                btn.setAttribute('onclick', `openAttendanceModal(${currentModalId}, '${escapedName}', ${max}, ${displayCount}, ${lastDay})`);
+            }
             
             updateCounts();
         }
@@ -453,6 +527,8 @@ async function resetAttendance(id) {
     if(!confirm('Voulez-vous annuler la présence de ce participant ?')) return;
     const body = new FormData();
     body.append('count', 0);
+    body.append('day', 1);
+    body.append('reset_all', '1');
     await fetch('/back/participants/' + id + '/update-attendance', { method: 'POST', body });
     location.reload();
 }
