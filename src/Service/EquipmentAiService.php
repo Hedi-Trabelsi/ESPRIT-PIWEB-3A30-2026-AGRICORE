@@ -17,51 +17,7 @@ class EquipmentAiService
 
     public function generateInsights(Equipement $equipement): array
     {
-        $fallback = $this->buildFallbackInsights($equipement);
-
-        if (!$this->apiKey) {
-            return $fallback + ['provider' => 'local'];
-        }
-
-        try {
-            $prompt = sprintf(
-                "Tu es un expert en equipements agricoles. Donne une analyse concise en francais pour un equipement nomme %s, de type %s, au prix de %s TND avec un stock de %d unite(s). Retourne du texte structure en 3 courts paragraphes: usage, points de vigilance, conseil d'achat.",
-                $equipement->getNom(),
-                $equipement->getType(),
-                $equipement->getPrix(),
-                $equipement->getQuantite()
-            );
-
-            $response = $this->httpClient->request('POST', $this->apiUrl, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $this->apiKey,
-                    'Content-Type' => 'application/json',
-                ],
-                'json' => [
-                    'model' => $this->model,
-                    'temperature' => 0.5,
-                    'messages' => [
-                        ['role' => 'system', 'content' => 'Tu rediges des fiches produit agricoles utiles, precises et orientees action.'],
-                        ['role' => 'user', 'content' => $prompt],
-                    ],
-                ],
-            ]);
-
-            $data = $response->toArray(false);
-            $content = trim((string) ($data['choices'][0]['message']['content'] ?? ''));
-
-            if ($content !== '') {
-                return [
-                    'summary' => $content,
-                    'bullets' => $fallback['bullets'],
-                    'score' => $fallback['score'],
-                    'provider' => 'groq',
-                ];
-            }
-        } catch (\Throwable) {
-        }
-
-        return $fallback + ['provider' => 'local'];
+        return $this->buildFallbackInsights($equipement) + ['provider' => 'local'];
     }
 
     private function buildFallbackInsights(Equipement $equipement): array
