@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 class TacheManagerTest extends TestCase
 {
-    public function testValidTache()
+    public function testValidTache(): void
     {
         $tache = new Tache();
         
@@ -19,7 +19,7 @@ class TacheManagerTest extends TestCase
         $this->assertTrue($manager->validate($tache));
     }
 
-    public function testTacheWithoutName()
+    public function testTacheWithoutName(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $tache = new Tache();
@@ -29,7 +29,7 @@ class TacheManagerTest extends TestCase
         $manager->validate($tache);
     }
 
-    public function testTacheWithPastDate()
+    public function testTacheWithPastDate(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $tache = new Tache();

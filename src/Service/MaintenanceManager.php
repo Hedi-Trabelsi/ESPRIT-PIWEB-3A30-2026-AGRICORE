@@ -24,7 +24,7 @@ class MaintenanceManager
             throw new \InvalidArgumentException('La description doit faire au moins 7 caractères');
         }
 
-        if (strlen(trim($description ?? '')) < 7) {
+        if (strlen(trim($description)) < 7) {
             throw new \InvalidArgumentException('La description doit faire au moins 7 caractères');
         }
 

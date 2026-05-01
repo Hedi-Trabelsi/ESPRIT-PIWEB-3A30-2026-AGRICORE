@@ -18,27 +18,27 @@ class MaintenanceRepository extends ServiceEntityRepository
 
     /**
      * Cette méthode doit correspondre exactement au nom appelé dans ton Controller
+     * @return list<Maintenance>
      */
-  public function findByFilters(?string $search, ?string $status, $userId)
-{
-    $qb = $this->createQueryBuilder('m');
+    public function findByFilters(?string $search, ?string $status, ?int $userId): array
+    {
+        $qb = $this->createQueryBuilder('m');
 
-    if ($search) {
-        $qb->andWhere('m.description LIKE :search')
-           ->setParameter('search', '%' . $search . '%');
+        if ($search) {
+            $qb->andWhere('m.description LIKE :search')
+                ->setParameter('search', '%' . $search . '%');
+        }
+
+        if ($status) {
+            $qb->andWhere('m.statut = :status')
+                ->setParameter('status', $status);
+        }
+
+        if ($userId) {
+            $qb->andWhere('m.id_agriculteur = :userId')
+                ->setParameter('userId', $userId);
+        }
+
+        return $qb->getQuery()->getResult();
     }
-
-    if ($status) {
-        $qb->andWhere('m.statut = :status')
-           ->setParameter('status', $status);
-    }
-
-    // 🔥 AJOUT IMPORTANT
-    if ($userId) {
-        $qb->andWhere('m.id_agriculteur = :userId')
-           ->setParameter('userId', $userId);
-    }
-
-    return $qb->getQuery()->getResult();
-}
 }

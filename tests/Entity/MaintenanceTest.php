@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 class MaintenanceTest extends TestCase
 {
-    public function testSettersAndGetters()
+    public function testSettersAndGetters(): void
     {
         $maintenance = new Maintenance();
 
@@ -18,7 +18,7 @@ class MaintenanceTest extends TestCase
         $this->assertSame('Remplacement huile moteur', $maintenance->getDescription());
     }
 
-    public function testIsReadDefaultAndSetter()
+    public function testIsReadDefaultAndSetter(): void
     {
         $maintenance = new Maintenance();
         $this->assertFalse($maintenance->isRead());

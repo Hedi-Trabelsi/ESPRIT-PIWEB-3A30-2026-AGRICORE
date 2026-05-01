@@ -356,7 +356,7 @@ public function index(Request $request, MaintenanceRepository $repo): Response
         if ($sessionUserId !== null && $maintenance->getId_agriculteur()?->getId() === $sessionUserId) {
             $dateChangeNotifications = array_values(array_filter(
                 $notificationStore->getUnreadForFarmer($sessionUserId),
-                static fn (array $notification): bool => (int) ($notification['maintenance_id'] ?? 0) === $maintenance->getId_maintenance()
+                static fn (array $notification): bool => (int) $notification['maintenance_id'] === $maintenance->getId_maintenance()
             ));
 
             foreach ($dateChangeNotifications as &$notification) {
@@ -392,7 +392,7 @@ public function index(Request $request, MaintenanceRepository $repo): Response
         $notifications = $notificationStore->getUnreadForFarmer($sessionUserId);
         foreach ($notifications as &$notification) {
             $notification['detail_url'] = $this->generateUrl('app_maintenance_detail', [
-                'id_maintenance' => (int) ($notification['maintenance_id'] ?? 0),
+                'id_maintenance' => (int) $notification['maintenance_id'],
             ]);
         }
         unset($notification);
@@ -554,7 +554,7 @@ public function technicianRecommendationsBack(
     $recommendations = [];
 
     foreach ($technicians as $technician) {
-        if (!$technician instanceof User || $technician->isBanned()) {
+        if ($technician->isBanned()) {
             continue;
         }
 
@@ -578,8 +578,8 @@ public function technicianRecommendationsBack(
     }
 
     usort($recommendations, static function (array $left, array $right): int {
-        if (($left['sameLocation'] ?? false) !== ($right['sameLocation'] ?? false)) {
-            return ($left['sameLocation'] ?? false) ? -1 : 1;
+        if ($left['sameLocation'] !== $right['sameLocation']) {
+            return $left['sameLocation'] ? -1 : 1;
         }
 
         $leftDistance = $left['distanceKm'] ?? PHP_FLOAT_MAX;
@@ -588,7 +588,7 @@ public function technicianRecommendationsBack(
             return $leftDistance <=> $rightDistance;
         }
 
-        return strcmp((string) ($left['name'] ?? ''), (string) ($right['name'] ?? ''));
+        return strcmp($left['name'], $right['name']);
     });
 
     return new JsonResponse([
@@ -694,10 +694,8 @@ public function statsBack(MaintenanceRepository $repo, TacheRepository $tacheRep
         }
 
         // --- Stats par Jour ---
-        if ($m->getDateDeclaration()) {
-            $dateStr = $m->getDateDeclaration()->format('d/m/Y');
-            $statsParJour[$dateStr] = ($statsParJour[$dateStr] ?? 0) + 1;
-        }
+        $dateStr = $m->getDateDeclaration()->format('d/m/Y');
+        $statsParJour[$dateStr] = ($statsParJour[$dateStr] ?? 0) + 1;
     }
 
     // --- Stats Évaluations Négatives par Technicien ---
@@ -711,11 +709,10 @@ $techniciansPositiveEval = $tacheRepo->getTechniciansWithPositiveEvaluations();
         'statsPriorite' => $statsPriorite,
         'statsParJour' => $statsParJour,
         'techniciansNegativeEval' => $techniciansNegativeEval,
-        'techniciansNegativeEval' => $techniciansNegativeEval,
-    'techniciansPositiveEval' => $techniciansPositiveEval,
-    'pendingNotifications' => $notificationContext['pendingNotifications'],
-    'pendingCount' => $notificationContext['pendingCount'],
-    'unreadCount' => $notificationContext['unreadCount'],
+        'techniciansPositiveEval' => $techniciansPositiveEval,
+        'pendingNotifications' => $notificationContext['pendingNotifications'],
+        'pendingCount' => $notificationContext['pendingCount'],
+        'unreadCount' => $notificationContext['unreadCount'],
     ]);
 }
 #[Route('/back/maintenance/notifications', name: 'app_maintenance_notifications_back')]
@@ -838,7 +835,7 @@ public function countPendingNotifications(MaintenanceRepository $repo): Response
     $notificationContext = $this->buildMaintenanceNotificationContext($repo);
     $count = $notificationContext['unreadCount'];
 
-    return new Response($count);
+    return new Response((string) $count);
 }
 
 /**
@@ -892,7 +889,7 @@ private function extractUrgentOverdueMaintenances(array $maintenances): array
         return $left->getId_maintenance() <=> $right->getId_maintenance();
     });
 
-    return array_values($filtered);
+    return $filtered;
 }
 
 private function isAdminSession(Request $request): bool
@@ -931,12 +928,22 @@ private function buildAiTaskName(Maintenance $maintenance): string
 }
 
 #[Route('/tache/evaluer/{id}/{note}', name: 'app_tache_evaluer')]
-public function evaluer(Tache $tache, int $note, EntityManagerInterface $em) {
+public function evaluer(Tache $tache, int $note, EntityManagerInterface $em): Response
+{
     $tache->setEvaluation($note);
     $em->flush();
-    return $this->redirectToRoute('app_maintenance_show', ['id' => $tache->getMaintenance()->getId()]);
+
+    $maintenance = $tache->getIdMaintenance();
+    if (!$maintenance instanceof Maintenance) {
+        return $this->redirectToRoute('app_maintenance_back_list');
+    }
+
+    return $this->redirectToRoute('app_maintenance_show', ['id' => $maintenance->getId_maintenance()]);
 }
 
+/**
+ * @return array<string, mixed>
+ */
 private function buildCalendarTaskData(Tache $task, string $todayKey): array
 {
     $taskDate = $task->getDatePrevue();

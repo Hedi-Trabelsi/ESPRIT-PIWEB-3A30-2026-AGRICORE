@@ -15,7 +15,7 @@ class Tache
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(name: "id_tache", type: "integer")]
-    private int $id_tache;
+    private int $id_tache = 0;
 
     // Ajout de name: "date_prevue" pour être sûr
     #[ORM\Column(name: "date_prevue", type: "date")]

@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 class MaintenanceControllerTest extends TestCase
 {
-    public function testExtractUrgentOverdueMaintenances()
+    public function testExtractUrgentOverdueMaintenances(): void
     {
         $m1 = new Maintenance();
         $m1->setStatut('En attente');
@@ -40,7 +40,7 @@ class MaintenanceControllerTest extends TestCase
         $this->assertSame('En attente', $result[0]->getStatut());
     }
 
-    public function testBuildCalendarTaskData()
+    public function testBuildCalendarTaskData(): void
     {
         $maintenance = new Maintenance();
         $maintenance->setNomMaintenance('M1');

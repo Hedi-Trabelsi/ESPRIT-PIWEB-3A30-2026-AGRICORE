@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 class TacheTest extends TestCase
 {
-    public function testSettersAndGetters()
+    public function testSettersAndGetters(): void
     {
         $tache = new Tache();
 

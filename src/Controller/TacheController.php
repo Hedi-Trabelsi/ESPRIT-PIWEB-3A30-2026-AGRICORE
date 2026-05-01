@@ -133,7 +133,7 @@ public function new(
 
         $date = \DateTimeImmutable::createFromFormat('Y-m-d', $dateValue);
         $dateErrors = \DateTimeImmutable::getLastErrors();
-        if (!$date || ($dateErrors !== false && (($dateErrors['warning_count'] ?? 0) > 0 || ($dateErrors['error_count'] ?? 0) > 0))) {
+        if (!$date || ($dateErrors !== false && ($dateErrors['warning_count'] > 0 || $dateErrors['error_count'] > 0))) {
             return new JsonResponse(['error' => 'Date invalide'], Response::HTTP_BAD_REQUEST);
         }
 
@@ -150,7 +150,7 @@ public function new(
             'threshold' => self::DAILY_TASK_OVERLOAD_THRESHOLD,
             'isOverloaded' => $count > self::DAILY_TASK_OVERLOAD_THRESHOLD,
             'message' => $count > self::DAILY_TASK_OVERLOAD_THRESHOLD
-            ? sprintf('Ce jour est déjà surchargé: %d tâche%s planifiée%s.', $count, $count > 1 ? 's' : '', $count > 1 ? 's' : '')
+            ? sprintf('Ce jour est déjà surchargé: %d tâches planifiées.', $count)
             : sprintf('Ce jour contient actuellement %d tâche%s planifiée%s.', $count, $count > 1 ? 's' : '', $count > 1 ? 's' : ''),
         ]);
     }

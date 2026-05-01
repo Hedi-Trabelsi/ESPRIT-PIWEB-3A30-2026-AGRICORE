@@ -14,7 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 class TacheControllerTest extends TestCase
 {
-    public function testDayLoadUnauthorizedWhenNoSession()
+    public function testDayLoadUnauthorizedWhenNoSession(): void
     {
         $request = new Request();
         $session = new Session(new MockArraySessionStorage());
@@ -29,7 +29,7 @@ class TacheControllerTest extends TestCase
         $this->assertSame(401, $response->getStatusCode());
     }
 
-    public function testDayLoadReturnsCount()
+    public function testDayLoadReturnsCount(): void
     {
         $request = new Request(['date' => (new \DateTimeImmutable('today'))->format('Y-m-d')]);
         $session = new Session(new MockArraySessionStorage());
@@ -57,7 +57,7 @@ class TacheControllerTest extends TestCase
         $this->assertSame(3, $data['count']);
     }
 
-    public function testGenerateDescriptionUnauthorizedWhenNoSessionUser()
+    public function testGenerateDescriptionUnauthorizedWhenNoSessionUser(): void
     {
         $request = new Request([], [], [], [], [], [], json_encode(['id_maintenance' => 0]));
         $session = new Session(new MockArraySessionStorage());
@@ -73,7 +73,7 @@ class TacheControllerTest extends TestCase
         $this->assertSame(401, $response->getStatusCode());
     }
 
-    public function testGenerateDescriptionSuccess()
+    public function testGenerateDescriptionSuccess(): void
     {
         $payload = ['id_maintenance' => 1, 'nomTache' => 'Test'];
         $request = new Request([], [], [], [], [], [], json_encode($payload));

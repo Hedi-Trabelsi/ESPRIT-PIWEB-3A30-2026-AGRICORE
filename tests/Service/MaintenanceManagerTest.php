@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 class MaintenanceManagerTest extends TestCase
 {
-    public function testValidMaintenance()
+    public function testValidMaintenance(): void
     {
         $maintenance = new Maintenance();
         $maintenance->setNomMaintenance('Vidange Moteur');
@@ -18,7 +18,7 @@ class MaintenanceManagerTest extends TestCase
         $this->assertTrue($manager->validate($maintenance));
     }
 
-    public function testMaintenanceWithoutName()
+    public function testMaintenanceWithoutName(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $maintenance = new Maintenance();
@@ -28,7 +28,7 @@ class MaintenanceManagerTest extends TestCase
         $manager->validate($maintenance);
     }
 
-    public function testMaintenanceWithShortDescription()
+    public function testMaintenanceWithShortDescription(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $maintenance = new Maintenance();

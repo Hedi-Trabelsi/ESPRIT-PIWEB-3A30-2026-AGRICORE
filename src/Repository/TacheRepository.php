@@ -6,6 +6,7 @@ use App\Entity\Tache;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
+/** @extends ServiceEntityRepository<Tache> */
 class TacheRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -13,6 +14,7 @@ class TacheRepository extends ServiceEntityRepository
         parent::__construct($registry, Tache::class);
     }
 
+    /** @return list<Tache> */
     public function findByTechnicianAndDateRange(int $technicianId, \DateTimeInterface $start, \DateTimeInterface $end): array
     {
         return $this->createQueryBuilder('t')
@@ -30,6 +32,7 @@ class TacheRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /** @return list<Tache> */
     public function findOverdueTasksForTechnician(int $technicianId, \DateTimeInterface $today): array
     {
         return $this->createQueryBuilder('t')
@@ -113,6 +116,7 @@ class TacheRepository extends ServiceEntityRepository
         return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
+    /** @return list<array{id: int|string, nom: mixed, prenom: mixed, negativeCount: int|string}> */
     public function getTechniciansWithNegativeEvaluations(): array
     {
         return $this->createQueryBuilder('t')
@@ -126,16 +130,17 @@ class TacheRepository extends ServiceEntityRepository
             ->getResult();
     }
     
+    /** @return list<array{id: int|string, nom: mixed, prenom: mixed, positiveCount: int|string}> */
     public function getTechniciansWithPositiveEvaluations(): array
-{
-    return $this->createQueryBuilder('t')
-        ->select('u.id, u.nom, u.prenom, COUNT(t.id_tache) as positiveCount')
-        ->innerJoin('t.id_technicien', 'u')
-        ->andWhere('t.evaluation = :positiveEval') // Ajustez la valeur selon votre base
-        ->setParameter('positiveEval', 1) 
-        ->groupBy('u.id')
-        ->orderBy('positiveCount', 'DESC')
-        ->getQuery()
-        ->getResult();
-}
+    {
+        return $this->createQueryBuilder('t')
+            ->select('u.id, u.nom, u.prenom, COUNT(t.id_tache) as positiveCount')
+            ->innerJoin('t.id_technicien', 'u')
+            ->andWhere('t.evaluation = :positiveEval')
+            ->setParameter('positiveEval', 1)
+            ->groupBy('u.id')
+            ->orderBy('positiveCount', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 }
