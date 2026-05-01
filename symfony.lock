@@ -102,6 +102,18 @@
             "./config/packages/http_discovery.yaml"
         ]
     },
+    "phpstan/phpstan": {
+        "version": "2.1",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "1.0",
+            "ref": "5e490cc197fb6bb1ae22e5abbc531ddc633b6767"
+        },
+        "files": [
+            "./phpstan.dist.neon"
+        ]
+    },
     "phpunit/phpunit": {
         "version": "11.5",
         "recipe": {
@@ -387,15 +399,6 @@
     "twig/extra-bundle": {
         "version": "v3.24.0"
     },
-    "willdurand/geocoder-bundle": {
-        "version": "6.0",
-        "recipe": {
-            "repo": "github.com/symfony/recipes-contrib",
-            "branch": "main",
-            "version": "5.0",
-            "ref": "b272ad4fbfcd45a20e7cbfdc4ad1b0e27a62fd3b"
-        }
-    },
     "vich/uploader-bundle": {
         "version": "2.9",
         "recipe": {
@@ -407,5 +410,14 @@
         "files": [
             "./config/packages/vich_uploader.yaml"
         ]
+    },
+    "willdurand/geocoder-bundle": {
+        "version": "6.0",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "5.0",
+            "ref": "b272ad4fbfcd45a20e7cbfdc4ad1b0e27a62fd3b"
+        }
     }
 }

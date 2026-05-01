@@ -117,6 +117,7 @@ class EvenementBackController extends AbstractController
     #[Route('/back/participants/{id}/attend', name: 'back_participant_attend', methods: ['POST'])]
     public function markAttended(int $id, Request $request, EntityManagerInterface $em): \Symfony\Component\HttpFoundation\JsonResponse
     {
+        /** @var \App\Entity\Participants|null $participant */
         $participant = $em->getRepository(\App\Entity\Participants::class)->find($id);
         if (!$participant) {
             return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Not found'], 404);
@@ -145,7 +146,7 @@ class EvenementBackController extends AbstractController
     #[Route('/back/participants/{id}/update-attendance', name: 'back_participant_update_attendance', methods: ['POST'])]
     public function updateAttendance(int $id, Request $request, EntityManagerInterface $em): \Symfony\Component\HttpFoundation\JsonResponse
     {
-        /** @var \App\Entity\Participants $participant */
+        /** @var \App\Entity\Participants|null $participant */
         $participant = $em->getRepository(\App\Entity\Participants::class)->find($id);
         if (!$participant) {
             return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Not found'], 404);

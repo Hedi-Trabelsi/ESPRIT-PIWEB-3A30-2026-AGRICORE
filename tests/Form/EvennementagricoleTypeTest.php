@@ -10,6 +10,9 @@ use Symfony\Component\Validator\Validation;
 
 class EvennementagricoleTypeTest extends TypeTestCase
 {
+    /**
+     * @return array<\Symfony\Component\Form\FormExtensionInterface>
+     */
     protected function getExtensions(): array
     {
         $validator = Validation::createValidatorBuilder()

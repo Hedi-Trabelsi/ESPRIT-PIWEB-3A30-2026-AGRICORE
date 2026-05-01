@@ -31,6 +31,9 @@ class EvenementController extends AbstractController
             ->getSingleScalarResult() ?: 0;
     }
 
+    /**
+     * @return array<int, array{nom_participant: string, nbr_places: int, avatar: string|null}>
+     */
     private function buildParticipantList(Evennementagricole $ev, EntityManagerInterface $em): array
     {
         $participants = $em->getRepository(Participants::class)->findBy(['evenement' => $ev]);
@@ -40,7 +43,6 @@ class EvenementController extends AbstractController
             $avatar = null;
             if ($user && $user->getImage()) {
                 $raw = $user->getImage();
-                if (is_resource($raw)) $raw = stream_get_contents($raw);
                 $avatar = 'data:image/jpeg;base64,' . base64_encode($raw);
             }
             $result[] = [
@@ -149,7 +151,6 @@ class EvenementController extends AbstractController
                 $user = $em->getRepository(User::class)->find($p->getIdUtilisateur());
                 if ($user && $user->getImage()) {
                     $raw = $user->getImage();
-                    if (is_resource($raw)) $raw = stream_get_contents($raw);
                     $avatarPreviews[] = 'data:image/jpeg;base64,' . base64_encode($raw);
                 } else {
                     $avatarPreviews[] = null; // will show initials fallback
@@ -312,8 +313,8 @@ class EvenementController extends AbstractController
                 $html = $this->renderView('emails/inscription_confirmation.html.twig', [
                     'nom'         => $participant->getNomParticipant(),
                     'evenement'   => $ev->getTitre(),
-                    'date_debut'  => $ev->getDateDebut()?->format('d/m/Y H:i'),
-                    'date_fin'    => $ev->getDateFin()?->format('d/m/Y H:i'),
+                    'date_debut'  => $ev->getDateDebut()->format('d/m/Y H:i'),
+                    'date_fin'    => $ev->getDateFin()->format('d/m/Y H:i'),
                     'lieu'        => $ev->getLieu(),
                     'nbr_places'  => $participant->getNbrPlaces(),
                     'montant'     => $montant,
@@ -424,8 +425,8 @@ class EvenementController extends AbstractController
                 $html = $this->renderView('emails/inscription_confirmation.html.twig', [
                     'nom'         => $participant->getNomParticipant(),
                     'evenement'   => $ev->getTitre(),
-                    'date_debut'  => $ev->getDateDebut()?->format('d/m/Y H:i'),
-                    'date_fin'    => $ev->getDateFin()?->format('d/m/Y H:i'),
+                    'date_debut'  => $ev->getDateDebut()->format('d/m/Y H:i'),
+                    'date_fin'    => $ev->getDateFin()->format('d/m/Y H:i'),
                     'lieu'        => $ev->getLieu(),
                     'nbr_places'  => $participant->getNbrPlaces(),
                     'montant'     => $montant,

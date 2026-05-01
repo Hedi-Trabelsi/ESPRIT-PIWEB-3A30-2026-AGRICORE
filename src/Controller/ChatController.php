@@ -17,6 +17,10 @@ class ChatController extends AbstractController
 {
     const ADMIN_SENDER_ID = 0;
 
+    /**
+     * @param array<int, Participants> $participants
+     * @return array<int, string|null>
+     */
     private function buildAvatarMap(array $participants, EntityManagerInterface $em): array
     {
         $avatars = [];
@@ -33,7 +37,6 @@ class ChatController extends AbstractController
         $user = $em->getRepository(User::class)->find($userId);
         if (!$user) return null;
         $raw = $user->getImage();
-        if (is_resource($raw)) $raw = stream_get_contents($raw);
         return $raw ? 'data:image/jpeg;base64,' . base64_encode($raw) : null;
     }
 

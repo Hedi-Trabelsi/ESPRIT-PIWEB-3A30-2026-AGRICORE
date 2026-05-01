@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 class EvenementBackControllerTest extends TestCase
 {
-    public function testEvenementStatut()
+    public function testEvenementStatut(): void
     {
         $event = new Evennementagricole();
         $event->setTitre('Test Back Office Event');
