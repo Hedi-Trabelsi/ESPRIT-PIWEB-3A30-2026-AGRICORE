@@ -39,8 +39,14 @@
                     Date prévue
                     <span class="required-star">*</span>
                 </label>
-                {{ form_widget(form.date_prevue, {'attr': {'class': 'form-control'}}) }}
+                {{ form_widget(form.date_prevue, {'attr': {'class': 'form-control', 'data-task-load-url': path('app_tache_day_load')}}) }}
                 <div class="text-danger small">{{ form_errors(form.date_prevue) }}</div>
+                <div id="day-task-load" class="mt-2">
+                    <span class="load-inner text-muted" style="font-size:.82rem;">
+                        <i class="fas fa-calendar-alt me-1 opacity-50"></i>
+                        Choisissez une date pour voir le nombre de tâches déjà planifiées.
+                    </span>
+                </div>
             </div>
 
             <div class="col-md-6 mb-3">
@@ -54,12 +60,27 @@
         </div>
 
         <div class="mt-3 mb-3">
-            <label>
-                Description
-                <span class="required-star">*</span>
-            </label>
-            {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': '4'}}) }}
-            <div class="text-danger small">{{ form_errors(form.description) }}</div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="mb-0">
+                    Description
+                    <span class="required-star">*</span>
+                </label>
+                <button
+                    type="button"
+                    class="btn btn-outline-success btn-sm"
+                    id="generate-description-btn"
+                >
+                    Générer avec IA
+                </button>
+            </div>
+
+            {{ form_widget(form.description, {'attr': {'class': 'form-control', 'rows': '4', 'id': 'tache-description'}}) }}
+
+            <div class="text-danger small" id="ai-description-error">
+                {{ form_errors(form.description) }}
+            </div>
+
+          
         </div>
 
         <div class="text-center mt-4">
@@ -71,21 +92,156 @@
     </div>
 </div>
 
-{# --- CSS pour les étoiles --- #}
 <style>
 .required-star {
-    color: red;       /* rouge par défaut */
+    color: red;
     margin-left: 3px;
     transition: color 0.3s;
 }
 input.filled + .required-star,
 textarea.filled + .required-star,
 select.filled + .required-star {
-    color: green;     /* devient vert si rempli */
+    color: green;
 }
 </style>
 
-{# --- JS pour détecter si un champ est rempli --- #}
+{# ========================= #}
+{#       IA FIX ONLY        #}
+{# ========================= #}
+<script>
+function initTaskDayLoad() {
+    const dateField = document.querySelector('[name*="datePrevue"], [name*="date_prevue"]');
+    const loadBox = document.getElementById('day-task-load');
+
+    if (!dateField || !loadBox) {
+        return;
+    }
+
+    if (dateField.dataset.loadBound === '1') {
+        return;
+    }
+
+    dateField.dataset.loadBound = '1';
+
+    const loadUrl = dateField.dataset.taskLoadUrl;
+
+    const updateLoadMessage = async () => {
+        const selectedDate = dateField.value;
+
+        if (!selectedDate) {
+            loadBox.innerHTML = '<span class="load-inner text-muted" style="font-size:.82rem;"><i class="fas fa-calendar-alt me-1 opacity-50"></i>Choisissez une date pour voir le nombre de tâches déjà planifiées.</span>';
+            return;
+        }
+
+        loadBox.innerHTML = '<span class="load-inner text-muted" style="font-size:.82rem;"><i class="fas fa-spinner fa-spin me-1"></i>Chargement...</span>';
+
+        try {
+            const response = await fetch(`${loadUrl}?date=${encodeURIComponent(selectedDate)}`, {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error || 'Impossible de charger.');
+
+            const isOverloaded = data.isOverloaded;
+            const icon    = isOverloaded ? 'fa-exclamation-triangle' : 'fa-check-circle';
+            const color   = isOverloaded ? '#dc3545' : '#198754';
+            const bg      = isOverloaded ? '#fff5f5' : '#f0fff6';
+            const border  = isOverloaded ? '#f5c6cb' : '#c3e6cb';
+
+            loadBox.innerHTML = '<div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:0 12px 0 12px;background:' + bg + ';border:1px solid ' + border + ';border-left:3px solid ' + color + ';">'
+                + '<i class="fas ' + icon + '" style="color:' + color + ';font-size:.85rem;"></i>'
+                + '<span style="font-size:.82rem;font-weight:600;color:' + color + ';">' + data.message + '</span>'
+                + '</div>';
+
+        } catch (error) {
+            loadBox.innerHTML = '<span style="font-size:.82rem;color:#dc3545;"><i class="fas fa-times-circle me-1"></i>' + error.message + '</span>';
+        }
+    };
+
+    dateField.addEventListener('change', updateLoadMessage);
+    dateField.addEventListener('input', updateLoadMessage);
+    updateLoadMessage();
+}
+
+function initAiDescriptionGenerator() {
+    const generateButton = document.getElementById('generate-description-btn');
+    const errorBox = document.getElementById('ai-description-error');
+
+    const descriptionField = document.querySelector('textarea[name*="description"]');
+    const taskNameField = document.querySelector('[name*="nomTache"]');
+    const maintenanceField = document.querySelector('[name*="idMaintenance"], [name*="id_maintenance"]');
+
+    const generateUrl = '{{ path('app_tache_generate_description') }}';
+
+    if (!generateButton || !descriptionField || !taskNameField || !maintenanceField || !errorBox) {
+        console.error("Erreur : champs IA introuvables.");
+        return;
+    }
+
+    if (generateButton.dataset.aiBound === '1') return;
+    generateButton.dataset.aiBound = '1';
+
+    generateButton.addEventListener('click', async function () {
+
+        const maintenanceId = maintenanceField.value;
+        const taskName = taskNameField.value;
+
+        if (!maintenanceId || maintenanceId === '') {
+            errorBox.textContent = 'Veuillez sélectionner une maintenance avant de générer la description.';
+            return;
+        }
+
+        const payload = {
+            nomTache: taskName || '',
+            id_maintenance: maintenanceId
+        };
+
+        generateButton.disabled = true;
+        const originalLabel = generateButton.textContent;
+        generateButton.textContent = 'Génération en cours...';
+        errorBox.textContent = '';
+
+        try {
+            const response = await fetch(generateUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Une erreur est survenue.');
+            }
+
+            if (data.description) {
+                descriptionField.value = data.description;
+                descriptionField.dispatchEvent(new Event('input', { bubbles: true }));
+                descriptionField.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+        } catch (error) {
+            console.error("Erreur IA :", error);
+            errorBox.textContent = error.message;
+        } finally {
+            generateButton.disabled = false;
+            generateButton.textContent = originalLabel;
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initTaskDayLoad);
+document.addEventListener('turbo:load', initTaskDayLoad);
+document.addEventListener('DOMContentLoaded', initAiDescriptionGenerator);
+document.addEventListener('turbo:load', initAiDescriptionGenerator);
+</script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const fields = document.querySelectorAll('input, textarea, select');
@@ -103,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         field.addEventListener('input', updateStar);
-        updateStar(); // vérifie la valeur initiale
+        updateStar();
     });
 });
 </script>

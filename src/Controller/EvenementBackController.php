@@ -97,9 +97,17 @@ class EvenementBackController extends AbstractController
             ->getQuery()
             ->getResult();
 
+        // Calculate event duration in days
+        $nbrJours = 1;
+        if ($event->getDateDebut() && $event->getDateFin()) {
+            $diff = $event->getDateDebut()->diff($event->getDateFin());
+            $nbrJours = (int) $diff->format('%a') + 1;
+        }
+
         return $this->render('back/evenements/participants.html.twig', [
             'evenement'    => $event,
             'participants' => $participants,
+            'nbrJours'     => $nbrJours,
         ]);
     }
 
@@ -137,23 +145,34 @@ class EvenementBackController extends AbstractController
     #[Route('/back/participants/{id}/update-attendance', name: 'back_participant_update_attendance', methods: ['POST'])]
     public function updateAttendance(int $id, Request $request, EntityManagerInterface $em): \Symfony\Component\HttpFoundation\JsonResponse
     {
+        /** @var \App\Entity\Participants $participant */
         $participant = $em->getRepository(\App\Entity\Participants::class)->find($id);
         if (!$participant) {
             return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Not found'], 404);
         }
 
         $count = (int) $request->request->get('count');
+        $day   = (int) $request->request->get('day', 1);
+        $resetAll = $request->request->get('reset_all') === '1';
+
         if ($count < 0 || $count > $participant->getNbrPlaces()) {
             return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Invalide'], 400);
         }
 
-        $participant->setNbrPresents($count);
-        $participant->setConfirmation($count > 0 ? 'attended' : 'confirmed');
+        if ($resetAll) {
+            $participant->setConfirmToken(null);
+            $participant->setNbrPresents(0);
+        } else {
+            $participant->setPresenceData($day, $count);
+        }
+        
+        $participant->setConfirmation($participant->getNbrPresents() > 0 ? 'attended' : 'confirmed');
         $em->flush();
 
         return new \Symfony\Component\HttpFoundation\JsonResponse([
             'success' => true,
             'nbr_presents' => $participant->getNbrPresents(),
+            'presence_data' => $participant->getPresenceData(),
             'status' => $participant->getConfirmation()
         ]);
     }

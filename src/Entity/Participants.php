@@ -271,4 +271,64 @@ class Participants
 
     public function getUsedCoins(): int { return $this->used_coins; }
     public function setUsedCoins(int $used_coins): self { $this->used_coins = $used_coins; return $this; }
+
+    /**
+     * Get presence per day as an associative array: [dayIndex => count]
+     */
+    public function getPresenceData(): array
+    {
+        if (!$this->confirm_token) {
+            return [1 => $this->nbr_presents];
+        }
+        
+        // Check if it's our serialized format (contains '|') or a standard token
+        if (strpos($this->confirm_token, '|') !== false || is_numeric($this->confirm_token)) {
+            $parts = explode('|', $this->confirm_token);
+            $data = [];
+            foreach ($parts as $idx => $val) {
+                $data[$idx + 1] = (int)$val;
+            }
+            return $data;
+        }
+
+        // It's a real token (registration still pending), so no presence data yet
+        return [1 => $this->nbr_presents];
+    }
+
+    public function setPresenceData(int $day, int $count): self
+    {
+        $data = $this->getPresenceData();
+        $data[$day] = $count;
+        
+        // Keep Day 1 in nbr_presents for backward compatibility/main display
+        if ($day === 1) {
+            $this->nbr_presents = $count;
+        }
+
+        // Serialize to pipe-separated string
+        // We need to ensure we have all days from 1 to max(day)
+        $maxDay = max(array_keys($data));
+        $parts = [];
+        for ($i = 1; $i <= $maxDay; $i++) {
+            $parts[] = $data[$i] ?? 0;
+        }
+        
+        $this->confirm_token = implode('|', $parts);
+        
+        return $this;
+    }
+
+    /**
+     * Get the presence for the last day recorded (highest day index)
+     */
+    public function getLastDayPresence(): array
+    {
+        $data = $this->getPresenceData();
+        if (empty($data)) {
+            return ['day' => 1, 'count' => 0];
+        }
+        
+        $lastDay = max(array_keys($data));
+        return ['day' => $lastDay, 'count' => $data[$lastDay]];
+    }
 }

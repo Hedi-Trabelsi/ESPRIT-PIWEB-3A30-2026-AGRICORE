@@ -1,4 +1,22 @@
-{{ form_start(form, {'attr': {'id': 'animalForm'}}) }}
+{{ form_start(form, {'attr': {'id': 'animalForm', 'novalidate': 'novalidate'}}) }}
+
+<style>
+.field-error-msg {
+  display: none;
+  color: #c62828;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: #ffebee;
+  border-left: 3px solid #c62828;
+  border-radius: 4px;
+}
+.ag-input.input-error {
+  border-color: #F87171 !important;
+  background: #fff5f5 !important;
+}
+</style>
 
 <div class="ag-form-body">
   <div class="ag-form-grid">
@@ -8,10 +26,11 @@
         <label class="ag-label" for="{{ field.vars.id }}">
           {{ field.vars.label|default(field.vars.name|replace({'_': ' '})|capitalize) }}
         </label>
-        {{ form_widget(field, {'attr': {'class': 'ag-input' ~ (field.vars.block_prefixes|join(' ') matches '/choice|select/' ? ' ag-select' : '')}}) }}
+        {{ form_widget(field, {'attr': {'class': 'ag-input' ~ (field.vars.block_prefixes|join(' ') matches '/choice|select/' ? ' ag-select' : ''), 'id': field.vars.id}}) }}
+        <div class="field-error-msg" id="err-{{ field.vars.name }}"></div>
         {% if field.vars.errors|length > 0 %}
           {% for error in field.vars.errors %}
-            <span style="display:inline-flex;align-items:center;gap:5px;background:#FEE2E2;border:1.5px solid #F87171;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;color:#B91C1C;margin-top:4px;">⚠ {{ error.message }}</span>
+            <div class="field-error-msg" style="display:block;">⚠ {{ error.message }}</div>
           {% endfor %}
         {% endif %}
       </div>
@@ -35,42 +54,48 @@
 
 <script>
 document.getElementById('animalForm').addEventListener('submit', function(e) {
-  var errors = [];
+  var hasError = false;
 
-  var code  = document.getElementById('animal_codeAnimal');
-  var espece = document.getElementById('animal_espece');
-  var race  = document.getElementById('animal_race');
-  var sexe  = document.getElementById('animal_sexe');
-  var date  = document.getElementById('animal_dateNaissance');
+  var fields = [
+    { id: 'animal_codeAnimal', name: 'codeAnimal',    msg: 'Le code animal est obligatoire.' },
+    { id: 'animal_espece',     name: 'espece',         msg: "L'espèce est obligatoire." },
+    { id: 'animal_race',       name: 'race',           msg: 'La race est obligatoire.' },
+    { id: 'animal_sexe',       name: 'sexe',           msg: 'Le sexe est obligatoire.' },
+    { id: 'animal_dateNaissance', name: 'dateNaissance', msg: 'La date de naissance est obligatoire.' },
+  ];
 
-  [code, espece, race, sexe, date].forEach(function(f) {
-    if (f) f.style.borderColor = '';
+  fields.forEach(function(f) {
+    var input = document.getElementById(f.id);
+    var errDiv = document.getElementById('err-' + f.name);
+    if (!input || !errDiv) return;
+
+    input.classList.remove('input-error');
+    errDiv.style.display = 'none';
+    errDiv.textContent = '';
+
+    if (!input.value || !input.value.trim()) {
+      input.classList.add('input-error');
+      errDiv.textContent = '⚠ ' + f.msg;
+      errDiv.style.display = 'block';
+      hasError = true;
+    }
   });
 
-  if (!code || !code.value.trim()) {
-    errors.push('Le code animal est obligatoire.');
-    if (code) code.style.borderColor = '#F87171';
-  }
-  if (!espece || !espece.value.trim()) {
-    errors.push("L'espèce est obligatoire.");
-    if (espece) espece.style.borderColor = '#F87171';
-  }
-  if (!race || !race.value.trim()) {
-    errors.push('La race est obligatoire.');
-    if (race) race.style.borderColor = '#F87171';
-  }
-  if (!sexe || !sexe.value) {
-    errors.push('Le sexe est obligatoire.');
-    if (sexe) sexe.style.borderColor = '#F87171';
-  }
-  if (!date || !date.value) {
-    errors.push('La date de naissance est obligatoire.');
-    if (date) date.style.borderColor = '#F87171';
-  }
-
-  if (errors.length > 0) {
+  if (hasError) {
     e.preventDefault();
-    alert('Veuillez corriger les erreurs suivantes :\n\n' + errors.join('\n'));
+    // Scroll vers la première erreur
+    var first = document.querySelector('.input-error');
+    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+});
+
+// Effacer l'erreur quand l'utilisateur tape
+document.querySelectorAll('.ag-input').forEach(function(input) {
+  input.addEventListener('input', function() {
+    this.classList.remove('input-error');
+    var name = this.id.replace('animal_', '');
+    var errDiv = document.getElementById('err-' + name);
+    if (errDiv) { errDiv.style.display = 'none'; errDiv.textContent = ''; }
+  });
 });
 </script>

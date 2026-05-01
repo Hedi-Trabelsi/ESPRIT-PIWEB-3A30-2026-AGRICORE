@@ -105,7 +105,7 @@ class MeteoIAController extends AbstractController
         $prompt = "Tu es un expert vétérinaire et agronome spécialisé en bien-être animal et météorologie agricole.\n\n"
             ."=== MÉTÉO ACTUELLE — {$ville} ===\n"
             ."Température : {$temp}°C (ressenti {$feelsLike}°C, min {$tempMin}°C, max {$tempMax}°C)\n"
-            ."Conditions : {$description}\n"
+            ."Conditions : {$description}\n "
             ."Humidité : {$humidity}%\n"
             ."Vent : {$windSpeed} m/s\n"
             ."Pression : {$pressure} hPa\n"

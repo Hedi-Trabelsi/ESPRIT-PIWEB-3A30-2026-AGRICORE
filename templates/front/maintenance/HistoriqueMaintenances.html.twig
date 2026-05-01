@@ -14,6 +14,19 @@
         padding-bottom: 20px;
     }
 
+    .agri-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #0F4229;
+        background: #E9F7EF;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid #CFE9DB;
+    }
+
     .custom-card {
         background-color: #ffffff;
         border: 1px solid #f0f0f0;
@@ -53,6 +66,7 @@
     }
 
     .btn-plus {
+        display: inline-block;
         background: transparent;
         border: none;
         border-bottom: 1.5px solid #000;
@@ -63,7 +77,10 @@
         cursor: pointer;
         padding: 0 5px;
         transition: 0.3s;
+        text-decoration: none;
+        color: black;
     }
+
     .btn-plus:hover {
         color: #198754;
         border-color: #198754;
@@ -73,7 +90,6 @@
 <div class="container mt-5">
     <div class="header-section text-center">
         <h1 class="fw-bold m-0">Historique des maintenances Résolues</h1>
-        
     </div>
 
     {% if listeMaintenances is empty %}
@@ -82,26 +98,41 @@
         </div>
     {% else %}
         <div class="row g-4 justify-content-center">
+
             {% for m in listeMaintenances %}
                 <div class="col-lg-4 col-md-6">
                     <div class="custom-card shadow-sm">
-                       
+
+                        <div class="agri-badge">
+                            👨‍🌾
+                            {% if m.id_agriculteur is defined and m.id_agriculteur %}
+                                {{ m.id_agriculteur.prenom|default('') }} {{ m.id_agriculteur.nom|default('') }}
+                            {% else %}
+                                Inconnu
+                            {% endif %}
+                        </div>
 
                         <h5 class="card-title-custom">{{ m.nomMaintenance }}</h5>
 
                         <div class="small text-dark fw-bold mb-1">
                             {{ m.Equipement }}
                         </div>
+
                         <div class="small text-muted mb-2">
-                            <i class="fas fa-calendar-check me-1"></i> Terminé le {{ m.dateDeclaration|date('d/m/Y') }}
+                            <i class="fas fa-calendar-check me-1"></i>
+                            Terminé le {{ m.dateDeclaration|date('d/m/Y') }}
                         </div>
 
-                        <button type="button" class="btn-plus" onclick="window.location.href='{{ path('app_maintenance_taches', {'id_maintenance': m.Id_maintenance}) }}'">
-                            Plus
-                        </button>
+                        {# 🔥 REDIRECTION AU LIEU DU MODAL #}
+                        <a href="{{ path('app_maintenance_taches', {'id_maintenance': m.Id_maintenance}) }}"
+                           class="btn-plus">
+                            PLUS
+                        </a>
+
                     </div>
                 </div>
             {% endfor %}
+
         </div>
     {% endif %}
 </div>
