@@ -102,9 +102,13 @@ class OAuthController extends AbstractController
             'google' => $this->normalizeGoogle($providerUser),
             'facebook' => $this->normalizeFacebook($providerUser),
             'github' => $this->normalizeGithub($providerUser, $accessToken, $httpClient),
+            default => throw new \InvalidArgumentException("Unsupported OAuth provider: $provider"),
         };
     }
 
+    /**
+     * @return array{email:string,name:?string,first_name:?string,last_name:?string,picture_url:?string}
+     */
     private function normalizeGoogle(object $u): array
     {
         /** @var GoogleUser $u */
@@ -117,6 +121,9 @@ class OAuthController extends AbstractController
         ];
     }
 
+    /**
+     * @return array{email:string,name:?string,first_name:?string,last_name:?string,picture_url:?string}
+     */
     private function normalizeFacebook(object $u): array
     {
         /** @var FacebookUser $u */
@@ -129,6 +136,9 @@ class OAuthController extends AbstractController
         ];
     }
 
+    /**
+     * @return array{email:string,name:?string,first_name:?string,last_name:?string,picture_url:?string}
+     */
     private function normalizeGithub(object $u, string $accessToken, HttpClientInterface $httpClient): array
     {
         /** @var GithubResourceOwner $u */

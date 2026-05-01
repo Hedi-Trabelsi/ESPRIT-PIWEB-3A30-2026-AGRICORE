@@ -12,12 +12,15 @@ class EquipmentNewsService
     ) {
     }
 
+    /**
+     * @return list<array{title:string, source:string, link:?string, publishedAt:?string, description:string}>
+     */
     public function getNewsForEquipment(Equipement $equipement, int $limit = 3): array
     {
-        $queries = array_filter([
+        $queries = [
             $equipement->getNom() . ' agriculture',
             $equipement->getType() . ' agricole',
-        ]);
+        ];
 
         foreach ($queries as $query) {
             $items = $this->fetchGoogleNewsRss($query, $limit);
@@ -35,6 +38,9 @@ class EquipmentNewsService
         ]];
     }
 
+    /**
+     * @return list<array{title:string, source:string, link:?string, publishedAt:?string, description:string}>
+     */
     private function fetchGoogleNewsRss(string $query, int $limit): array
     {
         try {

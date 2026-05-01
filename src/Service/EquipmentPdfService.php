@@ -17,6 +17,7 @@ class EquipmentPdfService
 
     /**
      * @param Equipement[] $equipements
+     * @param array<string, mixed> $stats
      */
     public function renderCataloguePdf(array $equipements, array $stats): string
     {

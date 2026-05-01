@@ -12,7 +12,7 @@ class GenerateRepositoriesCommand extends Command
 {
     protected static $defaultName = 'app:generate-repositories';
 
-    private $filesystem;
+    private Filesystem $filesystem;
 
     public function __construct(Filesystem $filesystem)
     {

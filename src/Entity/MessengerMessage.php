@@ -72,42 +72,42 @@ class MessengerMessage
     }
 
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $created_at = null;
+    private ?\DateTime $created_at = null;
 
     public function getCreated_at(): ?\DateTimeInterface
     {
         return $this->created_at;
     }
 
-    public function setCreated_at(\DateTimeInterface $created_at): self
+    public function setCreated_at(\DateTime $created_at): self
     {
         $this->created_at = $created_at;
         return $this;
     }
 
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $available_at = null;
+    private ?\DateTime $available_at = null;
 
     public function getAvailable_at(): ?\DateTimeInterface
     {
         return $this->available_at;
     }
 
-    public function setAvailable_at(\DateTimeInterface $available_at): self
+    public function setAvailable_at(\DateTime $available_at): self
     {
         $this->available_at = $available_at;
         return $this;
     }
 
     #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $delivered_at = null;
+    private ?\DateTime $delivered_at = null;
 
     public function getDelivered_at(): ?\DateTimeInterface
     {
         return $this->delivered_at;
     }
 
-    public function setDelivered_at(?\DateTimeInterface $delivered_at): self
+    public function setDelivered_at(?\DateTime $delivered_at): self
     {
         $this->delivered_at = $delivered_at;
         return $this;

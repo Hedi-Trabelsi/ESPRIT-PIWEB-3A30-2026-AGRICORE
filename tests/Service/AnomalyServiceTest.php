@@ -85,7 +85,6 @@ class AnomalyServiceTest extends TestCase
         $results = $this->anomalyService->analyzeAll($allDepenses);
         
         $this->assertCount(4, $results);
-        $this->assertIsArray($results[0]);
         $this->assertArrayHasKey('depense', $results[0]);
         $this->assertArrayHasKey('analysis', $results[0]);
     }

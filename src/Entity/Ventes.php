@@ -30,62 +30,62 @@ class Ventes
     #[ORM\Column(type: "string", length: 25)]
     private string $produit;
 
-    public function getId_vente()
+    public function getId_vente(): int
     {
         return $this->id_vente;
     }
 
-    public function setId_vente($value)
+    public function setId_vente(int $value): void
     {
         $this->id_vente = $value;
     }
 
-    public function getId_client()
+    public function getId_client(): Utilisateurs
     {
         return $this->id_client;
     }
 
-    public function setId_client($value)
+    public function setId_client(Utilisateurs $value): void
     {
         $this->id_client = $value;
     }
 
-    public function getPrix_unitaire()
+    public function getPrix_unitaire(): string
     {
         return $this->prix_unitaire;
     }
 
-    public function setPrix_unitaire($value)
+    public function setPrix_unitaire(string $value): void
     {
         $this->prix_unitaire = $value;
     }
 
-    public function getQuantite()
+    public function getQuantite(): int
     {
         return $this->quantite;
     }
 
-    public function setQuantite($value)
+    public function setQuantite(int $value): void
     {
         $this->quantite = $value;
     }
 
-    public function getDate_vente()
+    public function getDate_vente(): \DateTimeInterface
     {
         return $this->date_vente;
     }
 
-    public function setDate_vente($value)
+    public function setDate_vente(\DateTimeInterface $value): void
     {
         $this->date_vente = $value;
     }
 
-    public function getProduit()
+    public function getProduit(): string
     {
         return $this->produit;
     }
 
-    public function setProduit($value)
+    public function setProduit(string $value): void
     {
         $this->produit = $value;
     }

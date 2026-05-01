@@ -202,7 +202,7 @@ class UtilisateurController extends AbstractController
             $variants[] = $address;
             $variants[] = $this->normalizeAddress($address);
             // Fallback: try just the first word (likely the city)
-            $firstWord = trim(explode(',', explode(' ', $address)[0] ?? '')[0] ?? '');
+            $firstWord = trim(explode(',', explode(' ', $address)[0])[0]);
             if ($firstWord && strlen($firstWord) > 2) {
                 $variants[] = $firstWord . ', Tunisie';
             }
@@ -224,7 +224,7 @@ class UtilisateurController extends AbstractController
                     ]);
                     if ($geoResponse->getStatusCode() === 200) {
                         $geoResult = $geoResponse->toArray(false);
-                        if (is_array($geoResult) && count($geoResult) > 0 && isset($geoResult[0]['lat'])) {
+                        if (count($geoResult) > 0 && isset($geoResult[0]['lat'])) {
                             $geoData = [
                                 'lat' => (float) $geoResult[0]['lat'],
                                 'lon' => (float) $geoResult[0]['lon'],
@@ -898,7 +898,7 @@ class UtilisateurController extends AbstractController
 
     // ===================== EXPORT USERS TO EXCEL (Admin) =====================
     #[Route('/back/utilisateurs/export-excel', name: 'back_utilisateurs_export_excel')]
-    public function exportUsersExcel(Request $request, UserRepository $userRepo): StreamedResponse
+    public function exportUsersExcel(Request $request, UserRepository $userRepo): Response
     {
         $currentUser = $request->getSession()->get('user');
         if (!$currentUser || $currentUser->getRole() !== 0) {

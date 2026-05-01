@@ -163,6 +163,7 @@ class Equipement
         return $this;
     }
 
+    /** @var Collection<int, Panier> */
     #[ORM\OneToMany(targetEntity: Panier::class, mappedBy: 'equipement')]
     private Collection $paniers;
 
@@ -176,9 +177,6 @@ class Equipement
      */
     public function getPaniers(): Collection
     {
-        if (!$this->paniers instanceof Collection) {
-            $this->paniers = new ArrayCollection();
-        }
         return $this->paniers;
     }
 

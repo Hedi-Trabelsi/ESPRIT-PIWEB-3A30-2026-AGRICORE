@@ -30,11 +30,8 @@ class IdCardService
 
     public function generate(User $user): string
     {
-        $imageBase64 = null;
         $rawImage = $user->getImage();
-        if ($rawImage) {
-            $imageBase64 = is_string($rawImage) ? $rawImage : null;
-        }
+        $imageBase64 = $rawImage ?: null;
 
         // Generate vCard QR code as PNG base64
         $vcard = "BEGIN:VCARD\r\n"

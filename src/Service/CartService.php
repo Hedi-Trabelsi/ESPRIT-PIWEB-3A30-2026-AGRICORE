@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 class CartService
 {
@@ -12,7 +13,7 @@ class CartService
     {
     }
 
-    private function getSession()
+    private function getSession(): SessionInterface
     {
         return $this->requestStack->getSession();
     }
@@ -43,6 +44,9 @@ class CartService
         $this->getSession()->set(self::CART_KEY, $cart);
     }
 
+    /**
+     * @return array<int, int>
+     */
     public function getCart(): array
     {
         return $this->getSession()->get(self::CART_KEY, []);

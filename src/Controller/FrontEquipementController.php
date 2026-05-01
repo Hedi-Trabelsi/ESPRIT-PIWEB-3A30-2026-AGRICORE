@@ -320,6 +320,9 @@ class FrontEquipementController extends AbstractController
         ]);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function buildCartPayload(
         CartService $cartService,
         EntityManagerInterface $em,

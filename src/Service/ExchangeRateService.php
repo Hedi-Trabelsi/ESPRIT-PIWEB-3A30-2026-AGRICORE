@@ -11,6 +11,9 @@ class ExchangeRateService
     ) {
     }
 
+    /**
+     * @return array{EUR:float, USD:float, source:string, updated_at:string}
+     */
     public function getRatesFromTnd(): array
     {
         try {
@@ -37,6 +40,9 @@ class ExchangeRateService
         ];
     }
 
+    /**
+     * @return array{TND:float, EUR:float, USD:float, meta:array{EUR:float, USD:float, source:string, updated_at:string}}
+     */
     public function convertFromTnd(float $amount): array
     {
         $rates = $this->getRatesFromTnd();

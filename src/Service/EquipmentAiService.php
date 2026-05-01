@@ -15,11 +15,24 @@ class EquipmentAiService
     ) {
     }
 
+    /**
+     * @return array{summary:string, bullets:list<string>, score:int, provider:string, model?:string, api_url?:string, client_class?:string}
+     */
     public function generateInsights(Equipement $equipement): array
     {
-        return $this->buildFallbackInsights($equipement) + ['provider' => 'local'];
+        $hasGroq = $this->apiKey !== null && $this->apiKey !== '' && $this->apiKey !== 'YOUR_GROQ_API_KEY';
+
+        return $this->buildFallbackInsights($equipement) + [
+            'provider'    => $hasGroq ? 'fallback' : 'local',
+            'model'       => $this->model,
+            'api_url'     => $this->apiUrl,
+            'client_class' => $this->httpClient::class,
+        ];
     }
 
+    /**
+     * @return array{summary:string, bullets:list<string>, score:int}
+     */
     private function buildFallbackInsights(Equipement $equipement): array
     {
         $price = (float) $equipement->getPrix();

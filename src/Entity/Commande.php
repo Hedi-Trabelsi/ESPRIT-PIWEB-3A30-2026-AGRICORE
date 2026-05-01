@@ -25,6 +25,7 @@ class Commande
     #[ORM\Column(name: 'agriculteur_id', type: 'integer')]
     private ?int $agriculteurId = null;
 
+    /** @var Collection<int, LigneCommande> */
     #[ORM\OneToMany(mappedBy: 'commande', targetEntity: LigneCommande::class, cascade: ['persist', 'remove'])]
     private Collection $lignes;
 
@@ -37,6 +38,12 @@ class Commande
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function setId(int $id): self
+    {
+        $this->id = $id;
+        return $this;
     }
 
     public function getDateCommande(): ?\DateTimeInterface

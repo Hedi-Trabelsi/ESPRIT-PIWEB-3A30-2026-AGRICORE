@@ -186,5 +186,8 @@ class MeteoIAController extends AbstractController
         ]);
     }
 
+    /**
+     * @param array<mixed> $arr
+     */
     private function count(array $arr): int { return count($arr); }
 }

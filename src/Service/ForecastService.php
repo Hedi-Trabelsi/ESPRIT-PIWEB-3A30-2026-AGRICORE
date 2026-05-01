@@ -7,6 +7,16 @@ use DateTime;
 
 class ForecastService
 {
+    /**
+     * @param Vente[] $ventes
+     * @return array{
+     *     history: list<array{date:string, value:float, lower:null, upper:null}>,
+     *     forecast: list<array{date:string, value:float, lower:float, upper:float}>,
+     *     alerts: list<string>,
+     *     advice: string,
+     *     nextMonthValue: float|int
+     * }
+     */
     public function forecastUserSales(array $ventes, int $horizonMonths = 3): array
     {
         $monthSum = [];

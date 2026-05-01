@@ -57,6 +57,12 @@ class EquipementRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * @return array{
+     *     totals: array{equipements:int, stock:int, value:float, low_stock:int, out_of_stock:int},
+     *     by_type: list<array{type:string, total:int, stock:int, value:float}>
+     * }
+     */
     public function getCatalogueStats(): array
     {
         $active = $this->findBy(['isActive' => true]);
@@ -103,7 +109,7 @@ class EquipementRepository extends ServiceEntityRepository
                 'low_stock' => $lowStock,
                 'out_of_stock' => $outOfStock,
             ],
-            'by_type' => array_values($byType),
+            'by_type' => $byType,
         ];
     }
 }

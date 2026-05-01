@@ -229,6 +229,7 @@ class User
         return $this;
     }
 
+    /** @var Collection<int, Depense> */
     #[ORM\OneToMany(targetEntity: Depense::class, mappedBy: 'user')]
     private Collection $depenses;
 
@@ -237,9 +238,6 @@ class User
      */
     public function getDepenses(): Collection
     {
-        if (!$this->depenses instanceof Collection) {
-            $this->depenses = new ArrayCollection();
-        }
         return $this->depenses;
     }
 
@@ -257,6 +255,7 @@ class User
         return $this;
     }
 
+    /** @var Collection<int, Equipement> */
     #[ORM\OneToMany(targetEntity: Equipement::class, mappedBy: 'user')]
     private Collection $equipements;
 
@@ -265,9 +264,6 @@ class User
      */
     public function getEquipements(): Collection
     {
-        if (!$this->equipements instanceof Collection) {
-            $this->equipements = new ArrayCollection();
-        }
         return $this->equipements;
     }
 
@@ -285,6 +281,7 @@ class User
         return $this;
     }
 
+    /** @var Collection<int, Maintenance> */
     #[ORM\OneToMany(targetEntity: Maintenance::class, mappedBy: 'user')]
     private Collection $maintenances;
 
@@ -293,9 +290,6 @@ class User
      */
     public function getMaintenances(): Collection
     {
-        if (!$this->maintenances instanceof Collection) {
-            $this->maintenances = new ArrayCollection();
-        }
         return $this->maintenances;
     }
 
@@ -313,6 +307,7 @@ class User
         return $this;
     }
 
+    /** @var Collection<int, Vente> */
     #[ORM\OneToMany(targetEntity: Vente::class, mappedBy: 'user')]
     private Collection $ventes;
 
@@ -329,9 +324,6 @@ class User
      */
     public function getVentes(): Collection
     {
-        if (!$this->ventes instanceof Collection) {
-            $this->ventes = new ArrayCollection();
-        }
         return $this->ventes;
     }
 

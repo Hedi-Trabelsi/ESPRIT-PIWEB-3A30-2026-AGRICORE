@@ -34,7 +34,7 @@ class FrontEquipementControllerTest extends TestCase
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertSame('app_cart_show', $controller->lastRedirectRoute);
         $this->assertSame([12 => 2], $cartService->getCart());
-        $this->assertSame(['Ajoute au panier.'], $request->getSession()->getFlashBag()->peek('success'));
+        $this->assertSame(['Ajoute au panier.'], $this->sessionOf($request)->getFlashBag()->peek('success'));
     }
 
     public function testAddToCartRejectsRequestWhenStockIsInsufficient(): void
@@ -50,7 +50,7 @@ class FrontEquipementControllerTest extends TestCase
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertSame('app_equipement_catalogue', $controller->lastRedirectRoute);
         $this->assertSame([], $cartService->getCart());
-        $this->assertSame(['Stock insuffisant.'], $request->getSession()->getFlashBag()->peek('warning'));
+        $this->assertSame(['Stock insuffisant.'], $this->sessionOf($request)->getFlashBag()->peek('warning'));
     }
 
     public function testConfirmOrderRedirectsWhenCartIsEmpty(): void
@@ -66,7 +66,7 @@ class FrontEquipementControllerTest extends TestCase
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertSame('app_equipement_catalogue', $controller->lastRedirectRoute);
-        $this->assertSame(['Panier vide.'], $request->getSession()->getFlashBag()->peek('warning'));
+        $this->assertSame(['Panier vide.'], $this->sessionOf($request)->getFlashBag()->peek('warning'));
     }
 
     public function testConfirmOrderRejectsWhenEquipmentStockBecomesInsufficient(): void
@@ -92,7 +92,7 @@ class FrontEquipementControllerTest extends TestCase
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertSame('app_cart_show', $controller->lastRedirectRoute);
-        $this->assertSame(['Stock insuffisant pour Pulverisateur.'], $request->getSession()->getFlashBag()->peek('error'));
+        $this->assertSame(['Stock insuffisant pour Pulverisateur.'], $this->sessionOf($request)->getFlashBag()->peek('error'));
         $this->assertSame([5 => 3], $cartService->getCart());
     }
 
@@ -143,7 +143,7 @@ class FrontEquipementControllerTest extends TestCase
         $this->assertSame(3, $tractor->getQuantite());
         $this->assertSame(3, $pump->getQuantite());
         $this->assertSame([], $cartService->getCart());
-        $this->assertSame(['Commande confirmee.'], $request->getSession()->getFlashBag()->peek('success'));
+        $this->assertSame(['Commande confirmee.'], $this->sessionOf($request)->getFlashBag()->peek('success'));
         $this->assertSame('/mocked/app_order_pdf/0', $controller->lastRenderedParameters['pdfUrl']);
     }
 
@@ -182,6 +182,15 @@ class FrontEquipementControllerTest extends TestCase
         return $request;
     }
 
+    private function sessionOf(Request $request): Session
+    {
+        $session = $request->getSession();
+        if (!$session instanceof Session) {
+            throw new \RuntimeException('Test request did not have a Session instance.');
+        }
+        return $session;
+    }
+
     private function createEquipement(int $id, string $nom, string $prix, int $quantite): Equipement
     {
         return (new Equipement())
@@ -198,8 +207,12 @@ class TestFrontEquipementController extends FrontEquipementController
 {
     public ?string $lastRedirectRoute = null;
     public ?string $lastRenderedView = null;
+    /** @var array<string, mixed> */
     public array $lastRenderedParameters = [];
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     protected function redirectToRoute(string $route, array $parameters = [], int $status = 302): RedirectResponse
     {
         $this->lastRedirectRoute = $route;
@@ -207,6 +220,9 @@ class TestFrontEquipementController extends FrontEquipementController
         return new RedirectResponse('/mocked/' . $route, $status);
     }
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     protected function render(string $view, array $parameters = [], ?Response $response = null): Response
     {
         $this->lastRenderedView = $view;
@@ -215,6 +231,9 @@ class TestFrontEquipementController extends FrontEquipementController
         return $response ?? new Response($view);
     }
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     public function generateUrl(
         string $route,
         array $parameters = [],

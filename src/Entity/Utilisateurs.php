@@ -39,183 +39,178 @@ class Utilisateurs
     #[ORM\Column(type: "string", length: 65535)]
     private string $image;
 
-    public function getId()
+    public function getId(): int
     {
         return $this->id;
     }
 
-    public function setId($value)
+    public function setId(int $value): void
     {
         $this->id = $value;
     }
 
-    public function getNom()
+    public function getNom(): string
     {
         return $this->nom;
     }
 
-    public function setNom($value)
+    public function setNom(string $value): void
     {
         $this->nom = $value;
     }
 
-    public function getPrenom()
+    public function getPrenom(): string
     {
         return $this->prenom;
     }
 
-    public function setPrenom($value)
+    public function setPrenom(string $value): void
     {
         $this->prenom = $value;
     }
 
-    public function getAge()
+    public function getAge(): int
     {
         return $this->age;
     }
 
-    public function setAge($value)
+    public function setAge(int $value): void
     {
         $this->age = $value;
     }
 
-    public function getAdresse()
+    public function getAdresse(): string
     {
         return $this->adresse;
     }
 
-    public function setAdresse($value)
+    public function setAdresse(string $value): void
     {
         $this->adresse = $value;
     }
 
-    public function getRole()
+    public function getRole(): string
     {
         return $this->role;
     }
 
-    public function setRole($value)
+    public function setRole(string $value): void
     {
         $this->role = $value;
     }
 
-    public function getNumero_tel()
+    public function getNumero_tel(): int
     {
         return $this->numero_tel;
     }
 
-    public function setNumero_tel($value)
+    public function setNumero_tel(int $value): void
     {
         $this->numero_tel = $value;
     }
 
-    public function getEmail()
+    public function getEmail(): string
     {
         return $this->email;
     }
 
-    public function setEmail($value)
+    public function setEmail(string $value): void
     {
         $this->email = $value;
     }
 
-    public function getImage()
+    public function getImage(): string
     {
         return $this->image;
     }
 
-    public function setImage($value)
+    public function setImage(string $value): void
     {
         $this->image = $value;
     }
 
+    /** @var Collection<int, Animal> */
     #[ORM\OneToMany(mappedBy: "idAgriculteur", targetEntity: Animal::class)]
     private Collection $animals;
 
-        public function getAnimals(): Collection
-        {
-            return $this->animals;
-        }
-    
-        public function addAnimal(Animal $animal): self
-        {
-            if (!$this->animals->contains($animal)) {
-                $this->animals[] = $animal;
-                $animal->setIdAgriculteur($this);
-            }
-    
-            return $this;
-        }
-    
-        public function removeAnimal(Animal $animal): self
-        {
-            if ($this->animals->removeElement($animal)) {
-                // set the owning side to null (unless already changed)
-                if ($animal->getIdAgriculteur() === $this) {
-                    $animal->setIdAgriculteur(null);
-                }
-            }
-    
-            return $this;
+    /**
+     * @return Collection<int, Animal>
+     */
+    public function getAnimals(): Collection
+    {
+        return $this->animals;
+    }
+
+    public function addAnimal(Animal $animal): self
+    {
+        if (!$this->animals->contains($animal)) {
+            $this->animals[] = $animal;
+            $animal->setIdAgriculteur($this->getId());
         }
 
+        return $this;
+    }
+
+    public function removeAnimal(Animal $animal): self
+    {
+        $this->animals->removeElement($animal);
+
+        return $this;
+    }
+
+    /** @var Collection<int, Equipements> */
     #[ORM\OneToMany(mappedBy: "id_fournisseur", targetEntity: Equipements::class)]
     private Collection $equipementss;
 
-        public function getEquipementss(): Collection
-        {
-            return $this->equipementss;
-        }
-    
-        public function addEquipements(Equipements $equipements): self
-        {
-            if (!$this->equipementss->contains($equipements)) {
-                $this->equipementss[] = $equipements;
-                $equipements->setId_fournisseur($this);
-            }
-    
-            return $this;
-        }
-    
-        public function removeEquipements(Equipements $equipements): self
-        {
-            if ($this->equipementss->removeElement($equipements)) {
-                // set the owning side to null (unless already changed)
-                if ($equipements->getId_fournisseur() === $this) {
-                    $equipements->setId_fournisseur(null);
-                }
-            }
-    
-            return $this;
+    /**
+     * @return Collection<int, Equipements>
+     */
+    public function getEquipementss(): Collection
+    {
+        return $this->equipementss;
+    }
+
+    public function addEquipements(Equipements $equipements): self
+    {
+        if (!$this->equipementss->contains($equipements)) {
+            $this->equipementss[] = $equipements;
         }
 
+        return $this;
+    }
+
+    public function removeEquipements(Equipements $equipements): self
+    {
+        $this->equipementss->removeElement($equipements);
+
+        return $this;
+    }
+
+    /** @var Collection<int, Maintenance> */
     #[ORM\OneToMany(mappedBy: "id_technicien", targetEntity: Maintenance::class)]
     private Collection $maintenances;
 
-        public function getMaintenances(): Collection
-        {
-            return $this->maintenances;
+    /**
+     * @return Collection<int, Maintenance>
+     */
+    public function getMaintenances(): Collection
+    {
+        return $this->maintenances;
+    }
+
+    public function addMaintenance(Maintenance $maintenance): self
+    {
+        if (!$this->maintenances->contains($maintenance)) {
+            $this->maintenances[] = $maintenance;
         }
-    
-        public function addMaintenance(Maintenance $maintenance): self
-        {
-            if (!$this->maintenances->contains($maintenance)) {
-                $this->maintenances[] = $maintenance;
-                $maintenance->setId_technicien($this);
-            }
-    
-            return $this;
-        }
-    
-        public function removeMaintenance(Maintenance $maintenance): self
-        {
-            if ($this->maintenances->removeElement($maintenance)) {
-                // set the owning side to null (unless already changed)
-                if ($maintenance->getId_technicien() === $this) {
-                    $maintenance->setId_technicien(null);
-                }
-            }
-    
-            return $this;
-        }
+
+        return $this;
+    }
+
+    public function removeMaintenance(Maintenance $maintenance): self
+    {
+        $this->maintenances->removeElement($maintenance);
+
+        return $this;
+    }
 }

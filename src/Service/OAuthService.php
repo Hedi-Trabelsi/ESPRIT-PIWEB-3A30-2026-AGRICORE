@@ -28,7 +28,7 @@ class OAuthService
      */
     public function findOrCreateFromOAuth(string $provider, array $info): User
     {
-        $email = strtolower(trim($info['email'] ?? ''));
+        $email = strtolower(trim($info['email']));
         if ($email === '') {
             throw new \RuntimeException("Le fournisseur OAuth $provider n'a pas renvoye d'email.");
         }

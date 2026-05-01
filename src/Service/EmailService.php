@@ -19,6 +19,9 @@ class EmailService
 
     public string $lastError = '';
 
+    /**
+     * @param array<string, mixed> $analysis
+     */
     public function sendAnomalyAlert(User $user, Depense $depense, array $analysis): bool
     {
         $this->lastError = '';

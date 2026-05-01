@@ -29,14 +29,13 @@ class ForecastServiceTest extends TestCase
         }
 
         $result = $this->forecastService->forecastUserSales($ventes);
-        
-        $this->assertIsArray($result);
+
         $this->assertArrayHasKey('history', $result);
         $this->assertArrayHasKey('forecast', $result);
         $this->assertArrayHasKey('alerts', $result);
         $this->assertArrayHasKey('advice', $result);
         $this->assertArrayHasKey('nextMonthValue', $result);
-        
+
         $this->assertCount(3, $result['history']);
         $this->assertCount(3, $result['forecast']);
     }
@@ -45,8 +44,7 @@ class ForecastServiceTest extends TestCase
     {
         $ventes = [];
         $result = $this->forecastService->forecastUserSales($ventes);
-        
-        $this->assertIsArray($result);
+
         $this->assertCount(0, $result['history']);
         $this->assertCount(3, $result['forecast']);
     }
@@ -65,8 +63,8 @@ class ForecastServiceTest extends TestCase
         }
 
         $result = $this->forecastService->forecastUserSales($ventes);
-        
-        $this->assertIsNumeric($result['nextMonthValue']);
+
+        $this->assertGreaterThanOrEqual(0, $result['nextMonthValue']);
     }
 
     public function testAdviceWithGrowth(): void
@@ -74,7 +72,7 @@ class ForecastServiceTest extends TestCase
         $ventes = [];
         $dates = ['2024-01-01', '2024-02-01', '2024-03-01'];
         $caValues = [100, 200, 500];
-        
+
         foreach ($dates as $index => $dateStr) {
             $vente = new Vente();
             $vente->setDate(new \DateTime($dateStr));
@@ -83,8 +81,8 @@ class ForecastServiceTest extends TestCase
         }
 
         $result = $this->forecastService->forecastUserSales($ventes);
-        
-        $this->assertIsString($result['advice']);
+
+        $this->assertNotEmpty($result['advice']);
     }
 
     public function testAdviceWithDecline(): void
@@ -92,7 +90,7 @@ class ForecastServiceTest extends TestCase
         $ventes = [];
         $dates = ['2024-01-01', '2024-02-01', '2024-03-01'];
         $caValues = [500, 400, 100];
-        
+
         foreach ($dates as $index => $dateStr) {
             $vente = new Vente();
             $vente->setDate(new \DateTime($dateStr));
@@ -101,8 +99,8 @@ class ForecastServiceTest extends TestCase
         }
 
         $result = $this->forecastService->forecastUserSales($ventes);
-        
-        $this->assertIsString($result['advice']);
+
+        $this->assertNotEmpty($result['advice']);
     }
 
     public function testCustomHorizonMonths(): void
