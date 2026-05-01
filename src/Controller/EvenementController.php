@@ -60,14 +60,19 @@ class EvenementController extends AbstractController
             'id_utilisateur' => $sessionUser->getId()
         ]);
 
-        $totalPresents = 0;
+        $presentEvents = [];
         $totalUsed = 0;
         foreach ($participations as $p) {
-            $totalPresents += $p->getNbr_presents();
+            if ($p->getNbr_presents() > 0) {
+                $ev = $p->getEvenement();
+                if ($ev) {
+                    $presentEvents[$ev->getIdEv()] = true;
+                }
+            }
             $totalUsed += $p->getUsedCoins();
         }
-        // 10 coins for every 2 attendances
-        $lifetimeEarned = floor($totalPresents / 2) * 10;
+        // 10 coins for every 2 unique events attended
+        $lifetimeEarned = floor(count($presentEvents) / 2) * 10;
         
         // Return remaining balance (not below 0)
         return max(0, (int)($lifetimeEarned - $totalUsed));

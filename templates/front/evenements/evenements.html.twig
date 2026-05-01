@@ -514,9 +514,11 @@ body { background: #f8fafc; }
                             <div class="ev-meta"><i class="fas fa-map-marker-alt"></i> {{ item.evenement.lieu|slice(0,30) }}{% if item.evenement.lieu|length > 30 %}…{% endif %}</div>
                             <div class="ev-meta"><i class="fas fa-ticket-alt"></i> {{ item.nbr_places }} place{{ item.nbr_places > 1 ? 's' : '' }}</div>
                         </div>
-                        {% if item.confirmation == 'confirmed' %}
+                        {% if item.confirmation == 'confirmed' or item.confirmation == 'attended' %}
                         <div class="p-2 rounded-3 mb-3" style="background:#f0fdf4;border:1px solid #bbf7d0;">
-                            <span style="font-size:.75rem;font-weight:700;color:#16a34a;"><i class="fas fa-check-circle me-1"></i>Participation confirmée</span>
+                            <span style="font-siaze:.75rem;font-weight:700;color:#16a34a;"><i class="fas fa-check-circle me-1"></i>
+                                {{ item.confirmation == 'attended' ? 'Présent' : 'Participation confirmée' }}
+                            </span>
                         </div>
                         {% endif %}
                         <a href="{{ path('app_evenement_show', {'id': item.evenement.id_ev}) }}"

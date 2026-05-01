@@ -121,9 +121,10 @@ class Participants
         return $this->confirmation;
     }
 
-    public function setConfirmation($value)
+    public function setConfirmation($value): static
     {
         $this->confirmation = $value;
+        return $this;
     }
 
     public function getNbr_places()
