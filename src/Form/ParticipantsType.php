@@ -28,8 +28,7 @@ class ParticipantsType extends AbstractType
                     ]),
                 ],
             ])
-            ->add('emailAddress', EmailType::class, [
-                'property_path' => 'emailAddress',
+            ->add('email', EmailType::class, [
                 'required' => false,
                 'constraints' => [
                     new Assert\NotBlank(['message' => "L'adresse email est obligatoire."]),
