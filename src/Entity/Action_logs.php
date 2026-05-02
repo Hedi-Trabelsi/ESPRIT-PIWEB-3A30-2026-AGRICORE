@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\ActionType;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -16,8 +17,8 @@ class Action_logs
     #[ORM\Column(type: "integer")]
     private int $user_id;
 
-    #[ORM\Column(type: "string", length: 50)]
-    private string $action_type;
+    #[ORM\Column(type: "string", enumType: ActionType::class, length: 50)]
+    private ActionType $action_type = ActionType::CREATE;
 
     #[ORM\Column(type: "string", length: 50)]
     private string $target_table;
@@ -35,7 +36,18 @@ class Action_logs
     private string $new_value;
 
     #[ORM\Column(type: "datetime")]
-    private \DateTimeInterface $created_at;
+    private \DateTimeImmutable $created_at;
+
+    #[ORM\Column(type: "datetime", nullable: true)]
+    private ?\DateTimeInterface $updated_at = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(name: "created_by_id", referencedColumnName: "id", nullable: true)]
+    private ?User $created_by = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(name: "updated_by_id", referencedColumnName: "id", nullable: true)]
+    private ?User $updated_by = null;
 
     public function getId(): int
     {
@@ -45,6 +57,39 @@ class Action_logs
     public function setId(int $value): self
     {
         $this->id = $value;
+        return $this;
+    }
+
+    public function getUpdated_at(): ?\DateTimeInterface
+    {
+        return $this->updated_at;
+    }
+
+    public function setUpdated_at(?\DateTimeInterface $updated_at): self
+    {
+        $this->updated_at = $updated_at;
+        return $this;
+    }
+
+    public function getCreated_by(): ?User
+    {
+        return $this->created_by;
+    }
+
+    public function setCreated_by(?User $created_by): self
+    {
+        $this->created_by = $created_by;
+        return $this;
+    }
+
+    public function getUpdated_by(): ?User
+    {
+        return $this->updated_by;
+    }
+
+    public function setUpdated_by(?User $updated_by): self
+    {
+        $this->updated_by = $updated_by;
         return $this;
     }
 
@@ -59,12 +104,12 @@ class Action_logs
         return $this;
     }
 
-    public function getAction_type(): string
+    public function getAction_type(): ActionType
     {
         return $this->action_type;
     }
 
-    public function setAction_type(string $value): self
+    public function setAction_type(ActionType $value): self
     {
         $this->action_type = $value;
         return $this;
@@ -130,7 +175,7 @@ class Action_logs
         return $this->created_at;
     }
 
-    public function setCreated_at(\DateTimeInterface $value): self
+    public function setCreated_at(\DateTimeImmutable $value): self
     {
         $this->created_at = $value;
         return $this;
@@ -147,12 +192,12 @@ class Action_logs
         return $this;
     }
 
-    public function getActionType(): ?string
+    public function getActionType(): ActionType
     {
         return $this->action_type;
     }
 
-    public function setActionType(string $action_type): static
+    public function setActionType(ActionType $action_type): static
     {
         $this->action_type = $action_type;
         return $this;
@@ -211,5 +256,43 @@ class Action_logs
     {
         $this->created_at = $created_at;
         return $this;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeInterface
+    {
+        return $this->updated_at;
+    }
+
+    public function setUpdatedAt(?\DateTimeInterface $updated_at): static
+    {
+        $this->updated_at = $updated_at;
+        return $this;
+    }
+
+    public function getCreatedBy(): ?User
+    {
+        return $this->created_by;
+    }
+
+    public function setCreatedBy(?User $created_by): static
+    {
+        $this->created_by = $created_by;
+        return $this;
+    }
+
+    public function getUpdatedBy(): ?User
+    {
+        return $this->updated_by;
+    }
+
+    public function setUpdatedBy(?User $updated_by): static
+    {
+        $this->updated_by = $updated_by;
+        return $this;
+    }
+
+    public function __construct()
+    {
+        $this->created_at = new \DateTimeImmutable();
     }
 }

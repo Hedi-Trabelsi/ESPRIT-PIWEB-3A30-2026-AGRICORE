@@ -23,7 +23,7 @@ class ParticipantsManager
         }
 
         try {
-            $email = $participant->getEmail();
+            $email = $participant->getEmailAddress();
         } catch (\Error | \TypeError $e) {
             throw new \InvalidArgumentException("L'adresse email est obligatoire.");
         }

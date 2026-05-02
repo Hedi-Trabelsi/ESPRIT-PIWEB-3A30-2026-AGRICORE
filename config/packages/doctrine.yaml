@@ -8,6 +8,8 @@ doctrine:
 
         profiling_collect_backtrace: '%kernel.debug%'
         use_savepoints: true
+        options:
+            1002: "SET time_zone = '+01:00'"
     orm:
         auto_generate_proxy_classes: true
         enable_lazy_ghost_objects: true

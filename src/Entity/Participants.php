@@ -41,8 +41,8 @@ class Participants
     #[ORM\Column(type: "integer")]
     private int $entry_code;
 
-    #[ORM\Column(type: "string", length: 180, nullable: true)]
-    private ?string $email = null;
+    #[ORM\Embedded(class: Email::class)]
+    private ?Email $email = null;
 
     #[ORM\Column(type: "string", length: 64, nullable: true)]
     private ?string $confirm_token = null;
@@ -262,8 +262,24 @@ class Participants
         return $this;
     }
 
-    public function getEmail(): ?string { return $this->email; }
-    public function setEmail(?string $email): static { $this->email = $email; return $this; }
+    public function getEmail(): ?Email { return $this->email; }
+    public function setEmail(?Email $email): static { $this->email = $email; return $this; }
+    
+    public function getEmailAddress(): ?string
+    {
+        return $this->email?->getAddress();
+    }
+    
+    public function setEmailAddress(?string $address): static
+    {
+        if ($address === null) {
+            $this->email = null;
+        } else {
+            $this->email ??= new Email();
+            $this->email->setAddress($address);
+        }
+        return $this;
+    }
 
     public function getConfirmToken(): ?string { return $this->confirm_token; }
     public function setConfirmToken(?string $token): static { $this->confirm_token = $token; return $this; }

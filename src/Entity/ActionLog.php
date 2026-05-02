@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\ActionType;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -30,7 +31,7 @@ class ActionLog
     }
 
     #[ORM\Column(type: 'integer', nullable: false)]
-    private ?int $user_id = null;
+    private int $user_id = 0;
 
     public function getUser_id(): ?int
     {
@@ -43,22 +44,22 @@ class ActionLog
         return $this;
     }
 
-    #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $action_type = null;
+    #[ORM\Column(type: 'string', enumType: ActionType::class, nullable: false)]
+    private ActionType $action_type = ActionType::CREATE;
 
-    public function getAction_type(): ?string
+    public function getAction_type(): ActionType
     {
         return $this->action_type;
     }
 
-    public function setAction_type(string $action_type): self
+    public function setAction_type(ActionType $action_type): self
     {
         $this->action_type = $action_type;
         return $this;
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $target_table = null;
+    private string $target_table = '';
 
     public function getTarget_table(): ?string
     {
@@ -72,7 +73,7 @@ class ActionLog
     }
 
     #[ORM\Column(type: 'integer', nullable: false)]
-    private ?int $target_id = null;
+    private int $target_id = 0;
 
     public function getTarget_id(): ?int
     {
@@ -86,7 +87,7 @@ class ActionLog
     }
 
     #[ORM\Column(type: 'text', nullable: false)]
-    private ?string $description = null;
+    private string $description = '';
 
     public function getDescription(): ?string
     {
@@ -100,7 +101,7 @@ class ActionLog
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $old_value = null;
+    private string $old_value = '';
 
     public function getOld_value(): ?string
     {
@@ -114,7 +115,7 @@ class ActionLog
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $new_value = null;
+    private string $new_value = '';
 
     public function getNew_value(): ?string
     {
@@ -128,16 +129,30 @@ class ActionLog
     }
 
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $created_at = null;
+    private \DateTimeImmutable $created_at;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeImmutable $updated_at = null;
 
     public function getCreated_at(): ?\DateTimeInterface
     {
         return $this->created_at;
     }
 
-    public function setCreated_at(\DateTimeInterface $created_at): self
+    public function setCreated_at(\DateTimeImmutable $created_at): self
     {
         $this->created_at = $created_at;
+        return $this;
+    }
+
+    public function getUpdated_at(): ?\DateTimeInterface
+    {
+        return $this->updated_at;
+    }
+
+    public function setUpdated_at(?\DateTimeImmutable $updated_at): self
+    {
+        $this->updated_at = $updated_at;
         return $this;
     }
 
@@ -153,12 +168,12 @@ class ActionLog
         return $this;
     }
 
-    public function getActionType(): ?string
+    public function getActionType(): ActionType
     {
         return $this->action_type;
     }
 
-    public function setActionType(string $action_type): static
+    public function setActionType(ActionType $action_type): static
     {
         $this->action_type = $action_type;
 
@@ -223,6 +238,23 @@ class ActionLog
         $this->created_at = $created_at;
 
         return $this;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeInterface
+    {
+        return $this->updated_at;
+    }
+
+    public function setUpdatedAt(?\DateTimeInterface $updated_at): static
+    {
+        $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    public function __construct()
+    {
+        $this->created_at = new \DateTimeImmutable();
     }
 
 }

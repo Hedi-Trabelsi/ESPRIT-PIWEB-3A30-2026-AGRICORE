@@ -15,6 +15,14 @@ doctrine_doctor:
         # Renaming them is out of scope for this team project — DB stays as-is.
         naming_convention:
             enabled: false
+        # Disabled: Action_logs is a legacy table with nullable created_by,
+        # no need to change it
+        blameable_trait:
+            enabled: false
+        # Disabled: Action_logs and ActionLog use user_id as primitive foreign key for
+        # legacy reasons, no need to change to object relations
+        foreign_key_mapping:
+            enabled: false
 #
 #    # Performance Analyzers (all enabled by default with production-ready thresholds)
 #    analyzers:
