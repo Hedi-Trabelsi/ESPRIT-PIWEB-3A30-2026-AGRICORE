@@ -170,8 +170,10 @@ class SuiviAnimalTest extends TestCase
         $animal->setCodeAnimal('Z999')->setEspece('Caprin');
         $this->suivi->setAnimal($animal);
 
-        $this->assertSame('Z999', $this->suivi->getAnimal()->getCodeAnimal());
-        $this->assertSame('Caprin', $this->suivi->getAnimal()->getEspece());
+        $linked = $this->suivi->getAnimal();
+        $this->assertNotNull($linked);
+        $this->assertSame('Z999', $linked->getCodeAnimal());
+        $this->assertSame('Caprin', $linked->getEspece());
     }
 
     public function testMultipleFieldsSetCorrectly(): void
@@ -190,7 +192,9 @@ class SuiviAnimalTest extends TestCase
             ->setEtatSante('Bon')
             ->setRemarque('RAS');
 
-        $this->assertSame('A005', $this->suivi->getAnimal()->getCodeAnimal());
+        $linked2 = $this->suivi->getAnimal();
+        $this->assertNotNull($linked2);
+        $this->assertSame('A005', $linked2->getCodeAnimal());
         $this->assertSame($date, $this->suivi->getDateSuivi());
         $this->assertSame(38.8, $this->suivi->getTemperature());
         $this->assertSame(500.0, $this->suivi->getPoids());

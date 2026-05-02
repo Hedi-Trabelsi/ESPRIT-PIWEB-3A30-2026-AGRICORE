@@ -21,7 +21,7 @@ class SuiviAnimalRepository extends ServiceEntityRepository
      */
     public function findByAnimalAndPeriode(\App\Entity\Animal $animal, string $dateDebut, string $dateFin): array
     {
-        return $this->createQueryBuilder('s')
+        $result = $this->createQueryBuilder('s')
             ->andWhere('s.animal = :animal')
             ->andWhere('s.dateSuivi >= :debut')
             ->andWhere('s.dateSuivi <= :fin')
@@ -31,6 +31,7 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->orderBy('s.dateSuivi', 'ASC')
             ->getQuery()
             ->getResult();
+        return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof SuiviAnimal)) : [];
     }
 
     /**
@@ -59,7 +60,8 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             )->setParameter('q', '%'.$q.'%');
         }
 
-        return $qb->orderBy('s.'.$sortBy, $order)->getQuery()->getResult();
+        $result = $qb->orderBy('s.'.$sortBy, $order)->getQuery()->getResult();
+        return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof SuiviAnimal)) : [];
     }
 
     /**
@@ -98,6 +100,7 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             $qb->andWhere('s.temperature <= :tmax')->setParameter('tmax', $tempMax);
         }
 
-        return $qb->orderBy('s.'.$sortBy, $order)->getQuery()->getResult();
+        $result = $qb->orderBy('s.'.$sortBy, $order)->getQuery()->getResult();
+        return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof SuiviAnimal)) : [];
     }
 }

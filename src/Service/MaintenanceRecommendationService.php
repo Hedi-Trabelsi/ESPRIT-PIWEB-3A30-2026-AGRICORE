@@ -49,9 +49,15 @@ class MaintenanceRecommendationService
                 continue;
             }
 
+            $technicianId = $technician->getId();
+            $farmerId = $farmer->getId();
+            if ($technicianId === null || $farmerId === null) {
+                $historyCounts[$maintenance->getId_maintenance()] = 0;
+                continue;
+            }
             $historyCounts[$maintenance->getId_maintenance()] = $this->tacheRepository->countPastTasksForTechnicianAndFarmer(
-                $technician->getId(),
-                $farmer->getId(),
+                $technicianId,
+                $farmerId,
                 new \DateTimeImmutable('today')
             );
         }

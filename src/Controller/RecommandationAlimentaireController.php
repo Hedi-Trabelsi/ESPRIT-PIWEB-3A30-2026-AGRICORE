@@ -129,8 +129,8 @@ class RecommandationAlimentaireController extends AbstractController
         $animal = $animalRepo->find($animalId);
         if (!$animal) return new JsonResponse(['error' => 'Animal introuvable.'], 404);
 
-        $espece = $animal->getEspece();
-        $race   = $animal->getRace();
+        $espece = (string) $animal->getEspece();
+        $race   = (string) $animal->getRace();
         $profil = $this->getProfilEspece($espece);
 
         // ════════════════════════════════════════

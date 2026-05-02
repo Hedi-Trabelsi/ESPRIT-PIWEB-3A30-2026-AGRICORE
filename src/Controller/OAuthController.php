@@ -157,12 +157,12 @@ class OAuthController extends AbstractController
                 ]);
                 $emails = $resp->toArray(false);
                 foreach ($emails as $row) {
-                    if (!empty($row['primary']) && !empty($row['verified'])) {
+                    if (is_array($row) && !empty($row['primary']) && !empty($row['verified']) && isset($row['email']) && is_string($row['email'])) {
                         $email = $row['email'];
                         break;
                     }
                 }
-                if (!$email && !empty($emails[0]['email'])) {
+                if (!$email && isset($emails[0]) && is_array($emails[0]) && isset($emails[0]['email']) && is_string($emails[0]['email'])) {
                     $email = $emails[0]['email'];
                 }
             } catch (\Throwable) {
@@ -171,12 +171,14 @@ class OAuthController extends AbstractController
         }
 
         $raw = $u->toArray();
+        $login = isset($raw['login']) && is_string($raw['login']) ? $raw['login'] : null;
+        $avatarUrl = isset($raw['avatar_url']) && is_string($raw['avatar_url']) ? $raw['avatar_url'] : null;
         return [
-            'email'       => (string) $email,
-            'name'        => $u->getName() ?: ($raw['login'] ?? null),
+            'email'       => $email !== null ? $email : '',
+            'name'        => $u->getName() ?: $login,
             'first_name'  => null,
             'last_name'   => null,
-            'picture_url' => $raw['avatar_url'] ?? null,
+            'picture_url' => $avatarUrl,
         ];
     }
 }

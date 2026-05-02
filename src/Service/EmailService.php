@@ -28,7 +28,7 @@ class EmailService
         try {
             $email = (new TemplatedEmail())
                 ->from('ncibifiras19@gmail.com')
-                ->to($user->getEmail())
+                ->to((string) $user->getEmail())
                 ->subject('Alerte Anomalie - Agricore')
                 ->htmlTemplate('emails/anomaly_alert.html.twig')
                 ->context([

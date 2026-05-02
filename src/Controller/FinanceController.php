@@ -43,7 +43,10 @@ class FinanceController extends AbstractController
                 ->setParameter('role', (int)$filterRole);
         }
 
-        $users = $queryBuilder->getQuery()->getResult();
+        $rawUsers = $queryBuilder->getQuery()->getResult();
+        $users = is_array($rawUsers)
+            ? array_values(array_filter($rawUsers, fn($r) => $r instanceof \App\Entity\User))
+            : [];
 
         $totalUsers = count($users);
         $totalExpensesAll = 0;
@@ -173,6 +176,7 @@ class FinanceController extends AbstractController
         if (!$depense) throw $this->createNotFoundException('Dépense non trouvée');
 
         $user = $depense->getUser();
+        if (!$user instanceof \App\Entity\User) throw $this->createNotFoundException('Utilisateur non trouvé');
         $form = $this->createForm(DepenseType::class, $depense);
 
         $form->handleRequest($request);
@@ -207,7 +211,8 @@ class FinanceController extends AbstractController
         $depense = $depenseRepository->find($id);
         if (!$depense) throw $this->createNotFoundException('Dépense non trouvée');
 
-        $userId = $depense->getUser()->getId();
+        $owner = $depense->getUser();
+        $userId = $owner !== null ? $owner->getId() : null;
         $em->remove($depense);
         $em->flush();
 
@@ -246,6 +251,7 @@ class FinanceController extends AbstractController
         if (!$vente) throw $this->createNotFoundException('Vente non trouvée');
 
         $user = $vente->getUser();
+        if (!$user instanceof \App\Entity\User) throw $this->createNotFoundException('Utilisateur non trouvé');
         $form = $this->createForm(VenteType::class, $vente);
 
         $form->handleRequest($request);
@@ -267,7 +273,9 @@ class FinanceController extends AbstractController
         $vente = $venteRepository->find($id);
         if (!$vente) throw $this->createNotFoundException('Vente non trouvée');
 
-        $userId = $vente->getUser()->getId();
+        $venteUser = $vente->getUser();
+        if (!$venteUser instanceof \App\Entity\User) throw $this->createNotFoundException('Utilisateur non trouvé');
+        $userId = $venteUser->getId();
         $em->remove($vente);
         $em->flush();
 
@@ -293,7 +301,7 @@ class FinanceController extends AbstractController
     {
         if ($id === null) {
             $sessionUser = $request->getSession()->get('user');
-            if (!$sessionUser) {
+            if (!$sessionUser instanceof \App\Entity\User) {
                 return $this->redirectToRoute('front_login');
             }
             $user = $userRepository->find($sessionUser->getId());
@@ -316,14 +324,18 @@ class FinanceController extends AbstractController
 
         $monthlyStats = [];
         foreach ($user->getDepenses() as $depense) {
-            $month = $depense->getDate()->format('Y-m');
+            $depDate = $depense->getDate();
+            if ($depDate === null) continue;
+            $month = $depDate->format('Y-m');
             if (!isset($monthlyStats[$month])) {
                 $monthlyStats[$month] = ['expenses' => 0, 'sales' => 0];
             }
             $monthlyStats[$month]['expenses'] += $depense->getMontant();
         }
         foreach ($user->getVentes() as $vente) {
-            $month = $vente->getDate()->format('Y-m');
+            $venteDate = $vente->getDate();
+            if ($venteDate === null) continue;
+            $month = $venteDate->format('Y-m');
             if (!isset($monthlyStats[$month])) {
                 $monthlyStats[$month] = ['expenses' => 0, 'sales' => 0];
             }
@@ -389,14 +401,18 @@ class FinanceController extends AbstractController
         $monthlyStats = [];
         $totalSales = 0.0;
         foreach ($depensesArr as $depense) {
-            $month = $depense->getDate()->format('Y-m');
+            $depDate = $depense->getDate();
+            if ($depDate === null) continue;
+            $month = $depDate->format('Y-m');
             if (!isset($monthlyStats[$month])) {
                 $monthlyStats[$month] = ['expenses' => 0, 'sales' => 0];
             }
             $monthlyStats[$month]['expenses'] += $depense->getMontant();
         }
         foreach ($ventesArr as $vente) {
-            $month = $vente->getDate()->format('Y-m');
+            $venteDate = $vente->getDate();
+            if ($venteDate === null) continue;
+            $month = $venteDate->format('Y-m');
             if (!isset($monthlyStats[$month])) {
                 $monthlyStats[$month] = ['expenses' => 0, 'sales' => 0];
             }
@@ -484,6 +500,7 @@ class FinanceController extends AbstractController
         if (!$depense) throw $this->createNotFoundException('Dépense non trouvée');
 
         $user = $depense->getUser();
+        if (!$user instanceof \App\Entity\User) throw $this->createNotFoundException('Utilisateur non trouvé');
         $history = array_filter(
             $user->getDepenses()->toArray(),
             fn(Depense $d) => $d->getIdDepense() !== $depense->getIdDepense()

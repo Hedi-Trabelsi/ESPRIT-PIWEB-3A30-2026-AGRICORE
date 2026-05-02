@@ -31,15 +31,17 @@ public function index(Request $request, MaintenanceRepository $repo): Response
 
     $sessionUser = $request->getSession()->get('user');
 
-    if (!$sessionUser) {
+    if (!$sessionUser instanceof User) {
         return $this->redirectToRoute('front_login');
     }
 
-    
-    $userId = is_object($sessionUser) ? $sessionUser->getId() : $sessionUser;
+    $userId = $sessionUser->getId();
 
-    
-    $maintenances = $repo->findByFilters($search, $status, $userId);
+    $maintenances = $repo->findByFilters(
+        is_string($search) ? $search : null,
+        is_string($status) ? $status : null,
+        $userId
+    );
 
     return $this->render('front/maintenance/maintenance.html.twig', [
         'listeMaintenances' => $maintenances,
@@ -82,7 +84,11 @@ public function index(Request $request, MaintenanceRepository $repo): Response
             }
 
             $cout = $tache->getCoutEstimee();
-            $totalCost += is_numeric($cout) ? (float) $cout : (float) str_replace([',', ' '], ['.', ''], $cout);
+            if (is_numeric($cout)) {
+                $totalCost += (float) $cout;
+            } elseif (is_string($cout)) {
+                $totalCost += (float) str_replace([',', ' '], ['.', ''], $cout);
+            }
         }
 
         if ($hasEtatChanges) {
@@ -112,7 +118,7 @@ public function index(Request $request, MaintenanceRepository $repo): Response
 
         $sessionUser = $request->getSession()->get('user');
         $technicianAddress = null;
-        if (is_object($sessionUser) && method_exists($sessionUser, 'getAdresse')) {
+        if ($sessionUser instanceof User) {
             $technicianAddress = (string) $sessionUser->getAdresse();
         }
 
@@ -140,9 +146,9 @@ public function index(Request $request, MaintenanceRepository $repo): Response
         $sessionUser = $request->getSession()->get('user');
         $technician = null;
 
-        if (is_object($sessionUser) && method_exists($sessionUser, 'getId') && method_exists($sessionUser, 'getRole') && (int) $sessionUser->getRole() === 2) {
+        if ($sessionUser instanceof User && (int) $sessionUser->getRole() === 2) {
             $technician = $entityManager->getRepository(User::class)->find($sessionUser->getId());
-        } elseif (is_array($sessionUser) && isset($sessionUser['id'], $sessionUser['role']) && (int) $sessionUser['role'] === 2) {
+        } elseif (is_array($sessionUser) && isset($sessionUser['id'], $sessionUser['role']) && is_scalar($sessionUser['id']) && is_scalar($sessionUser['role']) && (int) $sessionUser['role'] === 2) {
             $technician = $entityManager->getRepository(User::class)->find((int) $sessionUser['id']);
         }
 
@@ -175,7 +181,7 @@ public function index(Request $request, MaintenanceRepository $repo): Response
         $maintenances = $maintenanceRepository->findBy(['statut' => 'Planifiée']);
 
         $sessionUser = $request->getSession()->get('user');
-        $technicianAddress = (is_object($sessionUser) && method_exists($sessionUser, 'getAdresse'))
+        $technicianAddress = $sessionUser instanceof User
             ? (string) $sessionUser->getAdresse()
             : null;
 
@@ -206,12 +212,16 @@ public function index(Request $request, MaintenanceRepository $repo): Response
     ): Response {
         $sessionUser = $request->getSession()->get('user');
 
-        if (!is_object($sessionUser) || !method_exists($sessionUser, 'getRole') || (int) $sessionUser->getRole() !== 2) {
+        if (!$sessionUser instanceof User || (int) $sessionUser->getRole() !== 2) {
             return $this->redirectToRoute('front_login');
         }
 
         $technician = $entityManager->getRepository(User::class)->find($sessionUser->getId());
         if (!$technician) {
+            return $this->redirectToRoute('front_login');
+        }
+        $technicianId = $technician->getId();
+        if ($technicianId === null) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -234,7 +244,7 @@ public function index(Request $request, MaintenanceRepository $repo): Response
         $hasEtatChanges = false;
 
         $tasksByDay = [];
-        foreach ($tacheRepository->findByTechnicianAndDateRange($technician->getId(), $monthStart, $monthEnd) as $task) {
+        foreach ($tacheRepository->findByTechnicianAndDateRange($technicianId, $monthStart, $monthEnd) as $task) {
             $datePrevue = $task->getDatePrevue();
             $isPast = $datePrevue instanceof \DateTimeInterface && $datePrevue->format('Y-m-d') < $todayKey;
 
@@ -279,7 +289,7 @@ public function index(Request $request, MaintenanceRepository $repo): Response
         foreach ($calendarPeriod as $day) {
             $dayKey = $day->format('Y-m-d');
             $dayTasks = $tasksByDay[$dayKey] ?? [];
-            $dayLoad = count(array_filter($dayTasks, static fn (array $task): bool => ($task['etat'] ?? 0) !== 1));
+            $dayLoad = count(array_filter($dayTasks, static fn (array $task): bool => $task['etat'] !== 1));
             $isCurrentMonth = $day->format('Y-m') === $monthStart->format('Y-m');
             $isPast = $dayKey < $todayKey;
             $isOverloaded = $isCurrentMonth && $dayLoad > $threshold;
@@ -311,7 +321,7 @@ public function index(Request $request, MaintenanceRepository $repo): Response
         }
 
         $overdueTasks = [];
-        foreach ($tacheRepository->findOverdueTasksForTechnician($technician->getId(), $today) as $task) {
+        foreach ($tacheRepository->findOverdueTasksForTechnician($technicianId, $today) as $task) {
             $taskData = $this->buildCalendarTaskData($task, $todayKey);
             if ($taskData['isOverdue'] && $taskData['etat'] !== 1) {
                 $overdueTasks[] = $taskData;
@@ -348,9 +358,14 @@ public function index(Request $request, MaintenanceRepository $repo): Response
     public function detail(Maintenance $maintenance, Request $request, MaintenanceDateChangeNotificationStore $notificationStore): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        $sessionUserId = is_object($sessionUser) && method_exists($sessionUser, 'getId')
-            ? (int) $sessionUser->getId()
-            : (is_array($sessionUser) && isset($sessionUser['id']) ? (int) $sessionUser['id'] : (is_numeric($sessionUser) ? (int) $sessionUser : null));
+        $sessionUserId = null;
+        if ($sessionUser instanceof User) {
+            $sessionUserId = $sessionUser->getId();
+        } elseif (is_array($sessionUser) && isset($sessionUser['id']) && is_scalar($sessionUser['id'])) {
+            $sessionUserId = (int) $sessionUser['id'];
+        } elseif (is_numeric($sessionUser)) {
+            $sessionUserId = (int) $sessionUser;
+        }
 
         $dateChangeNotifications = [];
         if ($sessionUserId !== null && $maintenance->getId_agriculteur()?->getId() === $sessionUserId) {
@@ -381,9 +396,14 @@ public function index(Request $request, MaintenanceRepository $repo): Response
     public function dateChangeNotifications(Request $request, MaintenanceDateChangeNotificationStore $notificationStore): JsonResponse
     {
         $sessionUser = $request->getSession()->get('user');
-        $sessionUserId = is_object($sessionUser) && method_exists($sessionUser, 'getId')
-            ? (int) $sessionUser->getId()
-            : (is_array($sessionUser) && isset($sessionUser['id']) ? (int) $sessionUser['id'] : (is_numeric($sessionUser) ? (int) $sessionUser : null));
+        $sessionUserId = null;
+        if ($sessionUser instanceof User) {
+            $sessionUserId = $sessionUser->getId();
+        } elseif (is_array($sessionUser) && isset($sessionUser['id']) && is_scalar($sessionUser['id'])) {
+            $sessionUserId = (int) $sessionUser['id'];
+        } elseif (is_numeric($sessionUser)) {
+            $sessionUserId = (int) $sessionUser;
+        }
 
         if ($sessionUserId === null) {
             return new JsonResponse(['success' => false], Response::HTTP_UNAUTHORIZED);
@@ -418,7 +438,10 @@ public function add(Request $request, EntityManagerInterface $em): Response
     }
 
     // 3. On récupère l'ID (que ce soit un objet ou un entier)
-    $userId = (is_object($sessionUser)) ? $sessionUser->getId() : $sessionUser;
+    $userId = $sessionUser instanceof User ? $sessionUser->getId() : (is_scalar($sessionUser) ? (int) $sessionUser : null);
+    if ($userId === null) {
+        return $this->redirectToRoute('front_login');
+    }
 
     // 4. On recharge l'utilisateur "frais" depuis la base de données
     $agriculteur = $em->getRepository(User::class)->find($userId);
@@ -469,7 +492,7 @@ public function add(Request $request, EntityManagerInterface $em): Response
     #[Route('/maintenance/supprimer/{id_maintenance}', name: 'app_maintenance_delete', methods: ['POST'])]
     public function delete(Request $request, Maintenance $maintenance, EntityManagerInterface $em): Response
     {
-        if ($this->isCsrfTokenValid('delete'.$maintenance->getId_maintenance(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete'.$maintenance->getId_maintenance(), (string) $request->request->get('_token', ''))) {
             $em->remove($maintenance);
             $em->flush();
           
@@ -481,7 +504,7 @@ public function add(Request $request, EntityManagerInterface $em): Response
 #[Route('/back/maintenance/supprimer/{id_maintenance}', name: 'app_maintenance_delete_back', methods: ['POST'])]
 public function deleteBack(Request $request, Maintenance $maintenance, EntityManagerInterface $em): Response
 {
-    if ($this->isCsrfTokenValid('delete'.$maintenance->getId_maintenance(), $request->request->get('_token'))) {
+    if ($this->isCsrfTokenValid('delete'.$maintenance->getId_maintenance(), (string) $request->request->get('_token', ''))) {
         $em->remove($maintenance);
         $em->flush();
 
@@ -499,10 +522,13 @@ public function backList(
 {
     $search = $request->query->get('q');
     $status = $request->query->get('s');
-    $priority = $request->query->get('p'); 
+    $priority = $request->query->get('p');
 
-   
-    $maintenances = $repo->findByFilters($search, $status, $priority);
+    $maintenances = $repo->findByFilters(
+        is_string($search) ? $search : null,
+        is_string($status) ? $status : null,
+        is_numeric($priority) ? (int) $priority : null
+    );
     $notificationContext = $this->buildMaintenanceNotificationContext($repo);
 
     return $this->render('back/maintenance/maintenance.html.twig', [
@@ -896,11 +922,11 @@ private function isAdminSession(Request $request): bool
 {
     $sessionUser = $request->getSession()->get('user');
 
-    if (is_object($sessionUser) && method_exists($sessionUser, 'getRole')) {
+    if ($sessionUser instanceof User) {
         return (int) $sessionUser->getRole() === 0;
     }
 
-    if (is_array($sessionUser) && isset($sessionUser['role'])) {
+    if (is_array($sessionUser) && isset($sessionUser['role']) && is_scalar($sessionUser['role'])) {
         return (int) $sessionUser['role'] === 0;
     }
 
@@ -942,7 +968,7 @@ public function evaluer(Tache $tache, int $note, EntityManagerInterface $em): Re
 }
 
 /**
- * @return array<string, mixed>
+ * @return array{id: int|null, date: \DateTimeInterface|null, dateKey: string, maintenanceId: int|null, taskName: string, maintenanceName: string, maintenanceLieu: string, maintenanceStatus: string, description: string, technicianName: string, etat: int, isResolved: bool, isOverdue: bool, isToday: bool, daysLate: int, stateLabel: string}
  */
 private function buildCalendarTaskData(Tache $task, string $todayKey): array
 {
@@ -958,33 +984,29 @@ private function buildCalendarTaskData(Tache $task, string $todayKey): array
         ? (int) $taskDate->diff(new \DateTimeImmutable('today'))->format('%a')
         : 0;
 
+    $tech = $task->getIdTechnicien();
     return [
         'id' => $task->getId_tache(),
         'date' => $taskDate,
         'dateKey' => $dateKey,
         'maintenanceId' => $maintenance?->getId_maintenance(),
-        'taskName' => $task->getNomTache(),
+        'taskName' => (string) $task->getNomTache(),
         'maintenanceName' => $maintenance?->getNomMaintenance() ?? 'Maintenance',
         'maintenanceLieu' => $maintenance?->getLieu() ?? 'Lieu inconnu',
-        'maintenanceStatus' => $maintenanceStatus,
-        'description' => $task->getDescription(),
-        'technicianName' => $task->getIdTechnicien()
-            ? trim(($task->getIdTechnicien()->getPrenom() ?? '') . ' ' . ($task->getIdTechnicien()->getNom() ?? ''))
+        'maintenanceStatus' => (string) $maintenanceStatus,
+        'description' => (string) $task->getDescription(),
+        'technicianName' => $tech !== null
+            ? trim(($tech->getPrenom() ?? '') . ' ' . ($tech->getNom() ?? ''))
             : 'Non assigné',
-        'etat' => $etat,
+        'etat' => (int) $etat,
         'isResolved' => $isResolved,
         'isOverdue' => $isOverdue,
         'isToday' => $isToday,
         'daysLate' => $daysLate,
-        'stateLabel' => match ($etat) {
+        'stateLabel' => (string) match ((int) $etat) {
             1 => 'Terminée',
             -1 => 'En retard',
             default => ($isOverdue ? 'En retard' : 'À faire'),
-        },
-        'stateClass' => match ($etat) {
-            1 => 'success',
-            -1 => 'secondary',
-            default => ($isOverdue ? 'secondary' : 'warning text-dark'),
         },
     ];
 }

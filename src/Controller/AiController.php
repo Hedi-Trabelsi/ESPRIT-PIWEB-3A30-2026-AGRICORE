@@ -17,11 +17,11 @@ class AiController extends AbstractController
     #[Route('/back/ai/generate-description', name: 'back_ai_generate_description', methods: ['POST'])]
     public function generateDescription(Request $request): JsonResponse
     {
-        $titre    = trim($request->request->get('titre', ''));
-        $lieu     = trim($request->request->get('lieu', ''));
-        $dateDebut= trim($request->request->get('date_debut', ''));
-        $prix     = trim($request->request->get('prix', ''));
-        $capacite = trim($request->request->get('capacite', ''));
+        $titre    = trim((string) $request->request->get('titre', ''));
+        $lieu     = trim((string) $request->request->get('lieu', ''));
+        $dateDebut= trim((string) $request->request->get('date_debut', ''));
+        $prix     = trim((string) $request->request->get('prix', ''));
+        $capacite = trim((string) $request->request->get('capacite', ''));
 
         if (empty($titre)) return new JsonResponse(['error' => 'Le titre est requis.'], 400);
 
@@ -53,10 +53,10 @@ class AiController extends AbstractController
     {
         set_time_limit(180);
 
-        $titre    = trim($request->request->get('titre', ''));
-        $lieu     = trim($request->request->get('lieu', ''));
-        $dateDebut= trim($request->request->get('date_debut', ''));
-        $prix     = trim($request->request->get('prix', ''));
+        $titre    = trim((string) $request->request->get('titre', ''));
+        $lieu     = trim((string) $request->request->get('lieu', ''));
+        $dateDebut= trim((string) $request->request->get('date_debut', ''));
+        $prix     = trim((string) $request->request->get('prix', ''));
 
         if (empty($titre)) return new JsonResponse(['error' => 'Le titre est requis.'], 400);
 
@@ -91,7 +91,7 @@ class AiController extends AbstractController
     public function savePoster(Request $request, EntityManagerInterface $em): JsonResponse
     {
         $eventId  = (int) $request->request->get('event_id', 0);
-        $imageData = trim($request->request->get('image_data', ''));
+        $imageData = trim((string) $request->request->get('image_data', ''));
 
         if ($eventId <= 0 || empty($imageData)) {
             return new JsonResponse(['error' => 'Données manquantes.'], 400);
@@ -117,12 +117,16 @@ class AiController extends AbstractController
     #[Route('/back/ai/chat-sentiment/{id}', name: 'back_ai_chat_sentiment', methods: ['GET'])]
     public function chatSentiment(int $id, EntityManagerInterface $em): JsonResponse
     {
-        $messages = $em->getRepository(\App\Entity\Messages::class)
+        $rawMessages = $em->getRepository(\App\Entity\Messages::class)
             ->createQueryBuilder('m')
             ->where('m.event_id = :eid')
             ->setParameter('eid', $id)
             ->orderBy('m.timestamp', 'ASC')
             ->getQuery()->getResult();
+
+        $messages = is_array($rawMessages)
+            ? array_values(array_filter($rawMessages, fn($r) => $r instanceof \App\Entity\Messages))
+            : [];
 
         if (empty($messages)) {
             return new JsonResponse(['status' => 'empty', 'summary' => 'Aucun message dans ce chat.', 'bad' => [], 'good' => []]);
@@ -130,7 +134,7 @@ class AiController extends AbstractController
 
         $textMessages = [];
         foreach ($messages as $msg) {
-            $c = $msg->getContent();
+            $c = (string) $msg->getContent();
             if (!str_starts_with($c, '[AUDIO')) $textMessages[] = $c;
         }
 
@@ -157,7 +161,7 @@ class AiController extends AbstractController
             $raw = trim($response->getContent());
             if (preg_match('/\{.*\}/s', $raw, $m)) $raw = $m[0];
             $data = json_decode($raw, true);
-            if (!$data || !isset($data['sentiment'])) throw new \Exception('Invalid JSON');
+            if (!is_array($data) || !isset($data['sentiment'])) throw new \Exception('Invalid JSON');
 
             return new JsonResponse([
                 'status'  => $data['sentiment'],

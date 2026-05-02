@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Animal;
+use App\Entity\User;
 use App\Form\AnimalType;
 use App\Repository\AnimalRepository;
 use App\Repository\SuiviAnimalRepository;
@@ -27,9 +28,9 @@ final class AnimalController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        $q      = $request->query->get('q', '');
-        $sortBy = $request->query->get('sortBy', 'codeAnimal');
-        $order  = $request->query->get('order', 'ASC');
+        $q      = (string) $request->query->get('q', '');
+        $sortBy = (string) $request->query->get('sortBy', 'codeAnimal');
+        $order  = (string) $request->query->get('order', 'ASC');
 
         $animals = $animalRepository->search($q, $sortBy, $order, null);
 
@@ -56,12 +57,12 @@ final class AnimalController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        $codeAnimal = $request->query->get('codeAnimal', '');
-        $espece     = $request->query->get('espece', '');
-        $race       = $request->query->get('race', '');
-        $sexe       = $request->query->get('sexe', '');
-        $sortBy     = $request->query->get('sortBy', 'codeAnimal');
-        $order      = $request->query->get('order', 'ASC');
+        $codeAnimal = (string) $request->query->get('codeAnimal', '');
+        $espece     = (string) $request->query->get('espece', '');
+        $race       = (string) $request->query->get('race', '');
+        $sexe       = (string) $request->query->get('sexe', '');
+        $sortBy     = (string) $request->query->get('sortBy', 'codeAnimal');
+        $order      = (string) $request->query->get('order', 'ASC');
 
         $animals = $animalRepository->searchStatic($codeAnimal, $espece, $race, $sexe, $sortBy, $order, null);
 
@@ -84,9 +85,9 @@ final class AnimalController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        $q      = $request->query->get('q', '');
-        $sortBy = $request->query->get('sortBy', 'codeAnimal');
-        $order  = $request->query->get('order', 'ASC');
+        $q      = (string) $request->query->get('q', '');
+        $sortBy = (string) $request->query->get('sortBy', 'codeAnimal');
+        $order  = (string) $request->query->get('order', 'ASC');
 
         $animals = $animalRepository->search($q, $sortBy, $order, null);
 
@@ -152,7 +153,9 @@ final class AnimalController extends AbstractController
             $tempSum   += $s->getTemperature();
             $poidsSum  += $s->getPoids();
             $rythmeSum += $s->getRythmeCardiaque();
-            $mois = $s->getDateSuivi()->format('Y-m');
+            $sDateSuivi = $s->getDateSuivi();
+            if ($sDateSuivi === null) continue;
+            $mois = $sDateSuivi->format('Y-m');
             $parMois[$mois] = ($parMois[$mois] ?? 0) + 1;
         }
         ksort($parMois);
@@ -243,7 +246,7 @@ final class AnimalController extends AbstractController
     #[Route('/new', name: 'app_animal_new', methods: ['GET', 'POST'])]    public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User || $sessionUser->getId() === null) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -285,11 +288,11 @@ final class AnimalController extends AbstractController
         }
 
         if ($request->isMethod('POST')) {
-            $animal->setCodeAnimal($request->request->get('codeAnimal'));
-            $animal->setEspece($request->request->get('espece'));
-            $animal->setRace($request->request->get('race'));
-            $animal->setSexe($request->request->get('sexe'));
-            $animal->setDateNaissance(new \DateTime($request->request->get('dateNaissance')));
+            $animal->setCodeAnimal((string) $request->request->get('codeAnimal', ''));
+            $animal->setEspece((string) $request->request->get('espece', ''));
+            $animal->setRace((string) $request->request->get('race', ''));
+            $animal->setSexe((string) $request->request->get('sexe', ''));
+            $animal->setDateNaissance(new \DateTime((string) $request->request->get('dateNaissance', '')));
             $entityManager->flush();
             return $this->redirectToRoute('app_animal_index', [], Response::HTTP_SEE_OTHER);
         }

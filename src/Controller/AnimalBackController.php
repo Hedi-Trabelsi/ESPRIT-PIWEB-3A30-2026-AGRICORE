@@ -17,9 +17,9 @@ class AnimalBackController extends AbstractController
     #[Route('/back/animaux', name: 'back_animaux')]
     public function index(Request $request, AnimalRepository $repo): Response
     {
-        $q      = $request->query->get('q', '');
-        $sortBy = $request->query->get('sortBy', 'codeAnimal');
-        $order  = $request->query->get('order', 'ASC');
+        $q      = (string) $request->query->get('q', '');
+        $sortBy = (string) $request->query->get('sortBy', 'codeAnimal');
+        $order  = (string) $request->query->get('order', 'ASC');
 
         $allowed = ['codeAnimal', 'espece', 'race', 'sexe', 'dateNaissance'];
         $sortBy  = in_array($sortBy, $allowed) ? $sortBy : 'codeAnimal';
@@ -63,11 +63,11 @@ class AnimalBackController extends AbstractController
     {
         if ($request->isMethod('POST')) {
             $animal = new Animal();
-            $animal->setCodeAnimal($request->request->get('codeAnimal'));
-            $animal->setEspece($request->request->get('espece'));
-            $animal->setRace($request->request->get('race'));
-            $animal->setSexe($request->request->get('sexe'));
-            $animal->setDateNaissance(new \DateTime($request->request->get('dateNaissance')));
+            $animal->setCodeAnimal((string) $request->request->get('codeAnimal', ''));
+            $animal->setEspece((string) $request->request->get('espece', ''));
+            $animal->setRace((string) $request->request->get('race', ''));
+            $animal->setSexe((string) $request->request->get('sexe', ''));
+            $animal->setDateNaissance(new \DateTime((string) $request->request->get('dateNaissance', '')));
             $animal->setIdAgriculteur((int) $request->request->get('idAgriculteur'));
 
             $em->persist($animal);
@@ -85,11 +85,11 @@ class AnimalBackController extends AbstractController
     public function edit(Animal $animal, Request $request, EntityManagerInterface $em): Response
     {
         if ($request->isMethod('POST')) {
-            $animal->setCodeAnimal($request->request->get('codeAnimal'));
-            $animal->setEspece($request->request->get('espece'));
-            $animal->setRace($request->request->get('race'));
-            $animal->setSexe($request->request->get('sexe'));
-            $animal->setDateNaissance(new \DateTime($request->request->get('dateNaissance')));
+            $animal->setCodeAnimal((string) $request->request->get('codeAnimal', ''));
+            $animal->setEspece((string) $request->request->get('espece', ''));
+            $animal->setRace((string) $request->request->get('race', ''));
+            $animal->setSexe((string) $request->request->get('sexe', ''));
+            $animal->setDateNaissance(new \DateTime((string) $request->request->get('dateNaissance', '')));
             $animal->setIdAgriculteur((int) $request->request->get('idAgriculteur'));
 
             $em->flush();
@@ -107,7 +107,7 @@ class AnimalBackController extends AbstractController
     #[Route('/back/animaux/{id}/delete', name: 'back_animal_delete', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function delete(Animal $animal, EntityManagerInterface $em, Request $request): Response
     {
-        if ($this->isCsrfTokenValid('delete'.$animal->getIdAnimal(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete'.$animal->getIdAnimal(), (string) $request->request->get('_token', ''))) {
             $em->remove($animal);
             $em->flush();
             $this->addFlash('success', 'Animal supprimé.');

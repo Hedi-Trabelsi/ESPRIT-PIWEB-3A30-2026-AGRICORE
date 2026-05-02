@@ -53,7 +53,7 @@ class NotificationAnimalController extends AbstractController
             if (empty($suivis)) continue;
 
             $s      = $suivis[0];
-            $normes = $this->getNormes($animal->getEspece());
+            $normes = $this->getNormes((string) $animal->getEspece());
             [$tempMin, $tempMax, $rythmeMin, $rythmeMax] = $normes;
 
             $temp   = $s->getTemperature();

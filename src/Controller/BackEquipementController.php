@@ -28,7 +28,7 @@ class BackEquipementController extends AbstractController
         ExchangeRateService $exchangeRateService
     ): Response {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser || $sessionUser->getRole() !== 0) {
+        if (!$sessionUser instanceof User || $sessionUser->getRole() !== 0) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -46,7 +46,7 @@ class BackEquipementController extends AbstractController
     public function statsApi(Request $request, EquipementRepository $equipementRepository): JsonResponse
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser || $sessionUser->getRole() !== 0) {
+        if (!$sessionUser instanceof User || $sessionUser->getRole() !== 0) {
             return $this->json(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -60,7 +60,7 @@ class BackEquipementController extends AbstractController
         EquipmentPdfService $equipmentPdfService
     ): Response {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser || $sessionUser->getRole() !== 0) {
+        if (!$sessionUser instanceof User || $sessionUser->getRole() !== 0) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -85,7 +85,7 @@ class BackEquipementController extends AbstractController
         EquipmentNewsService $equipmentNewsService
     ): JsonResponse {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser || $sessionUser->getRole() !== 0) {
+        if (!$sessionUser instanceof User || $sessionUser->getRole() !== 0) {
             return $this->json(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
         }
 
@@ -96,7 +96,7 @@ class BackEquipementController extends AbstractController
     public function new(Request $request, EntityManagerInterface $em): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser || $sessionUser->getRole() !== 0) {
+        if (!$sessionUser instanceof User || $sessionUser->getRole() !== 0) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -129,7 +129,7 @@ class BackEquipementController extends AbstractController
     public function edit(Equipement $equipement, Request $request, EntityManagerInterface $em): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser || $sessionUser->getRole() !== 0) {
+        if (!$sessionUser instanceof User || $sessionUser->getRole() !== 0) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -153,11 +153,11 @@ class BackEquipementController extends AbstractController
     public function delete(Equipement $equipement, Request $request, EntityManagerInterface $em): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser || $sessionUser->getRole() !== 0) {
+        if (!$sessionUser instanceof User || $sessionUser->getRole() !== 0) {
             return $this->redirectToRoute('front_login');
         }
 
-        if ($this->isCsrfTokenValid('delete' . $equipement->getId(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete' . $equipement->getId(), (string) $request->request->get('_token', ''))) {
             $equipement->setIsActive(false);
             $em->flush();
             $this->addFlash('admin_success', 'Equipement supprime.');
@@ -168,13 +168,17 @@ class BackEquipementController extends AbstractController
 
     private function ensureLegacySupplierExists(User $sessionUser, EntityManagerInterface $em): void
     {
-        $legacySupplier = $em->getRepository(Utilisateurs::class)->find($sessionUser->getId());
+        $userId = $sessionUser->getId();
+        if ($userId === null) {
+            return;
+        }
+        $legacySupplier = $em->getRepository(Utilisateurs::class)->find($userId);
         if ($legacySupplier instanceof Utilisateurs) {
             return;
         }
 
         $legacySupplier = new Utilisateurs();
-        $legacySupplier->setId($sessionUser->getId());
+        $legacySupplier->setId($userId);
         $legacySupplier->setNom($sessionUser->getNom() ?? '');
         $legacySupplier->setPrenom($sessionUser->getPrenom() ?? '');
         $legacySupplier->setAdresse($sessionUser->getAdresse() ?? '');

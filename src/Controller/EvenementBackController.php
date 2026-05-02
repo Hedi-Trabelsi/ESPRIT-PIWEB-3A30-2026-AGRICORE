@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Evennementagricole;
+use App\Entity\User;
 use App\Form\EvennementagricoleType;
 use App\Repository\EvennementagricoleRepository;
 use App\Repository\ParticipantsRepository;
@@ -53,7 +54,10 @@ class EvenementBackController extends AbstractController
                ->setParameter('now', $now);
         }
 
-        $events = $qb->getQuery()->getResult();
+        $rawEvents = $qb->getQuery()->getResult();
+        $events = is_array($rawEvents)
+            ? array_values(array_filter($rawEvents, fn($r) => $r instanceof \App\Entity\Evennementagricole))
+            : [];
 
         // Count waitlist per event
         $waitlistCounts = [];
@@ -65,7 +69,10 @@ class EvenementBackController extends AbstractController
                 ->setParameter('ev', $ev)
                 ->setParameter('ws', 'waitlist')
                 ->getQuery()->getSingleScalarResult();
-            if ($count > 0) $waitlistCounts[$ev->getIdEv()] = (int)$count;
+            $evId = $ev->getIdEv();
+            if ($evId !== null && is_numeric($count) && (int)$count > 0) {
+                $waitlistCounts[$evId] = (int)$count;
+            }
         }
 
         $logs = $logsRepo->createQueryBuilder('al')
@@ -186,7 +193,7 @@ class EvenementBackController extends AbstractController
     {
         $participants = $participantsRepo->findBy(['evenement' => $event]);
 
-        $placesReservees = $participantsRepo->countPlacesByEvent($event->getId_ev());
+        $placesReservees = $participantsRepo->countPlacesByEvent((int) $event->getId_ev());
         $placesRestantes = $event->getCapacite_max() - $placesReservees;
 
         $tauxRemplissage = $event->getCapacite_max() > 0
@@ -213,11 +220,11 @@ class EvenementBackController extends AbstractController
         $log = new \App\Entity\ActionLog();
         $log->setAction_type('DELETE');
         $log->setTarget_table('evennementagricole');
-        $log->setTarget_id($event->getId_ev());
+        $log->setTarget_id((int) $event->getId_ev());
         $log->setDescription('Suppression de l\'événement : "' . $event->getTitre() . '"');
-        $log->setOld_value(json_encode(['titre' => $event->getTitre()]));
-        $log->setNew_value(json_encode(['titre' => 'supprimé']));
-        $log->setUser_id($sessionUser ? $sessionUser->getId() : 0);
+        $log->setOld_value((string) json_encode(['titre' => $event->getTitre()]));
+        $log->setNew_value((string) json_encode(['titre' => 'supprimé']));
+        $log->setUser_id($sessionUser instanceof User ? (int) $sessionUser->getId() : 0);
         $log->setCreated_at(new \DateTime());
 
         $em->persist($log);
@@ -246,7 +253,8 @@ class EvenementBackController extends AbstractController
 
             // Save poster image if provided (stored as base64 in DB)
             // Read directly from $_POST to avoid Symfony request size limits
-            $posterData = $_POST['poster_image_data'] ?? $request->request->get('poster_image_data', '');
+            $posterRaw = $_POST['poster_image_data'] ?? $request->request->get('poster_image_data', '');
+            $posterData = is_string($posterRaw) ? $posterRaw : '';
             if (!empty($posterData) && str_starts_with($posterData, 'data:image')) {
                 $event->setImage($posterData);
                 $em->flush();
@@ -258,11 +266,11 @@ class EvenementBackController extends AbstractController
             $log = new \App\Entity\ActionLog();
             $log->setAction_type('CREATE');
             $log->setTarget_table('evennementagricole');
-            $log->setTarget_id($event->getId_ev());
+            $log->setTarget_id((int) $event->getId_ev());
             $log->setDescription('Création de l\'événement : "' . $event->getTitre() . '"');
-            $log->setOld_value(json_encode(['titre' => 'nouveau']));
-            $log->setNew_value(json_encode(['titre' => $event->getTitre()]));
-            $log->setUser_id($sessionUser ? $sessionUser->getId() : 0);
+            $log->setOld_value((string) json_encode(['titre' => 'nouveau']));
+            $log->setNew_value((string) json_encode(['titre' => $event->getTitre()]));
+            $log->setUser_id($sessionUser instanceof User ? (int) $sessionUser->getId() : 0);
             $log->setCreated_at(new \DateTime());
 
             $em->persist($log);
@@ -290,7 +298,7 @@ class EvenementBackController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
 
             // Validate capacity >= current confirmed participants
-            $placesReservees = $participantsRepo->countPlacesByEvent($event->getId_ev());
+            $placesReservees = $participantsRepo->countPlacesByEvent((int) $event->getId_ev());
             if ($event->getCapaciteMax() < $placesReservees) {
                 $form->get('capacite_max')->addError(
                     new \Symfony\Component\Form\FormError(
@@ -304,11 +312,11 @@ class EvenementBackController extends AbstractController
                 $log = new \App\Entity\ActionLog();
                 $log->setAction_type('UPDATE');
                 $log->setTarget_table('evennementagricole');
-                $log->setTarget_id($event->getId_ev());
+                $log->setTarget_id((int) $event->getId_ev());
                 $log->setDescription('Modification de l\'événement : "' . $event->getTitre() . '"');
-                $log->setOld_value(json_encode(['titre' => $oldTitle]));
-                $log->setNew_value(json_encode(['titre' => $event->getTitre()]));
-                $log->setUser_id($sessionUser ? $sessionUser->getId() : 0);
+                $log->setOld_value((string) json_encode(['titre' => $oldTitle]));
+                $log->setNew_value((string) json_encode(['titre' => $event->getTitre()]));
+                $log->setUser_id($sessionUser instanceof User ? (int) $sessionUser->getId() : 0);
                 $log->setCreated_at(new \DateTime());
                 $em->persist($log);
                 $em->flush();

@@ -240,6 +240,7 @@ class TestFrontEquipementController extends FrontEquipementController
         int $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH
     ): string
     {
-        return '/mocked/' . $route . '/' . ($parameters['id'] ?? 0);
+        $idPart = $parameters['id'] ?? 0;
+        return '/mocked/' . $route . '/' . (is_scalar($idPart) ? $idPart : 0);
     }
 }

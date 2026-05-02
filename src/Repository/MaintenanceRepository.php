@@ -39,6 +39,7 @@ class MaintenanceRepository extends ServiceEntityRepository
                 ->setParameter('userId', $userId);
         }
 
-        return $qb->getQuery()->getResult();
+        $result = $qb->getQuery()->getResult();
+        return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof Maintenance)) : [];
     }
 }

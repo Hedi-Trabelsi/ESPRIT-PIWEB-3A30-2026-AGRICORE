@@ -53,13 +53,18 @@ class TacheControllerTest extends TestCase
         $response = $controller->dayLoad($request, $em, $tacheRepo);
 
         $this->assertSame(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
+        $content = $response->getContent();
+        $this->assertIsString($content);
+        $data = json_decode($content, true);
+        $this->assertIsArray($data);
         $this->assertSame(3, $data['count']);
     }
 
     public function testGenerateDescriptionUnauthorizedWhenNoSessionUser(): void
     {
-        $request = new Request([], [], [], [], [], [], json_encode(['id_maintenance' => 0]));
+        $body = json_encode(['id_maintenance' => 0]);
+        $this->assertNotFalse($body);
+        $request = new Request([], [], [], [], [], [], $body);
         $session = new Session(new MockArraySessionStorage());
         $request->setSession($session);
 
@@ -76,7 +81,9 @@ class TacheControllerTest extends TestCase
     public function testGenerateDescriptionSuccess(): void
     {
         $payload = ['id_maintenance' => 1, 'nomTache' => 'Test'];
-        $request = new Request([], [], [], [], [], [], json_encode($payload));
+        $body2 = json_encode($payload);
+        $this->assertNotFalse($body2);
+        $request = new Request([], [], [], [], [], [], $body2);
         $session = new Session(new MockArraySessionStorage());
         $sessionUser = new \App\Entity\User();
         $sessionUser->setId(7);
@@ -103,8 +110,11 @@ class TacheControllerTest extends TestCase
         $controller = new TacheController();
         $response = $controller->generateDescription($request, $maintenanceRepo, $aiService, $em);
 
-        $this->assertSame(200, $response->getStatusCode(), 'Response content: ' . $response->getContent());
-        $data = json_decode($response->getContent(), true);
+        $content2 = $response->getContent();
+        $this->assertIsString($content2);
+        $this->assertSame(200, $response->getStatusCode(), 'Response content: ' . $content2);
+        $data = json_decode($content2, true);
+        $this->assertIsArray($data);
         $this->assertSame('generated description', $data['description']);
     }
 }

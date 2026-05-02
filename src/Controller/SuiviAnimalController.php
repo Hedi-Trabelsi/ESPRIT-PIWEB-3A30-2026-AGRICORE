@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\SuiviAnimal;
+use App\Entity\User;
 use App\Form\SuiviAnimalType;
 use App\Repository\SuiviAnimalRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -21,13 +22,13 @@ final class SuiviAnimalController extends AbstractController
     public function index(Request $request, SuiviAnimalRepository $suiviAnimalRepository): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User) {
             return $this->redirectToRoute('front_login');
         }
 
-        $q      = $request->query->get('q', '');
-        $sortBy = $request->query->get('sortBy', 'dateSuivi');
-        $order  = $request->query->get('order', 'DESC');
+        $q      = (string) $request->query->get('q', '');
+        $sortBy = (string) $request->query->get('sortBy', 'dateSuivi');
+        $order  = (string) $request->query->get('order', 'DESC');
 
         $suivis = $suiviAnimalRepository->search($q, $sortBy, $order, $sessionUser->getId());
 
@@ -49,16 +50,16 @@ final class SuiviAnimalController extends AbstractController
     public function searchStatic(Request $request, SuiviAnimalRepository $suiviAnimalRepository): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User) {
             return $this->redirectToRoute('front_login');
         }
 
-        $etatSante      = $request->query->get('etatSante', '');
-        $niveauActivite = $request->query->get('niveauActivite', '');
+        $etatSante      = (string) $request->query->get('etatSante', '');
+        $niveauActivite = (string) $request->query->get('niveauActivite', '');
         $tempMin        = $request->query->get('tempMin') !== '' ? (float)$request->query->get('tempMin') : null;
         $tempMax        = $request->query->get('tempMax') !== '' ? (float)$request->query->get('tempMax') : null;
-        $sortBy         = $request->query->get('sortBy', 'dateSuivi');
-        $order          = $request->query->get('order', 'DESC');
+        $sortBy         = (string) $request->query->get('sortBy', 'dateSuivi');
+        $order          = (string) $request->query->get('order', 'DESC');
 
         $suivis = $suiviAnimalRepository->searchStatic($etatSante, $niveauActivite, $tempMin, $tempMax, $sortBy, $order, $sessionUser->getId());
 
@@ -77,13 +78,13 @@ final class SuiviAnimalController extends AbstractController
     public function exportPdf(Request $request, SuiviAnimalRepository $suiviAnimalRepository): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User) {
             return $this->redirectToRoute('front_login');
         }
 
-        $q      = $request->query->get('q', '');
-        $sortBy = $request->query->get('sortBy', 'dateSuivi');
-        $order  = $request->query->get('order', 'DESC');
+        $q      = (string) $request->query->get('q', '');
+        $sortBy = (string) $request->query->get('sortBy', 'dateSuivi');
+        $order  = (string) $request->query->get('order', 'DESC');
 
         $suivis = $suiviAnimalRepository->search($q, $sortBy, $order, $sessionUser->getId());
 
@@ -113,7 +114,7 @@ final class SuiviAnimalController extends AbstractController
     public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -186,7 +187,7 @@ final class SuiviAnimalController extends AbstractController
 
         $animal = null;
         $animalCode = null;
-        if ($idAnimal) {
+        if (is_scalar($idAnimal) && $idAnimal) {
             $animal = $entityManager->getRepository(\App\Entity\Animal::class)->find((int)$idAnimal);
             if ($animal) {
                 $suiviAnimal->setAnimal($animal);
@@ -208,7 +209,7 @@ final class SuiviAnimalController extends AbstractController
                 $request->getSession()->set('suivi_alertes', $alertes);
             }
 
-            if ($idAnimal) {
+            if (is_scalar($idAnimal) && $idAnimal) {
                 return $this->redirectToRoute('app_animal_show', ['idAnimal' => (int)$idAnimal], Response::HTTP_SEE_OTHER);
             }
             return $this->redirectToRoute('app_suivi_animal_index', [], Response::HTTP_SEE_OTHER);
@@ -237,7 +238,7 @@ final class SuiviAnimalController extends AbstractController
             $entityManager->flush();
         }
 
-        if ($idAnimal) {
+        if (is_scalar($idAnimal) && $idAnimal) {
             return $this->redirectToRoute('app_animal_show', ['idAnimal' => (int)$idAnimal], Response::HTTP_SEE_OTHER);
         }
         return $this->redirectToRoute('app_suivi_animal_index', [], Response::HTTP_SEE_OTHER);
@@ -251,7 +252,7 @@ final class SuiviAnimalController extends AbstractController
         $alertes = [];
         $animal  = $suivi->getAnimal();
         $code    = $animal ? $animal->getCodeAnimal() : 'Animal';
-        $espece  = $animal ? strtolower($animal->getEspece()) : '';
+        $espece  = $animal !== null ? strtolower($animal->getEspece() ?? '') : '';
 
         $normes = match(true) {
             in_array($espece, ['vache','bovin','bovins'])    => [38.0, 39.5, 48,  84],

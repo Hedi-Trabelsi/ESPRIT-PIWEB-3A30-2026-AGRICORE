@@ -14,7 +14,8 @@ class EquipmentImageController extends AbstractController
     public function show(string $filename): BinaryFileResponse
     {
         $safeFilename = basename($filename);
-        $path = $this->getParameter('kernel.project_dir') . '/public/uploads/equipements/' . $safeFilename;
+        $projectDir = $this->getParameter('kernel.project_dir');
+        $path = (is_string($projectDir) ? $projectDir : '') . '/public/uploads/equipements/' . $safeFilename;
 
         if ($safeFilename !== $filename || !is_file($path)) {
             throw new NotFoundHttpException('Image not found.');

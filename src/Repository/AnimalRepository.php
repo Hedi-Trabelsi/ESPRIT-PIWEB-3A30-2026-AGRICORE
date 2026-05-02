@@ -42,7 +42,8 @@ class AnimalRepository extends ServiceEntityRepository
             )->setParameter('q', '%'.$q.'%');
         }
 
-        return $qb->orderBy('a.'.$sortBy, $order)->getQuery()->getResult();
+        $result = $qb->orderBy('a.'.$sortBy, $order)->getQuery()->getResult();
+        return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof Animal)) : [];
     }
 
     /**
@@ -80,6 +81,7 @@ class AnimalRepository extends ServiceEntityRepository
             $qb->andWhere('a.sexe = :sexe')->setParameter('sexe', $sexe);
         }
 
-        return $qb->orderBy('a.'.$sortBy, $order)->getQuery()->getResult();
+        $result = $qb->orderBy('a.'.$sortBy, $order)->getQuery()->getResult();
+        return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof Animal)) : [];
     }
 }

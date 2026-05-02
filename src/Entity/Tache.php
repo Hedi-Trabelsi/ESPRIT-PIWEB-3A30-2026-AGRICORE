@@ -89,7 +89,7 @@ private int $evaluation = 0;
         return $this;
     }
 
-    public function getDescription(): string
+    public function getDescription(): ?string
     {
         return $this->description;
     }
@@ -118,11 +118,13 @@ private int $evaluation = 0;
 
     public function setIdMaintenance(?Maintenance $id_maintenance): self
     {
-        $this->id_maintenance = $id_maintenance;
+        if ($id_maintenance !== null) {
+            $this->id_maintenance = $id_maintenance;
+        }
         return $this;
     }
 
-    public function getNomTache(): string
+    public function getNomTache(): ?string
     {
         return $this->nomTache;
     }

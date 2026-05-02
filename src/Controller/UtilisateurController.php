@@ -62,8 +62,8 @@ class UtilisateurController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        $email = $request->request->get('email');
-        $password = $request->request->get('password');
+        $email = (string) $request->request->get('email', '');
+        $password = (string) $request->request->get('password', '');
 
         $user = $userRepo->findOneBy(['email' => $email]);
 
@@ -73,7 +73,7 @@ class UtilisateurController extends AbstractController
         }
 
         // Support both hashed (new accounts) and plain text (old accounts)
-        if (!password_verify($password, $user->getPassword()) && $user->getPassword() !== $password) {
+        if (!password_verify($password, (string) $user->getPassword()) && $user->getPassword() !== $password) {
             $this->addFlash('error', 'Mot de passe incorrect.');
             return $this->redirectToRoute('front_login');
         }
@@ -116,7 +116,7 @@ class UtilisateurController extends AbstractController
 
             // Validate email with Disify API (free, no key needed) - soft check with short timeout
             try {
-                $resp = $httpClient->request('GET', 'https://disify.com/api/email/' . urlencode($user->getEmail()), [
+                $resp = $httpClient->request('GET', 'https://disify.com/api/email/' . urlencode((string) $user->getEmail()), [
                     'timeout' => 3,
                     'max_duration' => 4,
                 ]);
@@ -142,14 +142,16 @@ class UtilisateurController extends AbstractController
             $user->setBanned(false);
 
             // Hash the password
-            $user->setPassword(password_hash($user->getPassword(), PASSWORD_BCRYPT));
+            $user->setPassword(password_hash((string) $user->getPassword(), PASSWORD_BCRYPT));
 
             // Handle image upload
             $imageFile = $form->get('imageFile')->getData();
-            if ($imageFile) {
+            if ($imageFile instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
                 $imageData = file_get_contents($imageFile->getPathname());
-                $user->setImage(base64_encode($imageData));
-                $user->setProfileComplete(true);
+                if ($imageData !== false) {
+                    $user->setImage(base64_encode($imageData));
+                    $user->setProfileComplete(true);
+                }
             } else {
                 $user->setProfileComplete(false);
             }
@@ -179,7 +181,7 @@ class UtilisateurController extends AbstractController
     public function profile(Request $request, UserRepository $userRepo, HttpClientInterface $httpClient): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User) {
             return $this->redirectToRoute('front_login');
         }
         $user = $userRepo->find($sessionUser->getId());
@@ -191,7 +193,7 @@ class UtilisateurController extends AbstractController
         $weatherData = null;
         $geoData = null;
         $apiError = null;
-        $address = $user ? trim($user->getAdresse()) : '';
+        $address = $user ? trim((string) $user->getAdresse()) : '';
 
         if ($address && strlen($address) > 1) {
             $locationiqKey = $this->getParameter('locationiq_api_key');
@@ -224,11 +226,12 @@ class UtilisateurController extends AbstractController
                     ]);
                     if ($geoResponse->getStatusCode() === 200) {
                         $geoResult = $geoResponse->toArray(false);
-                        if (count($geoResult) > 0 && isset($geoResult[0]['lat'])) {
+                        if (count($geoResult) > 0 && isset($geoResult[0]) && is_array($geoResult[0]) && isset($geoResult[0]['lat']) && is_scalar($geoResult[0]['lat'])) {
+                            $first = $geoResult[0];
                             $geoData = [
-                                'lat' => (float) $geoResult[0]['lat'],
-                                'lon' => (float) $geoResult[0]['lon'],
-                                'display_name' => $geoResult[0]['display_name'] ?? $variant,
+                                'lat' => (float) $first['lat'],
+                                'lon' => isset($first['lon']) && is_scalar($first['lon']) ? (float) $first['lon'] : 0.0,
+                                'display_name' => isset($first['display_name']) && is_string($first['display_name']) ? $first['display_name'] : $variant,
                             ];
                             break; // success
                         }
@@ -257,15 +260,19 @@ class UtilisateurController extends AbstractController
                     ]);
                     if ($weatherResponse->getStatusCode() === 200) {
                         $w = $weatherResponse->toArray(false);
-                        if (isset($w['main'])) {
+                        $main = $w['main'] ?? null;
+                        if (is_array($main)) {
+                            $weatherList = $w['weather'] ?? [];
+                            $first = is_array($weatherList) && isset($weatherList[0]) && is_array($weatherList[0]) ? $weatherList[0] : [];
+                            $wind = $w['wind'] ?? [];
                             $weatherData = [
-                                'temp' => round($w['main']['temp']),
-                                'desc' => ucfirst($w['weather'][0]['description'] ?? ''),
-                                'icon' => $w['weather'][0]['icon'] ?? '01d',
-                                'humidity' => $w['main']['humidity'] ?? 0,
-                                'wind' => round($w['wind']['speed'] ?? 0),
-                                'visibility' => round(($w['visibility'] ?? 10000) / 1000, 1),
-                                'city' => $w['name'] ?? $address,
+                                'temp' => round(is_numeric($main['temp'] ?? null) ? (float) $main['temp'] : 0),
+                                'desc' => ucfirst(isset($first['description']) && is_string($first['description']) ? $first['description'] : ''),
+                                'icon' => isset($first['icon']) && is_string($first['icon']) ? $first['icon'] : '01d',
+                                'humidity' => isset($main['humidity']) && is_numeric($main['humidity']) ? (int) $main['humidity'] : 0,
+                                'wind' => round(is_array($wind) && isset($wind['speed']) && is_numeric($wind['speed']) ? (float) $wind['speed'] : 0),
+                                'visibility' => round((isset($w['visibility']) && is_numeric($w['visibility']) ? (float) $w['visibility'] : 10000) / 1000, 1),
+                                'city' => isset($w['name']) && is_string($w['name']) ? $w['name'] : $address,
                             ];
                         }
                     }
@@ -287,7 +294,7 @@ class UtilisateurController extends AbstractController
     public function editProfile(Request $request, EntityManagerInterface $em, UserRepository $userRepo): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -301,15 +308,17 @@ class UtilisateurController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $newPassword = $form->get('password')->getData();
-            if ($newPassword && strlen($newPassword) > 0) {
+            if (is_string($newPassword) && strlen($newPassword) > 0) {
                 $user->setPassword(password_hash($newPassword, PASSWORD_BCRYPT));
             }
 
             $imageFile = $form->get('imageFile')->getData();
-            if ($imageFile) {
+            if ($imageFile instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
                 $imageData = file_get_contents($imageFile->getPathname());
-                $user->setImage(base64_encode($imageData));
-                $user->setProfileComplete(true);
+                if ($imageData !== false) {
+                    $user->setImage(base64_encode($imageData));
+                    $user->setProfileComplete(true);
+                }
             }
 
             $em->flush();
@@ -333,7 +342,7 @@ class UtilisateurController extends AbstractController
     {
         $session = $request->getSession();
         $currentUser = $session->get('user');
-        if (!$currentUser || $currentUser->getRole() !== 0) {
+        if (!$currentUser instanceof User || $currentUser->getRole() !== 0) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -341,12 +350,15 @@ class UtilisateurController extends AbstractController
         $currentIds = array_map(fn($u) => $u->getId(), $users);
 
         // Use a file to persist seen IDs across sessions (survives logout)
-        $seenFile = $this->getParameter('kernel.project_dir') . '/var/admin_seen_users.json';
+        $projectDir = $this->getParameter('kernel.project_dir');
+        $seenFile = (is_string($projectDir) ? $projectDir : '') . '/var/admin_seen_users.json';
         $seenIds = [];
         $newUsers = [];
 
         if (file_exists($seenFile)) {
-            $seenIds = json_decode(file_get_contents($seenFile), true) ?: [];
+            $content = file_get_contents($seenFile);
+            $decoded = $content !== false ? json_decode($content, true) : null;
+            $seenIds = is_array($decoded) ? $decoded : [];
 
             foreach ($users as $u) {
                 if (!in_array($u->getId(), $seenIds)) {
@@ -357,7 +369,7 @@ class UtilisateurController extends AbstractController
         }
 
         // Save current IDs to file
-        file_put_contents($seenFile, json_encode($currentIds));
+        file_put_contents($seenFile, (string) json_encode($currentIds));
 
         return $this->render('back/utilisateurs/utilisateurs.html.twig', [
             'users' => $users,
@@ -381,7 +393,7 @@ class UtilisateurController extends AbstractController
     public function deleteUser(int $id, EntityManagerInterface $em, UserRepository $userRepo, Request $request): Response
     {
         $currentUser = $request->getSession()->get('user');
-        if (!$currentUser || $currentUser->getRole() !== 0) {
+        if (!$currentUser instanceof User || $currentUser->getRole() !== 0) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -399,7 +411,7 @@ class UtilisateurController extends AbstractController
     public function banUser(int $id, EntityManagerInterface $em, UserRepository $userRepo, Request $request): Response
     {
         $currentUser = $request->getSession()->get('user');
-        if (!$currentUser || $currentUser->getRole() !== 0) {
+        if (!$currentUser instanceof User || $currentUser->getRole() !== 0) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -418,7 +430,7 @@ class UtilisateurController extends AbstractController
     public function modifyUser(int $id, Request $request, EntityManagerInterface $em, UserRepository $userRepo): Response
     {
         $currentUser = $request->getSession()->get('user');
-        if (!$currentUser || $currentUser->getRole() !== 0) {
+        if (!$currentUser instanceof User || $currentUser->getRole() !== 0) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -429,21 +441,21 @@ class UtilisateurController extends AbstractController
         }
 
         if ($request->isMethod('POST')) {
-            $user->setNom($request->request->get('nom'));
-            $user->setPrenom($request->request->get('prenom'));
-            $user->setEmail($request->request->get('email'));
-            $user->setAdresse($request->request->get('adresse'));
+            $user->setNom((string) $request->request->get('nom', ''));
+            $user->setPrenom((string) $request->request->get('prenom', ''));
+            $user->setEmail((string) $request->request->get('email', ''));
+            $user->setAdresse((string) $request->request->get('adresse', ''));
             $user->setNumeroT((int) $request->request->get('numeroT'));
-            $user->setGenre($request->request->get('genre'));
+            $user->setGenre((string) $request->request->get('genre', ''));
             $user->setRole((int) $request->request->get('role'));
 
-            $dateStr = $request->request->get('date');
-            if ($dateStr) {
+            $dateStr = (string) $request->request->get('date', '');
+            if ($dateStr !== '') {
                 $user->setDate(new \DateTime($dateStr));
             }
 
-            $newPassword = $request->request->get('password');
-            if ($newPassword && strlen($newPassword) > 0) {
+            $newPassword = (string) $request->request->get('password', '');
+            if (strlen($newPassword) > 0) {
                 $user->setPassword(password_hash($newPassword, PASSWORD_BCRYPT));
             }
 
@@ -469,18 +481,18 @@ class UtilisateurController extends AbstractController
         // Disify API (free, no key needed)
         try {
             $ctx = stream_context_create(['http' => ['timeout' => 5]]);
-            $url = 'https://disify.com/api/email/' . urlencode($email);
+            $url = 'https://disify.com/api/email/' . urlencode((string) $email);
             $json = file_get_contents($url, false, $ctx);
-            if ($json) {
+            if (is_string($json) && $json !== '') {
                 $result = json_decode($json, true);
 
-                if (isset($result['format']) && $result['format'] === false) {
+                if (is_array($result) && isset($result['format']) && $result['format'] === false) {
                     return new JsonResponse(['status' => 'invalid', 'message' => 'Format email invalide']);
                 }
-                if (isset($result['disposable']) && $result['disposable'] === true) {
+                if (is_array($result) && isset($result['disposable']) && $result['disposable'] === true) {
                     return new JsonResponse(['status' => 'disposable', 'message' => 'Email temporaire non accepte']);
                 }
-                if (isset($result['dns']) && $result['dns'] === false) {
+                if (is_array($result) && isset($result['dns']) && $result['dns'] === false) {
                     return new JsonResponse(['status' => 'invalid', 'message' => 'Le domaine n\'existe pas']);
                 }
                 return new JsonResponse(['status' => 'valid', 'message' => 'Email valide']);
@@ -502,7 +514,7 @@ class UtilisateurController extends AbstractController
         // === STEP 1: EMAIL ===
         if ($step === 'email') {
             if ($request->isMethod('POST')) {
-                $email = trim($request->request->get('email', ''));
+                $email = trim((string) $request->request->get('email', ''));
                 $user = $userRepo->findOneBy(['email' => $email]);
 
                 if (!$user) {
@@ -516,8 +528,12 @@ class UtilisateurController extends AbstractController
                 }
 
                 // Derive deterministic TOTP secret from email + APP_SECRET
-                $raw = hash('sha256', $email . $this->getParameter('app_secret'), true);
+                $appSecret = $this->getParameter('app_secret');
+                $raw = hash('sha256', $email . (is_string($appSecret) ? $appSecret : ''), true);
                 $base32Secret = Base32::encodeUpper(substr($raw, 0, 20));
+                if ($base32Secret === '' || $email === '') {
+                    return $this->redirectToRoute('front_forgot_password');
+                }
 
                 $totp = TOTP::createFromSecret($base32Secret);
                 $totp->setLabel($email);
@@ -542,7 +558,7 @@ class UtilisateurController extends AbstractController
         if ($step === 'verify') {
             $userId = $session->get('fp_user_id');
             $secret = $session->get('fp_secret');
-            if (!$userId || !$secret) {
+            if (!$userId || !is_string($secret) || $secret === '') {
                 return $this->redirectToRoute('front_forgot_password');
             }
 
@@ -554,9 +570,9 @@ class UtilisateurController extends AbstractController
             $user = $userRepo->find($userId);
 
             if ($request->isMethod('POST')) {
-                $code = trim($request->request->get('totp_code', ''));
+                $code = trim((string) $request->request->get('totp_code', ''));
 
-                if ($totp->verify($code, null, 1)) {
+                if ($code !== '' && $totp->verify($code, null, 1)) {
                     $session->set('fp_verified', true);
                     return $this->render('front/utilisateurs/forgot_password.html.twig', ['step' => 'reset']);
                 }
@@ -564,12 +580,15 @@ class UtilisateurController extends AbstractController
                 $this->addFlash('error', 'Code incorrect ou expire. Veuillez reessayer.');
             }
 
-            $totp->setLabel($user ? $user->getEmail() : '');
+            $emailLabel = $user ? (string) $user->getEmail() : '';
+            if ($emailLabel !== '') {
+                $totp->setLabel($emailLabel);
+            }
 
             return $this->render('front/utilisateurs/forgot_password.html.twig', [
                 'step' => 'verify',
                 'provisioningUri' => $totp->getProvisioningUri(),
-                'userEmail' => $user ? $user->getEmail() : '',
+                'userEmail' => $emailLabel,
             ]);
         }
 
@@ -580,8 +599,8 @@ class UtilisateurController extends AbstractController
             }
 
             if ($request->isMethod('POST')) {
-                $password = $request->request->get('password', '');
-                $passwordConfirm = $request->request->get('password_confirm', '');
+                $password = (string) $request->request->get('password', '');
+                $passwordConfirm = (string) $request->request->get('password_confirm', '');
 
                 $errors = [];
                 if ($password !== $passwordConfirm) {
@@ -635,7 +654,7 @@ class UtilisateurController extends AbstractController
     public function apiSearchUsers(Request $request, UserRepository $userRepo): JsonResponse
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User) {
             return new JsonResponse(['error' => 'Not authenticated'], 401);
         }
 
@@ -733,7 +752,7 @@ class UtilisateurController extends AbstractController
     public function profileQrCode(Request $request, UserRepository $userRepo): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -776,7 +795,7 @@ class UtilisateurController extends AbstractController
     public function apiChat(Request $request, HttpClientInterface $httpClient): JsonResponse
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User) {
             return new JsonResponse(['error' => 'Not authenticated'], 401);
         }
 
@@ -785,7 +804,8 @@ class UtilisateurController extends AbstractController
             return new JsonResponse(['error' => 'Invalid JSON'], 400);
         }
 
-        $message = trim((string) ($payload['message'] ?? ''));
+        $messageRaw = $payload['message'] ?? '';
+        $message = is_scalar($messageRaw) ? trim((string) $messageRaw) : '';
         if ($message === '') {
             return new JsonResponse(['error' => 'Empty message'], 400);
         }
@@ -796,7 +816,7 @@ class UtilisateurController extends AbstractController
         if (isset($payload['history']) && is_array($payload['history'])) {
             $raw = array_slice($payload['history'], -8);
             foreach ($raw as $h) {
-                if (!isset($h['role'], $h['content'])) {
+                if (!is_array($h) || !isset($h['role'], $h['content']) || !is_scalar($h['content'])) {
                     continue;
                 }
                 $role = $h['role'] === 'user' ? 'user' : 'assistant';
@@ -832,7 +852,7 @@ class UtilisateurController extends AbstractController
         );
 
         $apiKey = $this->getParameter('groq_api_key');
-        if ($apiKey === '' || $apiKey === 'YOUR_GROQ_API_KEY') {
+        if (!is_string($apiKey) || $apiKey === '' || $apiKey === 'YOUR_GROQ_API_KEY') {
             return new JsonResponse([
                 'reply' => "Desole, l'assistant IA n'est pas encore configure (cle API Groq manquante).",
             ]);
@@ -860,7 +880,14 @@ class UtilisateurController extends AbstractController
             }
 
             $data = $response->toArray(false);
-            $reply = $data['choices'][0]['message']['content'] ?? null;
+            $choices = $data['choices'] ?? [];
+            $reply = null;
+            if (is_array($choices) && isset($choices[0]) && is_array($choices[0])) {
+                $msg = $choices[0]['message'] ?? null;
+                if (is_array($msg) && isset($msg['content']) && is_string($msg['content'])) {
+                    $reply = $msg['content'];
+                }
+            }
             if (!is_string($reply) || $reply === '') {
                 $reply = "Je n'ai pas pu formuler de reponse. Pouvez-vous reformuler votre question ?";
             }
@@ -878,7 +905,7 @@ class UtilisateurController extends AbstractController
     public function profileIdCard(Request $request, UserRepository $userRepo, IdCardService $idCardService): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -901,7 +928,7 @@ class UtilisateurController extends AbstractController
     public function exportUsersExcel(Request $request, UserRepository $userRepo): Response
     {
         $currentUser = $request->getSession()->get('user');
-        if (!$currentUser || $currentUser->getRole() !== 0) {
+        if (!$currentUser instanceof User || $currentUser->getRole() !== 0) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -969,7 +996,7 @@ class UtilisateurController extends AbstractController
     public function sendEmailToUser(int $id, Request $request, UserRepository $userRepo, MailerInterface $mailer): Response
     {
         $currentUser = $request->getSession()->get('user');
-        if (!$currentUser || $currentUser->getRole() !== 0) {
+        if (!$currentUser instanceof User || $currentUser->getRole() !== 0) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -979,8 +1006,8 @@ class UtilisateurController extends AbstractController
             return $this->redirectToRoute('back_utilisateurs');
         }
 
-        $subject = trim($request->request->get('subject', ''));
-        $message = trim($request->request->get('message', ''));
+        $subject = trim((string) $request->request->get('subject', ''));
+        $message = trim((string) $request->request->get('message', ''));
 
         if ($subject === '' || $message === '') {
             $this->addFlash('error', 'Le sujet et le message sont obligatoires.');
@@ -988,10 +1015,10 @@ class UtilisateurController extends AbstractController
         }
 
         try {
-            $htmlBody = $this->buildBrandedEmailHtml($user->getPrenom(), $message);
+            $htmlBody = $this->buildBrandedEmailHtml((string) $user->getPrenom(), $message);
             $email = (new Email())
                 ->from('heditrabelsi412@gmail.com')
-                ->to($user->getEmail())
+                ->to((string) $user->getEmail())
                 ->subject($subject)
                 ->html($htmlBody);
             $mailer->send($email);
@@ -1008,13 +1035,13 @@ class UtilisateurController extends AbstractController
     public function sendEmailToGroup(Request $request, UserRepository $userRepo, MailerInterface $mailer): Response
     {
         $currentUser = $request->getSession()->get('user');
-        if (!$currentUser || $currentUser->getRole() !== 0) {
+        if (!$currentUser instanceof User || $currentUser->getRole() !== 0) {
             return $this->redirectToRoute('front_login');
         }
 
-        $subject = trim($request->request->get('subject', ''));
-        $message = trim($request->request->get('message', ''));
-        $targetRole = $request->request->get('role', 'all');
+        $subject = trim((string) $request->request->get('subject', ''));
+        $message = trim((string) $request->request->get('message', ''));
+        $targetRole = (string) $request->request->get('role', 'all');
 
         if ($subject === '' || $message === '') {
             $this->addFlash('error', 'Le sujet et le message sont obligatoires.');
@@ -1038,10 +1065,10 @@ class UtilisateurController extends AbstractController
         $sent = 0;
         foreach ($recipients as $u) {
             try {
-                $htmlBody = $this->buildBrandedEmailHtml($u->getPrenom(), $message);
+                $htmlBody = $this->buildBrandedEmailHtml((string) $u->getPrenom(), $message);
                 $email = (new Email())
                     ->from('heditrabelsi412@gmail.com')
-                    ->to($u->getEmail())
+                    ->to((string) $u->getEmail())
                     ->subject($subject)
                     ->html($htmlBody);
                 $mailer->send($email);
@@ -1176,7 +1203,7 @@ class UtilisateurController extends AbstractController
     public function generateAvatarAction(Request $request, UserRepository $userRepo, EntityManagerInterface $em, HttpClientInterface $httpClient): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User) {
             return $this->redirectToRoute('front_login');
         }
 

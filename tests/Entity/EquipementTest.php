@@ -66,9 +66,10 @@ class EquipementTest extends TestCase
         $after = new \DateTimeImmutable();
 
         $this->assertSame($file, $this->equipement->getImageFile());
-        $this->assertNotNull($this->equipement->getUpdatedAt());
-        $this->assertGreaterThanOrEqual($before->getTimestamp(), $this->equipement->getUpdatedAt()->getTimestamp());
-        $this->assertLessThanOrEqual($after->getTimestamp(), $this->equipement->getUpdatedAt()->getTimestamp());
+        $updatedAt = $this->equipement->getUpdatedAt();
+        $this->assertNotNull($updatedAt);
+        $this->assertGreaterThanOrEqual($before->getTimestamp(), $updatedAt->getTimestamp());
+        $this->assertLessThanOrEqual($after->getTimestamp(), $updatedAt->getTimestamp());
 
         @unlink($tempFile);
     }

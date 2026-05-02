@@ -46,8 +46,8 @@ class EvenementController extends AbstractController
                 $avatar = 'data:image/jpeg;base64,' . base64_encode($raw);
             }
             $result[] = [
-                'nom_participant' => $p->getNomParticipant(),
-                'nbr_places'      => $p->getNbrPlaces(),
+                'nom_participant' => (string) $p->getNomParticipant(),
+                'nbr_places'      => (int) $p->getNbrPlaces(),
                 'avatar'          => $avatar,
             ];
         }
@@ -56,8 +56,8 @@ class EvenementController extends AbstractController
 
     private function getUserCoins(mixed $sessionUser, EntityManagerInterface $em): int
     {
-        if (!$sessionUser) return 0;
-        
+        if (!$sessionUser instanceof User) return 0;
+
         $participations = $em->getRepository(Participants::class)->findBy([
             'id_utilisateur' => $sessionUser->getId()
         ]);
@@ -90,10 +90,10 @@ class EvenementController extends AbstractController
     #[Route('/evenements', name: 'app_evenement')]
     public function index(Request $request, EvennementagricoleRepository $repo, EntityManagerInterface $em): Response
     {
-        $filter   = $request->query->get('filter', 'TOUT');
-        $search   = trim($request->query->get('search', ''));
-        $dateFrom = $request->query->get('date_from', '');
-        $sortPrice= $request->query->get('sort_price', 'none');
+        $filter   = (string) $request->query->get('filter', 'TOUT');
+        $search   = trim((string) $request->query->get('search', ''));
+        $dateFrom = (string) $request->query->get('date_from', '');
+        $sortPrice= (string) $request->query->get('sort_price', 'none');
         $budgetMax= $request->query->get('budget_max', 500);
         $now      = new \DateTime();
 
@@ -119,7 +119,7 @@ class EvenementController extends AbstractController
         if ($dateFrom !== '') {
             try {
                 $qb->andWhere('e.date_debut >= :dateFrom')
-                   ->setParameter('dateFrom', new \DateTime($dateFrom));
+                   ->setParameter('dateFrom', new \DateTime((string) $dateFrom));
             } catch (\Exception) {}
         }
 
@@ -133,7 +133,10 @@ class EvenementController extends AbstractController
         if ($sortPrice === 'asc')  $qb->orderBy('e.frais_inscription', 'ASC');
         if ($sortPrice === 'desc') $qb->orderBy('e.frais_inscription', 'DESC');
 
-        $evenements = $qb->getQuery()->getResult();
+        $rawEvenements = $qb->getQuery()->getResult();
+        $evenements = is_array($rawEvenements)
+            ? array_values(array_filter($rawEvenements, fn($r) => $r instanceof Evennementagricole))
+            : [];
         $data = [];
 
         foreach ($evenements as $ev) {
@@ -178,7 +181,7 @@ class EvenementController extends AbstractController
         $mesEvenementsPassés = [];
         $userCoins = 0;
         $sessionUser = $request->getSession()->get('user');
-        if ($sessionUser) {
+        if ($sessionUser instanceof User) {
             $userCoins = $this->getUserCoins($sessionUser, $em);
             $participations = $em->getRepository(Participants::class)->findBy([
                 'id_utilisateur' => $sessionUser->getId()
@@ -223,7 +226,7 @@ class EvenementController extends AbstractController
         $userCoins = 0;
         $discountPct = 0;
 
-        if ($sessionUser) {
+        if ($sessionUser instanceof User) {
             $userCoins = $this->getUserCoins($sessionUser, $em);
             $discountPct = $this->getDiscountPercentage($userCoins);
 
@@ -248,7 +251,7 @@ class EvenementController extends AbstractController
         $isPast = $ev->getDateFin() < $now;
 
         $conflictingEvent = null;
-        if ($sessionUser && !$dejaInscrit && !$isPast) {
+        if ($sessionUser instanceof User && !$dejaInscrit && !$isPast) {
             foreach ($em->getRepository(Participants::class)->findBy(['id_utilisateur' => $sessionUser->getId()]) as $p) {
                 $other = $p->getEvenement();
 
@@ -274,7 +277,7 @@ class EvenementController extends AbstractController
 
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid() && $sessionUser && !$isPast) {
+        if ($form->isSubmitted() && $form->isValid() && $sessionUser instanceof User && !$isPast) {
 
             $entryCode    = random_int(100000, 999999);
             $confirmToken = bin2hex(random_bytes(32));
@@ -297,7 +300,7 @@ class EvenementController extends AbstractController
             $montant      = $rawMontant * (1 - ($effectiveDiscount / 100));
 
             $participant->setEvenement($ev);
-            $participant->setIdUtilisateur($sessionUser->getId());
+            $participant->setIdUtilisateur((int) $sessionUser->getId());
             $participant->setDateInscription(new \DateTime());
             $participant->setStatutParticipation('En attente');
             $participant->setEntryCode($entryCode);
@@ -310,11 +313,19 @@ class EvenementController extends AbstractController
             $em->flush();
 
             try {
+                $dateDebut = $ev->getDateDebut();
+                $dateFin = $ev->getDateFin();
+                if ($dateDebut === null) {
+                    throw new \RuntimeException('Event start date is missing.');
+                }
+                if ($dateFin === null) {
+                    throw new \RuntimeException('Event end date is missing.');
+                }
                 $html = $this->renderView('emails/inscription_confirmation.html.twig', [
                     'nom'         => $participant->getNomParticipant(),
                     'evenement'   => $ev->getTitre(),
-                    'date_debut'  => $ev->getDateDebut()->format('d/m/Y H:i'),
-                    'date_fin'    => $ev->getDateFin()->format('d/m/Y H:i'),
+                    'date_debut'  => $dateDebut->format('d/m/Y H:i'),
+                    'date_fin'    => $dateFin->format('d/m/Y H:i'),
                     'lieu'        => $ev->getLieu(),
                     'nbr_places'  => $participant->getNbrPlaces(),
                     'montant'     => $montant,
@@ -334,7 +345,7 @@ class EvenementController extends AbstractController
 
                 $email = (new Email())
                     ->from('noreply@agricore.tn')
-                    ->to($participant->getEmail())
+                    ->to((string) $participant->getEmail())
                     ->subject('✅ Confirmation — ' . $ev->getTitre())
                     ->html($html);
 
@@ -366,7 +377,7 @@ class EvenementController extends AbstractController
     public function participer(Evennementagricole $ev, Request $request, EntityManagerInterface $em, MailerInterface $mailer): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) return $this->redirectToRoute('front_login');
+        if (!$sessionUser instanceof User) return $this->redirectToRoute('front_login');
 
         if ($ev->getDateFin() < new \DateTime()) {
             $this->addFlash('error', 'Cet événement est terminé.');
@@ -409,7 +420,7 @@ class EvenementController extends AbstractController
             $montant      = $rawMontant * (1 - ($effectiveDiscount / 100));
 
             $participant->setEvenement($ev);
-            $participant->setIdUtilisateur($sessionUser->getId());
+            $participant->setIdUtilisateur((int) $sessionUser->getId());
             $participant->setDateInscription(new \DateTime());
             $participant->setStatutParticipation('En attente');
             $participant->setEntryCode($entryCode);
@@ -422,11 +433,16 @@ class EvenementController extends AbstractController
             $em->flush();
 
             try {
+                $dateDebut = $ev->getDateDebut();
+                $dateFin = $ev->getDateFin();
+                if ($dateDebut === null) {
+                    throw new \RuntimeException('Event start date is missing.');
+                }
                 $html = $this->renderView('emails/inscription_confirmation.html.twig', [
                     'nom'         => $participant->getNomParticipant(),
                     'evenement'   => $ev->getTitre(),
-                    'date_debut'  => $ev->getDateDebut()->format('d/m/Y H:i'),
-                    'date_fin'    => $ev->getDateFin()->format('d/m/Y H:i'),
+                    'date_debut'  => $dateDebut->format('d/m/Y H:i'),
+                    'date_fin'    => $dateFin->format('d/m/Y H:i'),
                     'lieu'        => $ev->getLieu(),
                     'nbr_places'  => $participant->getNbrPlaces(),
                     'montant'     => $montant,
@@ -446,7 +462,7 @@ class EvenementController extends AbstractController
 
                 $email = (new Email())
                     ->from('noreply@agricore.tn')
-                    ->to($participant->getEmail())
+                    ->to((string) $participant->getEmail())
                     ->subject('✅ Confirmation — ' . $ev->getTitre())
                     ->html($html);
 
@@ -487,6 +503,9 @@ class EvenementController extends AbstractController
         $em->flush();
 
         $ev = $participant->getEvenement();
+        if (!$ev instanceof Evennementagricole) {
+            return $this->redirectToRoute('app_evenement');
+        }
         $this->addFlash('success', '✅ Votre participation à "' . $ev->getTitre() . '" est confirmée !');
         return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
     }
@@ -495,7 +514,7 @@ class EvenementController extends AbstractController
     public function joinWaitlist(Evennementagricole $ev, Request $request, EntityManagerInterface $em, MailerInterface $mailer): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) return $this->redirectToRoute('front_login');
+        if (!$sessionUser instanceof User) return $this->redirectToRoute('front_login');
 
         // Check not already registered or on waitlist
         $existing = $em->getRepository(Participants::class)->findOneBy([
@@ -506,14 +525,14 @@ class EvenementController extends AbstractController
             return $this->redirectToRoute('app_evenement_show', ['id' => $ev->getIdEv()]);
         }
 
-        $email = trim($request->request->get('email_waitlist', ''));
+        $email = trim((string) $request->request->get('email_waitlist', ''));
         if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $email = 'noreply@waitlist.local'; // no email needed, notification is in-app
         }
 
         $p = new Participants();
         $p->setEvenement($ev);
-        $p->setIdUtilisateur($sessionUser->getId());
+        $p->setIdUtilisateur((int) $sessionUser->getId());
         $p->setNomParticipant($sessionUser->getPrenom() . ' ' . $sessionUser->getNom());
         $p->setNbrPlaces(1);
         $p->setMontantPayee('0');
@@ -533,7 +552,7 @@ class EvenementController extends AbstractController
     public function cancelWaitlist(Evennementagricole $ev, Request $request, EntityManagerInterface $em): Response
     {
         $user = $request->getSession()->get('user');
-        if (!$user) return $this->redirectToRoute('front_login');
+        if (!$user instanceof User) return $this->redirectToRoute('front_login');
 
         $p = $em->getRepository(Participants::class)->findOneBy([
             'evenement' => $ev, 'id_utilisateur' => $user->getId(), 'statut_participation' => 'waitlist'
@@ -548,7 +567,7 @@ class EvenementController extends AbstractController
     public function annulerInscription(Evennementagricole $ev, Request $request, EntityManagerInterface $em, MailerInterface $mailer): Response
     {
         $user = $request->getSession()->get('user');
-        if (!$user) return $this->redirectToRoute('front_login');
+        if (!$user instanceof User) return $this->redirectToRoute('front_login');
 
         $participant = $em->getRepository(Participants::class)->findOneBy([
             'evenement' => $ev, 'id_utilisateur' => $user->getId()

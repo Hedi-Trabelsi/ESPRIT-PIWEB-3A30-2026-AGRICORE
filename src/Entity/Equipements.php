@@ -139,7 +139,9 @@ class Equipements
 
     public function setIdFournisseur(?User $id_fournisseur): static
     {
-        $this->id_fournisseur = $id_fournisseur;
+        if ($id_fournisseur !== null) {
+            $this->id_fournisseur = $id_fournisseur;
+        }
 
         return $this;
     }

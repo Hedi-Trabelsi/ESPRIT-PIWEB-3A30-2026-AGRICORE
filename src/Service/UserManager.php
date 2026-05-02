@@ -38,7 +38,7 @@ class UserManager
         }
 
         // 4. Mot de passe (min 6 chars + minuscule + majuscule + chiffre)
-        $password = $user->getPassword();
+        $password = (string) $user->getPassword();
         if (strlen($password) < 6) {
             throw new \InvalidArgumentException('Le mot de passe doit contenir au moins 6 caracteres');
         }

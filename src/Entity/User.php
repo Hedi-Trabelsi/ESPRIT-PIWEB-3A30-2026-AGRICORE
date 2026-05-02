@@ -147,7 +147,7 @@ class User
         if (is_resource($this->image)) {
             $this->image = stream_get_contents($this->image);
         }
-        return $this->image;
+        return is_string($this->image) ? $this->image : null;
     }
 
     public function setImage(mixed $image): self

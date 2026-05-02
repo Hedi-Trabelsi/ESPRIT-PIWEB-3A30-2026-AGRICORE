@@ -151,10 +151,17 @@ class GenerateEntitiesCommand extends Command
                     $processedRelations[] = $relation; // Mark relation as added
 
                     $relationArray = $this->parseRelationAnnotation($relation);
-                    $relationKey = "$className-{$relationArray['mappedBy']}";
+                    $mappedBy = $relationArray['mappedBy'];
+                    $targetEntity = $relationArray['targetEntity'];
+
+                    if ($mappedBy === null || $targetEntity === null) {
+                        continue;
+                    }
+
+                    $relationKey = "$className-$mappedBy";
 
                     if (!isset($this->generatedRelations[$relationKey])) {
-                        $entityCode .= $this->generateRelationMethods($className, $relationArray['mappedBy'], $relationArray['targetEntity']);
+                        $entityCode .= $this->generateRelationMethods($className, $mappedBy, $targetEntity);
                         $this->generatedRelations[$relationKey] = true;
                     }
                 }
@@ -209,7 +216,7 @@ class GenerateEntitiesCommand extends Command
      * Retrieves foreign key constraints from the database.
      *
      * @param array<int, string> $tables List of table names.
-     * @return array<string, mixed> Associative array of foreign keys.
+     * @return array<string, array{referencedTable: string, referencedColumn: string}> Associative array of foreign keys.
      */
     public function getForeignKeys(array $tables): array
     {
@@ -226,14 +233,14 @@ class GenerateEntitiesCommand extends Command
             if (in_array($tableName, array_map(fn($table) => $table->getName(), $dbTables))) {
                 // Run a custom SQL query to retrieve foreign keys from the INFORMATION_SCHEMA (MySQL example)
                 $sql = "
-                SELECT 
-                    COLUMN_NAME, 
-                    REFERENCED_TABLE_NAME, 
+                SELECT
+                    COLUMN_NAME,
+                    REFERENCED_TABLE_NAME,
                     REFERENCED_COLUMN_NAME
-                FROM 
-                    INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
-                WHERE 
-                    TABLE_NAME = :tableName AND 
+                FROM
+                    INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                WHERE
+                    TABLE_NAME = :tableName AND
                     REFERENCED_TABLE_NAME IS NOT NULL
             ";
 
@@ -246,9 +253,17 @@ class GenerateEntitiesCommand extends Command
 
                 // Store foreign keys in the array
                 foreach ($fks as $fk) {
-                    $foreignKeys[$fk['COLUMN_NAME']] = [
-                        'referencedTable' => $fk['REFERENCED_TABLE_NAME'],
-                        'referencedColumn' => $fk['REFERENCED_COLUMN_NAME']
+                    $columnName = $fk['COLUMN_NAME'] ?? null;
+                    $refTable = $fk['REFERENCED_TABLE_NAME'] ?? null;
+                    $refColumn = $fk['REFERENCED_COLUMN_NAME'] ?? null;
+
+                    if (!is_string($columnName) || !is_string($refTable) || !is_string($refColumn)) {
+                        continue;
+                    }
+
+                    $foreignKeys[$columnName] = [
+                        'referencedTable' => $refTable,
+                        'referencedColumn' => $refColumn,
                     ];
                 }
             }
@@ -306,7 +321,7 @@ class GenerateEntitiesCommand extends Command
      *
      * @param Column $column The database column.
      * @param array<int, string> $primaryKeys List of primary keys.
-     * @param array<string, mixed> $foreignKeys List of foreign keys.
+     * @param array<string, array{referencedTable: string, referencedColumn: string}> $foreignKeys List of foreign keys.
      * @param string $className The entity class name.
      * @param array<string, list<string>> $oneToManyRelations Reference to OneToMany relations.
      * @param array<string, string> $manyToOneRelationsName Reference to ManyToOne relations.

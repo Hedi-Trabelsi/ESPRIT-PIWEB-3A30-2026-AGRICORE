@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Commande;
 use App\Entity\Equipement;
 use App\Entity\LigneCommande;
+use App\Entity\User;
 use App\Repository\EquipementRepository;
 use App\Service\CartService;
 use App\Service\EquipmentAiService;
@@ -107,7 +108,7 @@ class FrontEquipementController extends AbstractController
             return $this->redirectToRoute('app_equipement_catalogue');
         }
 
-        $cartService->add($equipement->getId(), $qty);
+        $cartService->add((int) $equipement->getId(), $qty);
         $this->addFlash('success', 'Ajoute au panier.');
 
         return $this->redirectToRoute('app_cart_show');
@@ -242,6 +243,9 @@ class FrontEquipementController extends AbstractController
             }
         }
 
+        if (!$sessionUser instanceof User || $sessionUser->getId() === null) {
+            return $this->redirectToRoute('front_login');
+        }
         $commande = new Commande();
         $commande->setAgriculteurId($sessionUser->getId());
         $em->persist($commande);
@@ -249,6 +253,7 @@ class FrontEquipementController extends AbstractController
 
         foreach ($cart as $id => $qty) {
             $eq = $em->getRepository(Equipement::class)->find($id);
+            if (!$eq) continue;
             $prix = (float) $eq->getPrix();
             $totalLigne = $prix * $qty;
             $totalCommande += $totalLigne;
@@ -282,7 +287,7 @@ class FrontEquipementController extends AbstractController
         Request $request
     ): Response {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -306,7 +311,7 @@ class FrontEquipementController extends AbstractController
     public function myOrders(EntityManagerInterface $em, Request $request): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User) {
             return $this->redirectToRoute('front_login');
         }
 

@@ -36,8 +36,10 @@ class MaintenanceControllerTest extends TestCase
 
         $this->assertIsArray($result);
         $this->assertCount(1, $result);
-        $this->assertSame('Urgente', $result[0]->getPriorite());
-        $this->assertSame('En attente', $result[0]->getStatut());
+        $first = $result[0];
+        $this->assertInstanceOf(Maintenance::class, $first);
+        $this->assertSame('Urgente', $first->getPriorite());
+        $this->assertSame('En attente', $first->getStatut());
     }
 
     public function testBuildCalendarTaskData(): void

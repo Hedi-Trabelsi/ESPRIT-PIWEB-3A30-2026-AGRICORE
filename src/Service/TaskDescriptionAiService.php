@@ -19,7 +19,7 @@ class TaskDescriptionAiService
     {
         $apiKey = $_ENV['GROQ_API_KEY'] ?? $_SERVER['GROQ_API_KEY'] ?? getenv('GROQ_API_KEY');
 
-        if (!$apiKey) {
+        if (!is_string($apiKey) || $apiKey === '') {
             throw new \RuntimeException('La variable d\'environnement GROQ_API_KEY est introuvable.');
         }
 
@@ -78,11 +78,18 @@ Contexte :
         ]);
 
         $data = $response->toArray(false);
-
-        if (!isset($data['choices'][0]['message']['content'])) {
+        $choices = $data['choices'] ?? [];
+        $content = null;
+        if (is_array($choices) && isset($choices[0]) && is_array($choices[0])) {
+            $msg = $choices[0]['message'] ?? null;
+            if (is_array($msg) && isset($msg['content']) && is_string($msg['content'])) {
+                $content = $msg['content'];
+            }
+        }
+        if (!is_string($content)) {
             throw new \RuntimeException('Réponse IA invalide.');
         }
 
-        return trim($data['choices'][0]['message']['content']);
+        return trim($content);
     }
 }

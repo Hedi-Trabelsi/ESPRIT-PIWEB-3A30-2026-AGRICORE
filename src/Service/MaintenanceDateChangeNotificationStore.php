@@ -65,7 +65,28 @@ final class MaintenanceDateChangeNotificationStore
 
         $decoded = json_decode($content, true);
 
-        return is_array($decoded) ? array_values($decoded) : [];
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $records = [];
+        foreach ($decoded as $r) {
+            if (is_array($r) && isset($r['farmer_id'], $r['maintenance_id'])
+                && (is_int($r['farmer_id']) || is_string($r['farmer_id']))
+                && (is_int($r['maintenance_id']) || is_string($r['maintenance_id']))
+            ) {
+                $record = [
+                    'farmer_id' => $r['farmer_id'],
+                    'maintenance_id' => $r['maintenance_id'],
+                ];
+                if (array_key_exists('seen_at', $r)) {
+                    $seenAt = $r['seen_at'];
+                    $record['seen_at'] = $seenAt === null ? null : (is_scalar($seenAt) ? (string) $seenAt : null);
+                }
+                $records[] = $record;
+            }
+        }
+        return $records;
     }
 
     /** @param list<NotificationRecord> $records */
