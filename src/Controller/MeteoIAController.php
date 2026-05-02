@@ -34,7 +34,7 @@ class MeteoIAController extends AbstractController
         }
 
         return $this->render('front/suivi_animal/animal/meteo_ia.html.twig', [
-            'animals' => $animalRepo->findAll(),
+            'animals' => $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100),
         ]);
     }
 
@@ -84,7 +84,7 @@ class MeteoIAController extends AbstractController
         $rain        = is_numeric($rainArr['1h'] ?? null) ? (float) $rainArr['1h'] : 0;
 
         // ── 3. Charger animaux + derniers suivis ──
-        $animals = $animalRepo->findAll();
+        $animals = $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100);
         $animalData = [];
         foreach ($animals as $animal) {
             $suivis = $suiviRepo->findBy(['animal' => $animal], ['dateSuivi' => 'DESC'], 1);

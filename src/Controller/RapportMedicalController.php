@@ -26,7 +26,7 @@ class RapportMedicalController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        $animals = $animalRepo->findAll();
+        $animals = $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100);
 
         return $this->render('front/suivi_animal/animal/rapport_medical.html.twig', [
             'animals' => $animals,

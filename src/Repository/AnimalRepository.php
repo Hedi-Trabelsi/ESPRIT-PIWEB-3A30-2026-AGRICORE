@@ -17,6 +17,95 @@ class AnimalRepository extends ServiceEntityRepository
     }
 
     /**
+     * Retourne une Query (pour pagination) au lieu d'un tableau
+     * Résout les warnings DoctrineDoctor : findAll sans LIMIT + ORDER BY sans LIMIT
+     */
+    public function searchQuery(string $q = '', string $sortBy = 'codeAnimal', string $order = 'ASC', ?int $idAgriculteur = null): \Doctrine\ORM\Query
+    {
+        $allowed = ['codeAnimal', 'espece', 'race', 'sexe', 'dateNaissance'];
+        $sortBy  = in_array($sortBy, $allowed) ? $sortBy : 'codeAnimal';
+        $order   = strtoupper($order) === 'DESC' ? 'DESC' : 'ASC';
+
+        $qb = $this->createQueryBuilder('a');
+
+        if ($idAgriculteur !== null) {
+            $qb->andWhere('a.idAgriculteur = :agriculteur')->setParameter('agriculteur', $idAgriculteur);
+        }
+
+        if ($q !== '') {
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    $qb->expr()->like('a.codeAnimal', ':q'),
+                    $qb->expr()->like('a.espece',     ':q'),
+                    $qb->expr()->like('a.race',       ':q'),
+                    $qb->expr()->like('a.sexe',       ':q')
+                )
+            )->setParameter('q', '%'.$q.'%');
+        }
+
+        return $qb->orderBy('a.'.$sortBy, $order)->getQuery();
+    }
+
+    /** Compte total des animaux — remplace findAll() + count() */
+    public function countAll(): int
+    {
+        return (int) $this->createQueryBuilder('a')
+            ->select('COUNT(a.idAnimal)')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /** Compte par espèce — remplace findAll() + foreach */
+    public function countByEspece(): array
+    {
+        $rows = $this->createQueryBuilder('a')
+            ->select('a.espece, COUNT(a.idAnimal) AS nb')
+            ->groupBy('a.espece')
+            ->orderBy('nb', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[$row['espece']] = (int) $row['nb'];
+        }
+        return $result;
+    }
+
+    /** Compte par race — remplace findAll() + foreach */
+    public function countByRace(): array
+    {
+        $rows = $this->createQueryBuilder('a')
+            ->select('a.race, COUNT(a.idAnimal) AS nb')
+            ->groupBy('a.race')
+            ->orderBy('nb', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[$row['race']] = (int) $row['nb'];
+        }
+        return $result;
+    }
+
+    /** Compte par sexe — remplace findAll() + foreach */
+    public function countBySexe(): array
+    {
+        $rows = $this->createQueryBuilder('a')
+            ->select('a.sexe, COUNT(a.idAnimal) AS nb')
+            ->groupBy('a.sexe')
+            ->getQuery()
+            ->getResult();
+
+        $result = ['Mâle' => 0, 'Femelle' => 0];
+        foreach ($rows as $row) {
+            $result[$row['sexe']] = (int) $row['nb'];
+        }
+        return $result;
+    }
+
+    /**
      * @return Animal[]
      */
     public function search(string $q = '', string $sortBy = 'codeAnimal', string $order = 'ASC', ?int $idAgriculteur = null): array

@@ -258,9 +258,9 @@
    AgriCore — Alertes Santé Animaux
    S'affiche automatiquement après création/modification suivi
    ============================================================ #}
-{% set alertes = app.session.get('suivi_alertes') %}
-{% if alertes is not empty %}
-  {% do app.session.remove('suivi_alertes') %}
+{% set alertes_flash = app.flashes('suivi_alertes') %}
+{% set alertes_json = alertes_flash is not empty ? alertes_flash[0] : null %}
+{% if alertes_json %}
 
   <style>
     #agri-overlay {
@@ -310,7 +310,7 @@
 
   <script>
   (function() {
-    var ALERTES = {{ alertes|json_encode|raw }};
+    var ALERTES = {{ alertes_json|raw }};
     if (!ALERTES || ALERTES.length === 0) return;
 
     var niv = 'avertissement';
@@ -358,6 +358,34 @@
     overlay.addEventListener('click', function(e) {
       if (e.target === overlay) agriFermer();
     });
+
+    // ── Notifications Desktop Windows ──────────────────────────
+    function envoyerDesktop(titre, message, niveau) {
+      if (!('Notification' in window)) return;
+      function send() {
+        new Notification(titre, {
+          body: message,
+          icon: '/favicon.ico',
+          requireInteraction: niveau === 'critique',
+          tag: 'agri-' + Date.now(),
+        });
+      }
+      if (Notification.permission === 'granted') {
+        send();
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(function(p) {
+          if (p === 'granted') send();
+        });
+      }
+    }
+
+    // Envoyer une notification desktop pour chaque alerte
+    ALERTES.forEach(function(a, i) {
+      setTimeout(function() {
+        envoyerDesktop('🐾 ' + a.titre, a.message, a.niveau);
+      }, i * 600);
+    });
+
   })();
 
   function agriFermer() {

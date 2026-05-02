@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Form\SuiviAnimalType;
 use App\Repository\SuiviAnimalRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,7 +20,7 @@ use Dompdf\Options;
 final class SuiviAnimalController extends AbstractController
 {
     #[Route(name: 'app_suivi_animal_index', methods: ['GET'])]
-    public function index(Request $request, SuiviAnimalRepository $suiviAnimalRepository): Response
+    public function index(Request $request, SuiviAnimalRepository $suiviAnimalRepository, PaginatorInterface $paginator): Response
     {
         $sessionUser = $request->getSession()->get('user');
         if (!$sessionUser instanceof User) {
@@ -30,16 +31,24 @@ final class SuiviAnimalController extends AbstractController
         $sortBy = (string) $request->query->get('sortBy', 'dateSuivi');
         $order  = (string) $request->query->get('order', 'DESC');
 
-        $suivis = $suiviAnimalRepository->search($q, $sortBy, $order, $sessionUser->getId());
+        // On récupère la Query (pas encore exécutée) au lieu d'un tableau
+        $query = $suiviAnimalRepository->searchQuery($q, $sortBy, $order, $sessionUser->getId());
+
+        // Le paginator exécute la query avec LIMIT + OFFSET automatiquement
+        $suivi_animals = $paginator->paginate(
+            $query,
+            $request->query->getInt('page', 1), // page courante (défaut : 1)
+            6                                    // 6 suivis par page
+        );
 
         if ($request->isXmlHttpRequest()) {
             return $this->render('front/suivi_animal/suivi_animal/_cards.html.twig', [
-                'suivi_animals' => $suivis,
+                'suivi_animals' => $suivi_animals,
             ]);
         }
 
         return $this->render('front/suivi_animal/suivi_animal/index.html.twig', [
-            'suivi_animals' => $suivis,
+            'suivi_animals' => $suivi_animals,
             'q'             => $q,
             'sortBy'        => $sortBy,
             'order'         => $order,
@@ -146,14 +155,15 @@ final class SuiviAnimalController extends AbstractController
             $entityManager->persist($suiviAnimal);
             $entityManager->flush();
 
-            // ── Analyser les données et stocker alertes en session ──
+            // ── Analyser les données et passer les alertes via URL ──
+            $entityManager->refresh($suiviAnimal);
             $alertes = $this->analyserSuivi($suiviAnimal);
-            if (!empty($alertes)) {
-                $request->getSession()->set('suivi_alertes', $alertes);
-            }
 
             if ($animalId) {
-                return $this->redirectToRoute('app_animal_show', ['idAnimal' => $animalId], Response::HTTP_SEE_OTHER);
+                return $this->redirectToRoute('app_animal_show', [
+                    'idAnimal' => $animalId,
+                    'alertes'  => !empty($alertes) ? base64_encode(json_encode($alertes)) : null,
+                ], Response::HTTP_SEE_OTHER);
             }
             return $this->redirectToRoute('app_suivi_animal_index', [], Response::HTTP_SEE_OTHER);
         }
@@ -204,13 +214,14 @@ final class SuiviAnimalController extends AbstractController
             $entityManager->flush();
 
             // ── Analyser et notifier si anomalie ──
+            $entityManager->refresh($suiviAnimal);
             $alertes = $this->analyserSuivi($suiviAnimal);
-            if (!empty($alertes)) {
-                $request->getSession()->set('suivi_alertes', $alertes);
-            }
 
             if (is_scalar($idAnimal) && $idAnimal) {
-                return $this->redirectToRoute('app_animal_show', ['idAnimal' => (int)$idAnimal], Response::HTTP_SEE_OTHER);
+                return $this->redirectToRoute('app_animal_show', [
+                    'idAnimal' => (int)$idAnimal,
+                    'alertes'  => !empty($alertes) ? base64_encode(json_encode($alertes)) : null,
+                ], Response::HTTP_SEE_OTHER);
             }
             return $this->redirectToRoute('app_suivi_animal_index', [], Response::HTTP_SEE_OTHER);
         }

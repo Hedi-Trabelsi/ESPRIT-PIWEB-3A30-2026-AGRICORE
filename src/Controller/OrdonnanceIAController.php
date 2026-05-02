@@ -27,7 +27,7 @@ class OrdonnanceIAController extends AbstractController
         }
 
         return $this->render('front/suivi_animal/animal/ordonnance_ia.html.twig', [
-            'animals' => $animalRepo->findAll(),
+            'animals' => $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100),
         ]);
     }
 

@@ -17,6 +17,22 @@ class SuiviAnimalRepository extends ServiceEntityRepository
     }
 
     /**
+     * Charge les suivis d'un animal avec LIMIT — évite ORDER BY sans LIMIT
+     * @return SuiviAnimal[]
+     */
+    public function findByAnimalLimited(\App\Entity\Animal $animal, int $limit = 20): array
+    {
+        $result = $this->createQueryBuilder('s')
+            ->andWhere('s.animal = :animal')
+            ->setParameter('animal', $animal)
+            ->orderBy('s.dateSuivi', 'DESC')
+            ->setMaxResults($limit)           // ← LIMIT explicite
+            ->getQuery()
+            ->getResult();
+        return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof SuiviAnimal)) : [];
+    }
+
+    /**
      * @return SuiviAnimal[]
      */
     public function findByAnimalAndPeriode(\App\Entity\Animal $animal, string $dateDebut, string $dateFin): array
@@ -32,6 +48,126 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
         return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof SuiviAnimal)) : [];
+    }
+
+    /**
+     * Retourne une Query (pour pagination) au lieu d'un tableau
+     * Résout les warnings DoctrineDoctor : findAll sans LIMIT + ORDER BY sans LIMIT
+     */
+    public function searchQuery(string $q = '', string $sortBy = 'dateSuivi', string $order = 'DESC', ?int $idAgriculteur = null): \Doctrine\ORM\Query
+    {
+        $allowed = ['dateSuivi', 'temperature', 'poids', 'rythmeCardiaque', 'etatSante', 'niveauActivite'];
+        $sortBy  = in_array($sortBy, $allowed) ? $sortBy : 'dateSuivi';
+        $order   = strtoupper($order) === 'ASC' ? 'ASC' : 'DESC';
+
+        $qb = $this->createQueryBuilder('s')
+            ->addSelect('a')               // JOIN FETCH — charge animal en même temps
+            ->join('s.animal', 'a');       // INNER JOIN explicite, pas de lazy loading
+
+        if ($idAgriculteur !== null) {
+            $qb->andWhere('a.idAgriculteur = :agriculteur')
+               ->setParameter('agriculteur', $idAgriculteur);
+        }
+
+        if ($q !== '') {
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    $qb->expr()->like('a.codeAnimal',     ':q'),
+                    $qb->expr()->like('s.etatSante',      ':q'),
+                    $qb->expr()->like('s.niveauActivite', ':q'),
+                    $qb->expr()->like('s.remarque',       ':q')
+                )
+            )->setParameter('q', '%'.$q.'%');
+        }
+
+        // HINT_FORCE_PARTIAL_LOAD évite que Doctrine fasse une 2e requête
+        // pour résoudre les proxies d'entités liées (le IN(?,?,?) problématique)
+        return $qb->orderBy('s.'.$sortBy, $order)
+                  ->getQuery()
+                  ->setHint(\Doctrine\ORM\Query::HINT_FORCE_PARTIAL_LOAD, true);
+    }
+
+    /** Compte total des suivis — remplace findAll() + count() */
+    public function countAll(): int
+    {
+        return (int) $this->createQueryBuilder('s')
+            ->select('COUNT(s.idSuivi)')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /** Compte par état de santé — remplace findAll() + foreach */
+    public function countByEtatSante(): array
+    {
+        $rows = $this->createQueryBuilder('s')
+            ->select('s.etatSante, COUNT(s.idSuivi) AS nb')
+            ->groupBy('s.etatSante')
+            ->getQuery()
+            ->getResult();
+
+        $result = ['Bon' => 0, 'Moyen' => 0, 'Mauvais' => 0];
+        foreach ($rows as $row) {
+            if (isset($result[$row['etatSante']])) {
+                $result[$row['etatSante']] = (int) $row['nb'];
+            }
+        }
+        return $result;
+    }
+
+    /** Compte par niveau d'activité — remplace findAll() + foreach */
+    public function countByNiveauActivite(): array
+    {
+        $rows = $this->createQueryBuilder('s')
+            ->select('s.niveauActivite, COUNT(s.idSuivi) AS nb')
+            ->groupBy('s.niveauActivite')
+            ->getQuery()
+            ->getResult();
+
+        $result = ['Faible' => 0, 'Modéré' => 0, 'Élevé' => 0];
+        foreach ($rows as $row) {
+            if (isset($result[$row['niveauActivite']])) {
+                $result[$row['niveauActivite']] = (int) $row['nb'];
+            }
+        }
+        return $result;
+    }
+
+    /** Moyennes température, poids, rythme — remplace findAll() + foreach */
+    public function getMoyennes(): array
+    {
+        $row = $this->createQueryBuilder('s')
+            ->select(
+                'ROUND(AVG(s.temperature), 1) AS moyTemp',
+                'ROUND(AVG(s.poids), 1)        AS moyPoids',
+                'ROUND(AVG(s.rythmeCardiaque), 0) AS moyRythme'
+            )
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return [
+            'moyTemp'   => (float) ($row['moyTemp']   ?? 0),
+            'moyPoids'  => (float) ($row['moyPoids']  ?? 0),
+            'moyRythme' => (float) ($row['moyRythme'] ?? 0),
+        ];
+    }
+
+    /** Compte des suivis par mois (N derniers mois) — remplace findAll() + foreach */
+    public function countByMois(int $limit = 6): array
+    {
+        // Utilise SUBSTRING pour extraire YYYY-MM sans extension externe
+        $rows = $this->createQueryBuilder('s')
+            ->select("SUBSTRING(s.dateSuivi, 1, 7) AS mois, COUNT(s.idSuivi) AS nb")
+            ->groupBy('mois')
+            ->orderBy('mois', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $parMois = [];
+        foreach ($rows as $row) {
+            $parMois[$row['mois']] = (int) $row['nb'];
+        }
+
+        return array_slice($parMois, -$limit, $limit, true);
     }
 
     /**

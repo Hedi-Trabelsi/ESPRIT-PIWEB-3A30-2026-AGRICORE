@@ -37,7 +37,7 @@ class NotificationAnimalController extends AbstractController
         if (!$sessionUser) return $this->redirectToRoute('front_login');
 
         return $this->render('front/suivi_animal/animal/notifications.html.twig', [
-            'animals' => $animalRepo->findAll(),
+            'animals' => $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100),
         ]);
     }
 
@@ -45,7 +45,7 @@ class NotificationAnimalController extends AbstractController
     #[Route('/animal/notifications/scanner', name: 'app_notifications_scanner', methods: ['GET'])]
     public function scanner(AnimalRepository $animalRepo, SuiviAnimalRepository $suiviRepo): JsonResponse
     {
-        $animals = $animalRepo->findAll();
+        $animals = $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100);
         $alertes = [];
 
         foreach ($animals as $animal) {

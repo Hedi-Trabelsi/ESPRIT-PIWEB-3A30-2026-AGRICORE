@@ -91,7 +91,7 @@ class RecommandationAlimentaireController extends AbstractController
         if (!$sessionUser) return $this->redirectToRoute('front_login');
 
         return $this->render('front/suivi_animal/animal/recommandation_alimentaire.html.twig', [
-            'animals' => $animalRepo->findAll(),
+            'animals' => $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100),
         ]);
     }
 

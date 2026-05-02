@@ -73,7 +73,7 @@ class SuiviAnimalBackController extends AbstractController
     #[Route('/back/suivis/new', name: 'back_suivi_new', methods: ['GET', 'POST'])]
     public function new(Request $request, EntityManagerInterface $em, AnimalRepository $animalRepo): Response
     {
-        $animals = $animalRepo->findAll();
+        $animals = $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100);
 
         if ($request->isMethod('POST')) {
             $animal = $animalRepo->find($request->request->get('idAnimal'));
@@ -110,7 +110,7 @@ class SuiviAnimalBackController extends AbstractController
     #[Route('/back/suivis/{id}/edit', name: 'back_suivi_edit', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function edit(SuiviAnimal $suivi, Request $request, EntityManagerInterface $em, AnimalRepository $animalRepo): Response
     {
-        $animals = $animalRepo->findAll();
+        $animals = $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100);
 
         if ($request->isMethod('POST')) {
             $animal = $animalRepo->find($request->request->get('idAnimal'));
