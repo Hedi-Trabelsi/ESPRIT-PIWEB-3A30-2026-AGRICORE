@@ -7,6 +7,7 @@
         "php": ">=8.1",
         "ext-ctype": "*",
         "ext-iconv": "*",
+        "ahmed-bhs/doctrine-doctor": "^1.1",
         "cmen/google-charts-bundle": "^7.1",
         "cmfcmf/openweathermap-php-api": "^3.4",
         "doctrine/doctrine-bundle": "^2.18",
@@ -70,6 +71,7 @@
         "twig/extra-bundle": "^2.12|^3.0",
         "twig/twig": "^2.12|^3.0",
         "vich/uploader-bundle": "^2.9",
+        "webmozart/assert": "1.11",
         "willdurand/geocoder-bundle": "^6.0"
     },
     "config": {

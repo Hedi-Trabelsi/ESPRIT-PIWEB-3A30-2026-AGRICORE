@@ -18,10 +18,10 @@ class EquipementTest extends TestCase
     public function testDefaultValues(): void
     {
         $this->assertNull($this->equipement->getId());
-        $this->assertNull($this->equipement->getNom());
-        $this->assertNull($this->equipement->getType());
-        $this->assertNull($this->equipement->getPrix());
-        $this->assertNull($this->equipement->getQuantite());
+        $this->assertSame('', $this->equipement->getNom());
+        $this->assertSame('', $this->equipement->getType());
+        $this->assertSame('', $this->equipement->getPrix());
+        $this->assertSame(0, $this->equipement->getQuantite());
         $this->assertNull($this->equipement->getImageFilename());
         $this->assertNull($this->equipement->getImageFile());
         $this->assertNull($this->equipement->getUpdatedAt());

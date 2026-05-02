@@ -16,9 +16,9 @@ class CommandeTest extends TestCase
         $after = new \DateTimeImmutable();
 
         $this->assertNull($commande->getId());
-        $this->assertNull($commande->getTotal());
+        $this->assertSame('', $commande->getTotal());
         $this->assertNull($commande->getAgriculteurId());
-        $this->assertNotNull($commande->getDateCommande());
+        $this->assertInstanceOf(\DateTimeImmutable::class, $commande->getDateCommande());
         $this->assertCount(0, $commande->getLignes());
         $this->assertGreaterThanOrEqual($before->getTimestamp(), $commande->getDateCommande()->getTimestamp());
         $this->assertLessThanOrEqual($after->getTimestamp(), $commande->getDateCommande()->getTimestamp());
@@ -27,7 +27,7 @@ class CommandeTest extends TestCase
     public function testSettersAndGetters(): void
     {
         $commande = new Commande();
-        $date = new \DateTime('2026-05-01 11:00:00');
+        $date = new \DateTimeImmutable('2026-05-01 11:00:00');
 
         $result = $commande
             ->setDateCommande($date)

@@ -35,7 +35,7 @@ class DepenseTest extends TestCase
 
     public function testSetAndGetDate(): void
     {
-        $date = new \DateTime('2024-05-01');
+        $date = new \DateTimeImmutable('2024-05-01');
         $this->depense->setDate($date);
         $this->assertSame($date, $this->depense->getDate());
     }
@@ -52,19 +52,19 @@ class DepenseTest extends TestCase
         $this->assertNull($this->depense->getIdDepense());
     }
 
-    public function testTypeIsNullByDefault(): void
+    public function testTypeIsEmptyByDefault(): void
     {
-        $this->assertNull($this->depense->getType());
+        $this->assertSame('', $this->depense->getType());
     }
 
-    public function testMontantIsNullByDefault(): void
+    public function testMontantIsZeroByDefault(): void
     {
-        $this->assertNull($this->depense->getMontant());
+        $this->assertSame(0.0, $this->depense->getMontant());
     }
 
-    public function testDateIsNullByDefault(): void
+    public function testDateIsInitializedByDefault(): void
     {
-        $this->assertNull($this->depense->getDate());
+        $this->assertInstanceOf(\DateTimeImmutable::class, $this->depense->getDate());
     }
 
     public function testUserIsNullByDefault(): void
@@ -78,11 +78,11 @@ class DepenseTest extends TestCase
         $this->assertIsFloat($this->depense->getMontant());
     }
 
-    public function testDateIsDateTimeInterface(): void
+    public function testDateIsDateTimeImmutable(): void
     {
-        $date = new \DateTime('2024-01-01');
+        $date = new \DateTimeImmutable('2024-01-01');
         $this->depense->setDate($date);
-        $this->assertInstanceOf(\DateTimeInterface::class, $this->depense->getDate());
+        $this->assertInstanceOf(\DateTimeImmutable::class, $this->depense->getDate());
     }
 
     // ── Tests des règles métier ───────────────────────────────────────
@@ -103,8 +103,8 @@ class DepenseTest extends TestCase
 
     public function testDateCannotBeInFuture(): void
     {
-        $today = new \DateTime();
+        $today = new \DateTimeImmutable();
         $this->depense->setDate($today);
-        $this->assertLessThanOrEqual(new \DateTime(), $this->depense->getDate());
+        $this->assertLessThanOrEqual(new \DateTimeImmutable(), $this->depense->getDate());
     }
 }

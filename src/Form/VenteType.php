@@ -30,6 +30,7 @@ class VenteType extends AbstractType
             ])
             ->add('date', DateType::class, [
                 'widget' => 'single_text',
+                'input' => 'datetime_immutable',
                 'attr' => ['class' => 'form-control'],
                 'label' => 'Date'
             ])

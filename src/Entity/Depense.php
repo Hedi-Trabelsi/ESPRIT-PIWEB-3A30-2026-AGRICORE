@@ -30,7 +30,7 @@ class Depense
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $type = null;
+    private string $type = '';
 
     public function getType(): ?string
     {
@@ -44,7 +44,7 @@ class Depense
     }
 
     #[ORM\Column(type: 'float', nullable: false)]
-    private ?float $montant = null;
+    private float $montant = 0.0;
 
     public function getMontant(): ?float
     {
@@ -57,15 +57,20 @@ class Depense
         return $this;
     }
 
-    #[ORM\Column(type: 'date', nullable: false)]
-    private ?\DateTimeInterface $date = null;
+    #[ORM\Column(type: 'date_immutable', nullable: false)]
+    private \DateTimeImmutable $date;
 
-    public function getDate(): ?\DateTimeInterface
+    public function __construct()
+    {
+        $this->date = new \DateTimeImmutable();
+    }
+
+    public function getDate(): \DateTimeImmutable
     {
         return $this->date;
     }
 
-    public function setDate(\DateTimeInterface $date): self
+    public function setDate(\DateTimeImmutable $date): self
     {
         $this->date = $date;
         return $this;

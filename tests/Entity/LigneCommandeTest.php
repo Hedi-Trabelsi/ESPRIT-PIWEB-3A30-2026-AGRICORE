@@ -21,9 +21,9 @@ class LigneCommandeTest extends TestCase
         $this->assertNull($this->ligneCommande->getId());
         $this->assertNull($this->ligneCommande->getCommande());
         $this->assertNull($this->ligneCommande->getEquipement());
-        $this->assertNull($this->ligneCommande->getQuantite());
-        $this->assertNull($this->ligneCommande->getPrixUnitaire());
-        $this->assertNull($this->ligneCommande->getTotalLigne());
+        $this->assertSame(0, $this->ligneCommande->getQuantite());
+        $this->assertSame('', $this->ligneCommande->getPrixUnitaire());
+        $this->assertSame('', $this->ligneCommande->getTotalLigne());
     }
 
     public function testSettersAndGetters(): void

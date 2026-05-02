@@ -21,7 +21,6 @@ class ForecastService
     {
         $monthSum = [];
         foreach ($ventes as $v) {
-            if ($v->getDate() === null) continue;
             $ym = $v->getDate()->format('Y-m');
             $monthSum[$ym] = ($monthSum[$ym] ?? 0.0) + $v->getChiffreAffaires();
         }

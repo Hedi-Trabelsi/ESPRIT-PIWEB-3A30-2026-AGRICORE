@@ -23,7 +23,7 @@ class ForecastServiceTest extends TestCase
         
         foreach ($dates as $index => $dateStr) {
             $vente = new Vente();
-            $vente->setDate(new \DateTime($dateStr));
+            $vente->setDate(new \DateTimeImmutable($dateStr));
             $vente->setChiffreAffaires($caValues[$index]);
             $ventes[] = $vente;
         }
@@ -57,7 +57,7 @@ class ForecastServiceTest extends TestCase
         
         foreach ($dates as $index => $dateStr) {
             $vente = new Vente();
-            $vente->setDate(new \DateTime($dateStr));
+            $vente->setDate(new \DateTimeImmutable($dateStr));
             $vente->setChiffreAffaires($caValues[$index]);
             $ventes[] = $vente;
         }
@@ -75,7 +75,7 @@ class ForecastServiceTest extends TestCase
 
         foreach ($dates as $index => $dateStr) {
             $vente = new Vente();
-            $vente->setDate(new \DateTime($dateStr));
+            $vente->setDate(new \DateTimeImmutable($dateStr));
             $vente->setChiffreAffaires($caValues[$index]);
             $ventes[] = $vente;
         }
@@ -93,7 +93,7 @@ class ForecastServiceTest extends TestCase
 
         foreach ($dates as $index => $dateStr) {
             $vente = new Vente();
-            $vente->setDate(new \DateTime($dateStr));
+            $vente->setDate(new \DateTimeImmutable($dateStr));
             $vente->setChiffreAffaires($caValues[$index]);
             $ventes[] = $vente;
         }
@@ -111,7 +111,7 @@ class ForecastServiceTest extends TestCase
         
         foreach ($dates as $index => $dateStr) {
             $vente = new Vente();
-            $vente->setDate(new \DateTime($dateStr));
+            $vente->setDate(new \DateTimeImmutable($dateStr));
             $vente->setChiffreAffaires($caValues[$index]);
             $ventes[] = $vente;
         }

@@ -41,7 +41,7 @@ class VenteTest extends TestCase
 
     public function testSetAndGetDate(): void
     {
-        $date = new \DateTime('2024-05-01');
+        $date = new \DateTimeImmutable('2024-05-01');
         $this->vente->setDate($date);
         $this->assertSame($date, $this->vente->getDate());
     }
@@ -64,29 +64,29 @@ class VenteTest extends TestCase
         $this->assertNull($this->vente->getIdVente());
     }
 
-    public function testPrixUnitaireIsNullByDefault(): void
+    public function testPrixUnitaireIsZeroByDefault(): void
     {
-        $this->assertNull($this->vente->getPrixUnitaire());
+        $this->assertSame(0, $this->vente->getPrixUnitaire());
     }
 
-    public function testQuantiteIsNullByDefault(): void
+    public function testQuantiteIsZeroByDefault(): void
     {
-        $this->assertNull($this->vente->getQuantite());
+        $this->assertSame(0, $this->vente->getQuantite());
     }
 
-    public function testChiffreAffairesIsNullByDefault(): void
+    public function testChiffreAffairesIsZeroByDefault(): void
     {
-        $this->assertNull($this->vente->getChiffreAffaires());
+        $this->assertSame(0, $this->vente->getChiffreAffaires());
     }
 
-    public function testDateIsNullByDefault(): void
+    public function testDateIsInitializedByDefault(): void
     {
-        $this->assertNull($this->vente->getDate());
+        $this->assertInstanceOf(\DateTimeImmutable::class, $this->vente->getDate());
     }
 
-    public function testProduitIsNullByDefault(): void
+    public function testProduitIsEmptyByDefault(): void
     {
-        $this->assertNull($this->vente->getProduit());
+        $this->assertSame('', $this->vente->getProduit());
     }
 
     public function testUserIsNullByDefault(): void
@@ -112,11 +112,11 @@ class VenteTest extends TestCase
         $this->assertIsInt($this->vente->getChiffreAffaires());
     }
 
-    public function testDateIsDateTimeInterface(): void
+    public function testDateIsDateTimeImmutable(): void
     {
-        $date = new \DateTime('2024-01-01');
+        $date = new \DateTimeImmutable('2024-01-01');
         $this->vente->setDate($date);
-        $this->assertInstanceOf(\DateTimeInterface::class, $this->vente->getDate());
+        $this->assertInstanceOf(\DateTimeImmutable::class, $this->vente->getDate());
     }
 
     // ── Tests des règles métier ───────────────────────────────────────

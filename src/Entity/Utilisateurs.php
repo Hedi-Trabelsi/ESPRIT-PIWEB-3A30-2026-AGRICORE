@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use App\Entity\Maintenance;
 
@@ -127,6 +128,13 @@ class Utilisateurs
     public function setImage(string $value): void
     {
         $this->image = $value;
+    }
+
+    public function __construct()
+    {
+        $this->animals = new ArrayCollection();
+        $this->equipementss = new ArrayCollection();
+        $this->maintenances = new ArrayCollection();
     }
 
     /** @var Collection<int, Animal> */

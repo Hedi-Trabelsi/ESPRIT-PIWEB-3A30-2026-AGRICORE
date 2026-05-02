@@ -33,7 +33,7 @@ class User
     #[ORM\Column(name: 'nom', type: 'string', nullable: false)]
     #[Assert\NotBlank(message: "Le nom est obligatoire.")]
     #[Assert\Length(min: 2, max: 50, minMessage: "Le nom doit contenir au moins {{ limit }} caracteres.", maxMessage: "Le nom ne doit pas depasser {{ limit }} caracteres.")]
-    private ?string $nom = null;
+    private string $nom = '';
 
     public function getNom(): ?string
     {
@@ -49,7 +49,7 @@ class User
     #[ORM\Column(name: 'prenom', type: 'string', nullable: false)]
     #[Assert\NotBlank(message: "Le prenom est obligatoire.")]
     #[Assert\Length(min: 2, max: 50, minMessage: "Le prenom doit contenir au moins {{ limit }} caracteres.", maxMessage: "Le prenom ne doit pas depasser {{ limit }} caracteres.")]
-    private ?string $prenom = null;
+    private string $prenom = '';
 
     public function getPrenom(): ?string
     {
@@ -79,7 +79,7 @@ class User
     #[ORM\Column(name: 'adresse', type: 'string', nullable: false)]
     #[Assert\NotBlank(message: "L'adresse est obligatoire.")]
     #[Assert\Length(min: 3, max: 255, minMessage: "L'adresse doit contenir au moins {{ limit }} caracteres.")]
-    private ?string $adresse = null;
+    private string $adresse = '';
 
     public function getAdresse(): ?string
     {
@@ -94,7 +94,7 @@ class User
 
     #[ORM\Column(name: 'role', type: 'integer', nullable: false)]
     #[Assert\NotBlank(message: "Le role est obligatoire.")]
-    private ?int $role = null;
+    private int $role = 0;
 
     public function getRole(): ?int
     {
@@ -110,7 +110,7 @@ class User
     #[ORM\Column(name: 'numeroT', type: 'integer', nullable: false)]
     #[Assert\NotBlank(message: "Le numero de telephone est obligatoire.")]
     #[Assert\Positive(message: "Le numero de telephone doit etre un nombre positif.")]
-    private ?int $numeroT = null;
+    private int $numeroT = 0;
 
     public function getNumeroT(): ?int
     {
@@ -126,7 +126,7 @@ class User
     #[ORM\Column(name: 'email', type: 'string', nullable: false)]
     #[Assert\NotBlank(message: "L'email est obligatoire.")]
     #[Assert\Email(message: "L'email '{{ value }}' n'est pas un email valide.")]
-    private ?string $email = null;
+    private string $email = '';
 
     public function getEmail(): ?string
     {
@@ -173,7 +173,7 @@ class User
     #[Assert\Regex(pattern: "/[a-z]/", message: "Le mot de passe doit contenir au moins une lettre minuscule.")]
     #[Assert\Regex(pattern: "/[A-Z]/", message: "Le mot de passe doit contenir au moins une lettre majuscule.")]
     #[Assert\Regex(pattern: "/[0-9]/", message: "Le mot de passe doit contenir au moins un chiffre.")]
-    private ?string $password = null;
+    private string $password = '';
 
     public function getPassword(): ?string
     {
@@ -188,7 +188,7 @@ class User
 
     #[ORM\Column(name: 'genre', type: 'string', nullable: false)]
     #[Assert\NotBlank(message: "Le genre est obligatoire.")]
-    private ?string $genre = null;
+    private string $genre = '';
 
     public function getGenre(): ?string
     {
@@ -245,13 +245,18 @@ class User
     {
         if (!$this->getDepenses()->contains($depense)) {
             $this->getDepenses()->add($depense);
+            $depense->setUser($this);
         }
         return $this;
     }
 
     public function removeDepense(Depense $depense): self
     {
-        $this->getDepenses()->removeElement($depense);
+        if ($this->getDepenses()->removeElement($depense)) {
+            if ($depense->getUser() === $this) {
+                $depense->setUser(null);
+            }
+        }
         return $this;
     }
 
@@ -271,13 +276,18 @@ class User
     {
         if (!$this->getEquipements()->contains($equipement)) {
             $this->getEquipements()->add($equipement);
+            $equipement->setUser($this);
         }
         return $this;
     }
 
     public function removeEquipement(Equipement $equipement): self
     {
-        $this->getEquipements()->removeElement($equipement);
+        if ($this->getEquipements()->removeElement($equipement)) {
+            if ($equipement->getUser() === $this) {
+                $equipement->setUser(null);
+            }
+        }
         return $this;
     }
 
@@ -331,13 +341,18 @@ class User
     {
         if (!$this->getVentes()->contains($vente)) {
             $this->getVentes()->add($vente);
+            $vente->setUser($this);
         }
         return $this;
     }
 
     public function removeVente(Vente $vente): self
     {
-        $this->getVentes()->removeElement($vente);
+        if ($this->getVentes()->removeElement($vente)) {
+            if ($vente->getUser() === $this) {
+                $vente->setUser(null);
+            }
+        }
         return $this;
     }
 

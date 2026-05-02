@@ -44,7 +44,7 @@ class Panier
     }
 
     #[ORM\Column(type: 'integer', nullable: false)]
-    private ?int $quantite = null;
+    private int $quantite = 0;
 
     public function getQuantite(): ?int
     {
@@ -58,7 +58,7 @@ class Panier
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $total = null;
+    private string $total = '';
 
     public function getTotal(): ?string
     {
