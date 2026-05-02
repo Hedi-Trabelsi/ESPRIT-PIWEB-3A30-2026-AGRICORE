@@ -20,6 +20,12 @@ class Animal
     #[ORM\Column(name: "idAnimal")]
     private ?int $idAnimal = null;
 
+    public function setIdAnimal(int $idAnimal): self
+    {
+        $this->idAnimal = $idAnimal;
+        return $this;
+    }
+
     #[ORM\Column(name: "idAgriculteur", nullable: true)]
     private ?int $idAgriculteur = null;
 
@@ -47,6 +53,7 @@ class Animal
     #[Assert\NotNull(message: "La date de naissance est obligatoire")]
     #[Assert\LessThanOrEqual("today", message: "La date de naissance ne peut pas être dans le futur")]
     private ?\DateTimeInterface $dateNaissance = null;
+    /** @var Collection<int, SuiviAnimal> */
     #[ORM\OneToMany(mappedBy: "animal", targetEntity: SuiviAnimal::class)]
     private Collection $suivis;
     // ===== ID =====
@@ -126,6 +133,9 @@ class Animal
         $this->dateNaissance = $dateNaissance;
         return $this;
     }
+    /**
+     * @return Collection<int, SuiviAnimal>
+     */
     public function getSuivis(): Collection
     {
         return $this->suivis;

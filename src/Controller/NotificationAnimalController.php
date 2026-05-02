@@ -13,6 +13,9 @@ use Symfony\Component\Routing\Attribute\Route;
 class NotificationAnimalController extends AbstractController
 {
     // Normes vitales par espèce [tempMin, tempMax, rythmeMin, rythmeMax]
+    /**
+     * @return array{0: float, 1: float, 2: int, 3: int}
+     */
     private function getNormes(string $espece): array
     {
         return match (strtolower(trim($espece))) {

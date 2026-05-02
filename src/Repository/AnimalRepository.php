@@ -6,6 +6,9 @@ use App\Entity\Animal;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
+/**
+ * @extends ServiceEntityRepository<Animal>
+ */
 class AnimalRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -13,6 +16,9 @@ class AnimalRepository extends ServiceEntityRepository
         parent::__construct($registry, Animal::class);
     }
 
+    /**
+     * @return Animal[]
+     */
     public function search(string $q = '', string $sortBy = 'codeAnimal', string $order = 'ASC', ?int $idAgriculteur = null): array
     {
         $allowed = ['codeAnimal', 'espece', 'race', 'sexe', 'dateNaissance'];
@@ -39,6 +45,9 @@ class AnimalRepository extends ServiceEntityRepository
         return $qb->orderBy('a.'.$sortBy, $order)->getQuery()->getResult();
     }
 
+    /**
+     * @return Animal[]
+     */
     public function searchStatic(
         string $codeAnimal = '',
         string $espece     = '',

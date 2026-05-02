@@ -103,7 +103,7 @@ class OrdonnanceIAController extends AbstractController
         }
     }
 
-    private function construirePrompt($animal, float $poids, string $pathologie, string $gravite, string $symptomes, string $age, string $allergies, bool $gestante, bool $lactante): string
+    private function construirePrompt(\App\Entity\Animal $animal, float $poids, string $pathologie, string $gravite, string $symptomes, string $age, string $allergies, bool $gestante, bool $lactante): string
     {
         $poidsInt = (int) $poids;
 

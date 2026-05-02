@@ -6,6 +6,9 @@ use App\Entity\SuiviAnimal;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
+/**
+ * @extends ServiceEntityRepository<SuiviAnimal>
+ */
 class SuiviAnimalRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -13,6 +16,9 @@ class SuiviAnimalRepository extends ServiceEntityRepository
         parent::__construct($registry, SuiviAnimal::class);
     }
 
+    /**
+     * @return SuiviAnimal[]
+     */
     public function findByAnimalAndPeriode(\App\Entity\Animal $animal, string $dateDebut, string $dateFin): array
     {
         return $this->createQueryBuilder('s')
@@ -27,6 +33,9 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * @return SuiviAnimal[]
+     */
     public function search(string $q = '', string $sortBy = 'dateSuivi', string $order = 'DESC', ?int $idAgriculteur = null): array    {
         $allowed = ['dateSuivi', 'temperature', 'poids', 'rythmeCardiaque', 'etatSante', 'niveauActivite'];
         $sortBy  = in_array($sortBy, $allowed) ? $sortBy : 'dateSuivi';
@@ -53,6 +62,9 @@ class SuiviAnimalRepository extends ServiceEntityRepository
         return $qb->orderBy('s.'.$sortBy, $order)->getQuery()->getResult();
     }
 
+    /**
+     * @return SuiviAnimal[]
+     */
     public function searchStatic(
         string $etatSante      = '',
         string $niveauActivite = '',

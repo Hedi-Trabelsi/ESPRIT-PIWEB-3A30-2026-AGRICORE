@@ -230,23 +230,11 @@ final class AnimalController extends AbstractController
             'chartEtat'     => $chartEtat,
             'chartActivite' => $chartActivite,
             'chartMois'     => $chartMois,
-        ]);
-
-        return $this->render('front/suivi_animal/animal/stats.html.twig', [
-            'totalAnimaux'      => $totalAnimaux,
             'parEspece'         => $parEspece,
             'parEspeceLabels'   => json_encode(array_keys($parEspece)),
             'parEspeceValues'   => json_encode(array_values($parEspece)),
-            'parRace'           => $parRace,
-            'parRaceMax'        => $parRace ? max($parRace) : 1,
             'parSexe'           => $parSexe,
-            'totalSuivis'       => $totalSuivis,
-            'parEtat'           => $parEtat,
             'parActivite'       => $parActivite,
-            'moyTemp'           => $totalSuivis ? round($tempSum / $totalSuivis, 1) : 0,
-            'moyPoids'          => $totalSuivis ? round($poidsSum / $totalSuivis, 1) : 0,
-            'moyRythme'         => $totalSuivis ? round($rythmeSum / $totalSuivis, 0) : 0,
-            'derniersMois'      => $derniersMois,
             'derniersMoisLabels'=> json_encode(array_keys($derniersMois)),
             'derniersMoisValues'=> json_encode(array_values($derniersMois)),
         ]);

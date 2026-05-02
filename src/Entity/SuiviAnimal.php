@@ -14,6 +14,12 @@ class SuiviAnimal
     #[ORM\Column(name: "idSuivi")]
     private ?int $idSuivi = null;
 
+    public function setIdSuivi(int $idSuivi): self
+    {
+        $this->idSuivi = $idSuivi;
+        return $this;
+    }
+
     #[ORM\ManyToOne(targetEntity: Animal::class, inversedBy: 'suivis')]
     #[ORM\JoinColumn(name: "idAnimal", referencedColumnName: "idAnimal", nullable: false)]
     #[Assert\NotNull(message: "Veuillez choisir un animal.")]

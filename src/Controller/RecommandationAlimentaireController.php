@@ -16,6 +16,20 @@ class RecommandationAlimentaireController extends AbstractController
     //  PROFILS NUTRITIONNELS PAR ESPÈCE
     //  (même logique que Java ProfilNutri)
     // ════════════════════════════════════════
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function getStatutFromScore(int $score): array
+    {
+        if ($score >= 80) return ['✅ EXCELLENT', '#2e7d32'];
+        if ($score >= 60) return ['⚠️ SATISFAISANT', '#f57c00'];
+        if ($score >= 40) return ['🔴 INSUFFISANT', '#e65100'];
+        return ['🚨 CRITIQUE', '#c62828'];
+    }
+
+    /**
+     * @return array{energie:float, proteine:float, fibre:float, calcium:float, phosphore:float, aliments:list<string>, interdits:list<string>}
+     */
     private function getProfilEspece(string $espece): array
     {
         return match (strtolower(trim($espece))) {
@@ -224,10 +238,7 @@ class RecommandationAlimentaireController extends AbstractController
 
         // ── Score final ──
         $scoreNutri = max(0, min(100, $scoreNutri));
-        if ($scoreNutri >= 80)      { $statut = '✅ EXCELLENT';    $couleur = '#2e7d32'; }
-        elseif ($scoreNutri >= 60)  { $statut = '⚠️ SATISFAISANT'; $couleur = '#f57c00'; }
-        elseif ($scoreNutri >= 40)  { $statut = '🔴 INSUFFISANT';  $couleur = '#e65100'; }
-        else                        { $statut = '🚨 CRITIQUE';     $couleur = '#c62828'; }
+        [$statut, $couleur] = $this->getStatutFromScore($scoreNutri);
 
         // ── Besoins journaliers ──
         $facteur = $niveau === 'Élevé' ? 1.25 : ($niveau === 'Faible' ? 0.85 : 1.0);

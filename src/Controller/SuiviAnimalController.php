@@ -243,6 +243,9 @@ final class SuiviAnimalController extends AbstractController
         return $this->redirectToRoute('app_suivi_animal_index', [], Response::HTTP_SEE_OTHER);
     }
 
+    /**
+     * @return list<array{titre:string, message:string, niveau:string}>
+     */
     private function analyserSuivi(\App\Entity\SuiviAnimal $suivi): array
     {
         $alertes = [];
