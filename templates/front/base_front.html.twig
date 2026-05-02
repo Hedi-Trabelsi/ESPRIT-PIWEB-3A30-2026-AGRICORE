@@ -6,6 +6,12 @@
     <title>{% block title %}Agricore{% endblock %}</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://code.jquery.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
     <link href="{{ asset('img/logoo.png') }}" rel="icon">
 
     <!-- Google Fonts -->
@@ -178,17 +184,75 @@
 </script>
 
 {# JavaScript Libraries #}
-<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/wow/1.1.2/wow.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
-<script src="{{ asset('lib/waypoints/waypoints.min.js') }}"></script>
-<script src="{{ asset('lib/owlcarousel/owl.carousel.min.js') }}"></script>
-<script src="{{ asset('lib/counterup/counterup.min.js') }}"></script>
-<script src="{{ asset('lib/parallax/parallax.min.js') }}"></script>
-<script src="{{ asset('lib/isotope/isotope.pkgd.min.js') }}"></script>
-<script src="{{ asset('lib/lightbox/js/lightbox.min.js') }}"></script>
-<script src="{{ asset('js/main.js') }}"></script>
+<script defer src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/wow/1.1.2/wow.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+<script defer src="{{ asset('lib/waypoints/waypoints.min.js') }}"></script>
+<script defer src="{{ asset('lib/owlcarousel/owl.carousel.min.js') }}"></script>
+<script defer src="{{ asset('lib/counterup/counterup.min.js') }}"></script>
+<script defer src="{{ asset('lib/parallax/parallax.min.js') }}"></script>
+<script defer src="{{ asset('lib/isotope/isotope.pkgd.min.js') }}"></script>
+<script defer src="{{ asset('lib/lightbox/js/lightbox.min.js') }}"></script>
+<script defer src="{{ asset('js/main.min.js') }}"></script>
+
+<script>
+  (function () {
+    var prefetched = Object.create(null);
+
+    if (!('requestIdleCallback' in window)) {
+      window.requestIdleCallback = function (cb) {
+        return setTimeout(cb, 1);
+      };
+    }
+
+    function isPrefetchable(link) {
+      if (!link || !link.href) return false;
+      if (link.target === '_blank' || link.hasAttribute('download')) return false;
+      if ((link.getAttribute('href') || '').charAt(0) === '#') return false;
+
+      try {
+        var url = new URL(link.href, window.location.origin);
+        if (url.origin !== window.location.origin) return false;
+        if (url.href === window.location.href) return false;
+        return !prefetched[url.href];
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function prefetchPage(href) {
+      if (prefetched[href]) return;
+
+      var preload = document.createElement('link');
+      preload.rel = 'prefetch';
+      preload.as = 'document';
+      preload.href = href;
+      document.head.appendChild(preload);
+      prefetched[href] = true;
+    }
+
+    function handleLinkEvent(event) {
+      var link = event.target.closest('a[href]');
+      if (!isPrefetchable(link)) return;
+      prefetchPage(link.href);
+    }
+
+    document.addEventListener('mouseover', handleLinkEvent, { passive: true });
+    document.addEventListener('touchstart', handleLinkEvent, { passive: true });
+
+    requestIdleCallback(function () {
+      var links = document.querySelectorAll('a[href]');
+      var warmed = 0;
+
+      for (var i = 0; i < links.length && warmed < 8; i++) {
+        if (!isPrefetchable(links[i])) continue;
+        prefetchPage(links[i].href);
+        warmed++;
+      }
+    });
+  })();
+</script>
 
 {# ============================================================
    AgriCore — Alertes Santé Animaux

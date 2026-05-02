@@ -70,7 +70,7 @@ private string $lieu;
     private ?User $id_agriculteur = null;
 
     /** @var Collection<int, Tache> */
-    #[ORM\OneToMany(mappedBy: "id_maintenance", targetEntity: Tache::class)]
+    #[ORM\OneToMany(mappedBy: "id_maintenance", targetEntity: Tache::class, cascade: ["persist", "remove"])]
     private Collection $taches;
 
     public function __construct()
