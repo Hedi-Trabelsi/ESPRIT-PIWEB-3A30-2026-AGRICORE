@@ -96,12 +96,12 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
-    /**
-     * Compte par état de santé — remplace findAll() + foreach
+    /** Compte par état de santé — remplace findAll() + foreach
      * @return array<string, int>
      */
     public function countByEtatSante(): array
     {
+        /** @var array<array{etatSante: string, nb: string}> $rows */
         $rows = $this->createQueryBuilder('s')
             ->select('s.etatSante, COUNT(s.idSuivi) AS nb')
             ->groupBy('s.etatSante')
@@ -109,28 +109,20 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->getResult();
 
         $result = ['Bon' => 0, 'Moyen' => 0, 'Mauvais' => 0];
-        if (!is_array($rows)) {
-            return $result;
-        }
         foreach ($rows as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $etat = $row['etatSante'] ?? null;
-            $nb = $row['nb'] ?? null;
-            if (is_string($etat) && isset($result[$etat]) && is_numeric($nb)) {
-                $result[$etat] = (int) $nb;
+            if (isset($result[$row['etatSante']])) {
+                $result[(string) $row['etatSante']] = (int) $row['nb'];
             }
         }
         return $result;
     }
 
-    /**
-     * Compte par niveau d'activité — remplace findAll() + foreach
+    /** Compte par niveau d'activité — remplace findAll() + foreach
      * @return array<string, int>
      */
     public function countByNiveauActivite(): array
     {
+        /** @var array<array{niveauActivite: string, nb: string}> $rows */
         $rows = $this->createQueryBuilder('s')
             ->select('s.niveauActivite, COUNT(s.idSuivi) AS nb')
             ->groupBy('s.niveauActivite')
@@ -138,28 +130,20 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->getResult();
 
         $result = ['Faible' => 0, 'Modéré' => 0, 'Élevé' => 0];
-        if (!is_array($rows)) {
-            return $result;
-        }
         foreach ($rows as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $niveau = $row['niveauActivite'] ?? null;
-            $nb = $row['nb'] ?? null;
-            if (is_string($niveau) && isset($result[$niveau]) && is_numeric($nb)) {
-                $result[$niveau] = (int) $nb;
+            if (isset($result[$row['niveauActivite']])) {
+                $result[(string) $row['niveauActivite']] = (int) $row['nb'];
             }
         }
         return $result;
     }
 
-    /**
-     * Moyennes température, poids, rythme — remplace findAll() + foreach
+    /** Moyennes température, poids, rythme — remplace findAll() + foreach
      * @return array{moyTemp: float, moyPoids: float, moyRythme: float}
      */
     public function getMoyennes(): array
     {
+        /** @var array{moyTemp: string|null, moyPoids: string|null, moyRythme: string|null}|null $row */
         $row = $this->createQueryBuilder('s')
             ->select(
                 'ROUND(AVG(s.temperature), 1) AS moyTemp',
@@ -169,28 +153,19 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
 
-        if (!is_array($row)) {
-            return ['moyTemp' => 0.0, 'moyPoids' => 0.0, 'moyRythme' => 0.0];
-        }
-
-        $moyTemp = $row['moyTemp'] ?? null;
-        $moyPoids = $row['moyPoids'] ?? null;
-        $moyRythme = $row['moyRythme'] ?? null;
-
         return [
-            'moyTemp'   => is_numeric($moyTemp) ? (float) $moyTemp : 0.0,
-            'moyPoids'  => is_numeric($moyPoids) ? (float) $moyPoids : 0.0,
-            'moyRythme' => is_numeric($moyRythme) ? (float) $moyRythme : 0.0,
+            'moyTemp'   => (float) ($row['moyTemp']   ?? 0),
+            'moyPoids'  => (float) ($row['moyPoids']  ?? 0),
+            'moyRythme' => (float) ($row['moyRythme'] ?? 0),
         ];
     }
 
-    /**
-     * Compte des suivis par mois (N derniers mois) — remplace findAll() + foreach
+    /** Compte des suivis par mois (N derniers mois) — remplace findAll() + foreach
      * @return array<string, int>
      */
     public function countByMois(int $limit = 6): array
     {
-        // Utilise SUBSTRING pour extraire YYYY-MM sans extension externe
+        /** @var array<array{mois: string, nb: string}> $rows */
         $rows = $this->createQueryBuilder('s')
             ->select("SUBSTRING(s.dateSuivi, 1, 7) AS mois, COUNT(s.idSuivi) AS nb")
             ->groupBy('mois')
@@ -199,18 +174,8 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->getResult();
 
         $parMois = [];
-        if (!is_array($rows)) {
-            return $parMois;
-        }
         foreach ($rows as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $mois = $row['mois'] ?? null;
-            $nb = $row['nb'] ?? null;
-            if (is_string($mois) && is_numeric($nb)) {
-                $parMois[$mois] = (int) $nb;
-            }
+            $parMois[(string) $row['mois']] = (int) $row['nb'];
         }
 
         return array_slice($parMois, -$limit, $limit, true);

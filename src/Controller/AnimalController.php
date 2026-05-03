@@ -266,8 +266,9 @@ final class AnimalController extends AbstractController
         $alertesParam = $request->query->get('alertes');
         $alertes = null;
         if (is_string($alertesParam) && $alertesParam !== '') {
-            $decoded = base64_decode($alertesParam);
+            $decoded = base64_decode($alertesParam, true);
             if ($decoded !== false) {
+                /** @var array<int, array{titre: string, message: string, niveau: string}>|null $alertes */
                 $alertes = json_decode($decoded, true);
             }
         }
