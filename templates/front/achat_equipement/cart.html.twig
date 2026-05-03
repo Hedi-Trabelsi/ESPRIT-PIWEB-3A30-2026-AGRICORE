@@ -1,46 +1,521 @@
 {% extends 'front/base_front.html.twig' %}
 
+{% block title %}Panier intelligent | Agricore{% endblock %}
+
 {% block body %}
-<div class="container mt-4">
-    <h1>Mon panier</h1>
-    {% if items is empty %}
-        <p>Panier vide. <a href="{{ path('app_equipement_catalogue') }}">Continuer les achats</a></p>
-    {% else %}
-        <table class="table table-bordered">
-            <thead class="table-light">
-                <tr>
-                    <th>Produit</th>
-                    <th>Prix unitaire</th>
-                    <th>Quantite</th>
-                    <th>Sous-total</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for item in items %}
-                <tr>
-                    <td>{{ item.equipement.nom }}</td>
-                    <td>{{ item.prix_unitaire }} TND</td>
-                    <td>
-                        <a href="{{ path('app_cart_update', {id: item.equipement.id, quantite: item.quantite - 1}) }}" class="btn btn-sm btn-outline-secondary">-</a>
-                        {{ item.quantite }}
-                        <a href="{{ path('app_cart_update', {id: item.equipement.id, quantite: item.quantite + 1}) }}" class="btn btn-sm btn-outline-secondary">+</a>
-                    </td>
-                    <td>{{ item.sous_total }} TND</td>
-                    <td><a href="{{ path('app_cart_remove', {id: item.equipement.id}) }}" class="btn btn-danger btn-sm">Retirer</a></td>
-                </tr>
-            {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <th colspan="3">Total</th>
-                    <th>{{ total }} TND</th>
-                    <th></th>
-                </tr>
-            </tfoot>
-        </table>
-        <a href="{{ path('app_equipement_catalogue') }}" class="btn btn-secondary">Continuer</a>
-        <a href="{{ path('app_order_confirm') }}" class="btn btn-primary">Confirmer la commande</a>
-    {% endif %}
+<style>
+    .cart-page {
+        --cart-night: #10261d;
+        --cart-forest: #1f6c44;
+        --cart-green: #2f9a61;
+        --cart-gold: #ffd35c;
+        --cart-soft: #f5f9f4;
+        --cart-line: rgba(16, 38, 29, 0.1);
+        --cart-soft-text: #6b7d71;
+        --cart-danger: #ff5f7d;
+    }
+    .cart-shell {
+        padding: 1.8rem 0 4rem;
+    }
+    .cart-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 32px;
+        padding: 2rem;
+        margin-bottom: 1.3rem;
+        background:
+            radial-gradient(circle at top right, rgba(255, 211, 92, .14), transparent 18%),
+            linear-gradient(135deg, #10261d 0%, #1b5c39 50%, #2f9a61 100%);
+        color: #fff;
+        box-shadow: 0 28px 58px rgba(16, 38, 29, .18);
+    }
+    .cart-hero::after {
+        content: "";
+        position: absolute;
+        right: -80px;
+        bottom: -110px;
+        width: 280px;
+        height: 280px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.08);
+    }
+    .cart-hero > * {
+        position: relative;
+        z-index: 1;
+    }
+    .cart-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.14);
+        padding: .45rem .85rem;
+        color: rgba(255,255,255,.92);
+        font-size: .82rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-bottom: 1rem;
+    }
+    .cart-hero h1 {
+        color: #fff;
+        font-size: clamp(2.4rem, 5vw, 4rem);
+        line-height: .98;
+        letter-spacing: -.03em;
+        margin-bottom: .9rem;
+        font-weight: 900;
+    }
+    .cart-hero p {
+        color: rgba(255,255,255,.82);
+        max-width: 760px;
+        font-size: 1.08rem;
+        margin: 0;
+    }
+    .cart-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(340px, .7fr);
+        gap: 1.3rem;
+        align-items: start;
+    }
+    .cart-card {
+        background: rgba(255,255,255,.95);
+        border: 1px solid var(--cart-line);
+        border-radius: 30px;
+        box-shadow: 0 22px 48px rgba(16, 38, 29, .08);
+    }
+    .cart-list-card {
+        padding: 1.35rem;
+        background:
+            radial-gradient(circle at left bottom, rgba(47,154,97,.06), transparent 26%),
+            linear-gradient(180deg, #ffffff 0%, #f9fcf8 100%);
+    }
+    .cart-empty {
+        border-radius: 24px;
+        padding: 2rem;
+        background: linear-gradient(180deg, #ffffff, #f8fbf7);
+        border: 1px dashed rgba(16,38,29,.14);
+        text-align: center;
+        color: var(--cart-soft-text);
+    }
+    .cart-items {
+        display: grid;
+        gap: 1rem;
+    }
+    .cart-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(110px, .55fr) minmax(150px, .7fr) minmax(150px, .7fr) auto;
+        gap: 1rem;
+        align-items: center;
+        border-radius: 26px;
+        padding: 1rem;
+        background: #fff;
+        border: 1px solid rgba(16,38,29,.06);
+        box-shadow: 0 16px 30px rgba(16, 38, 29, .05);
+        transition: opacity .18s ease;
+    }
+    .cart-product {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+    .cart-thumb {
+        width: 92px;
+        height: 92px;
+        border-radius: 24px;
+        object-fit: cover;
+        background: linear-gradient(135deg, #eef6ef, #ffffff);
+        box-shadow: 0 16px 24px rgba(16,38,29,.12);
+        flex-shrink: 0;
+    }
+    .cart-thumb-fallback {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--cart-forest);
+        font-weight: 900;
+        font-size: 1.3rem;
+    }
+    .cart-label {
+        display: none;
+        color: var(--cart-soft-text);
+        font-size: .74rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        font-weight: 800;
+        margin-bottom: .35rem;
+    }
+    .cart-name {
+        color: var(--cart-night);
+        font-size: 1.25rem;
+        line-height: 1.15;
+        font-weight: 900;
+        margin-bottom: .35rem;
+    }
+    .cart-type {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: .4rem .75rem;
+        background: #edf7ef;
+        color: #256c45;
+        font-size: .8rem;
+        font-weight: 800;
+        text-transform: lowercase;
+    }
+    .cart-price,
+    .cart-subtotal {
+        color: var(--cart-night);
+        font-size: 1.1rem;
+        font-weight: 900;
+    }
+    .cart-stepper {
+        display: inline-flex;
+        align-items: center;
+        gap: .65rem;
+        border-radius: 999px;
+        padding: .5rem;
+        background: #f5f8f4;
+        border: 1px solid rgba(16,38,29,.08);
+    }
+    .cart-stepper .btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        font-weight: 900;
+        border-color: rgba(16,38,29,.18);
+    }
+    .cart-stepper-value {
+        min-width: 28px;
+        text-align: center;
+        font-weight: 900;
+        color: var(--cart-night);
+    }
+    .cart-remove {
+        border-radius: 16px;
+        padding: .8rem 1rem;
+        border: 1px solid rgba(255,95,125,.36);
+        background: rgba(255,95,125,.08);
+        color: #dc4565;
+        font-weight: 800;
+        text-decoration: none;
+        transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+    }
+    .cart-remove:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px rgba(255,95,125,.16);
+        background: rgba(255,95,125,.14);
+        color: #c43756;
+    }
+    .cart-summary {
+        position: sticky;
+        top: 1.2rem;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at top right, rgba(255, 211, 92, .14), transparent 22%),
+            linear-gradient(180deg, #ffffff 0%, #f9fcf8 100%);
+        padding: 1.45rem;
+    }
+    .cart-summary h3 {
+        color: var(--cart-night);
+        font-size: 2rem;
+        font-weight: 900;
+        margin-bottom: 1rem;
+    }
+    .cart-summary-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: .95rem 0;
+        border-bottom: 1px solid rgba(16,38,29,.1);
+        font-size: 1.04rem;
+        color: #4c5d52;
+    }
+    .cart-summary-line strong {
+        color: var(--cart-night);
+        font-size: 1.45rem;
+        font-weight: 900;
+    }
+    .cart-summary-note {
+        margin-top: 1rem;
+        color: var(--cart-soft-text);
+        font-size: .95rem;
+    }
+    .cart-actions {
+        display: grid;
+        gap: .7rem;
+        margin-top: 1.25rem;
+    }
+    .cart-actions .btn {
+        min-height: 56px;
+        border-radius: 16px;
+        font-weight: 800;
+        font-size: 1.02rem;
+    }
+    .cart-hidden {
+        display: none !important;
+    }
+    .cart-stepper .btn:disabled,
+    .cart-remove:disabled {
+        opacity: .55;
+        cursor: wait;
+        pointer-events: none;
+    }
+    .cart-item.is-loading {
+        opacity: .7;
+    }
+    @media (max-width: 1199px) {
+        .cart-layout {
+            grid-template-columns: 1fr;
+        }
+        .cart-summary {
+            position: static;
+        }
+    }
+    @media (max-width: 991px) {
+        .cart-item {
+            grid-template-columns: 1fr 1fr;
+            align-items: start;
+        }
+        .cart-product,
+        .cart-remove {
+            grid-column: 1 / -1;
+        }
+        .cart-label {
+            display: block;
+        }
+    }
+    @media (max-width: 767px) {
+        .cart-hero {
+            padding: 1.25rem;
+            border-radius: 24px;
+        }
+        .cart-card {
+            border-radius: 22px;
+        }
+        .cart-list-card,
+        .cart-summary {
+            padding: 1rem;
+        }
+        .cart-item {
+            grid-template-columns: 1fr;
+        }
+        .cart-product,
+        .cart-remove {
+            grid-column: auto;
+        }
+    }
+</style>
+
+<div class="cart-page">
+    <div class="container cart-shell">
+        <section class="cart-hero">
+            <span class="cart-kicker">Panier intelligent</span>
+            <h1>Votre selection est presque prete</h1>
+            <p>Relisez vos equipements, ajustez les quantites en douceur et validez la commande dans une interface plus claire, plus premium et plus rassurante.</p>
+        </section>
+
+        <div class="cart-layout">
+            <section class="cart-card cart-list-card">
+                <div class="cart-empty{% if items is not empty %} cart-hidden{% endif %}" id="cart-empty-state">
+                    <h3 class="text-dark fw-bold mb-2">Panier vide</h3>
+                    <p class="mb-3">Vous n'avez encore ajoute aucun equipement.</p>
+                    <a href="{{ path('app_equipement_catalogue') }}" class="btn btn-outline-success">Continuer les achats</a>
+                </div>
+
+                <div class="cart-items{% if items is empty %} cart-hidden{% endif %}" id="cart-items-list">
+                    {% for item in items %}
+                        <article
+                            class="cart-item"
+                            data-cart-item
+                            data-item-id="{{ item.equipement.id }}"
+                            data-stock="{{ item.equipement.quantite }}"
+                            data-update-url="{{ path('app_cart_update', {id: item.equipement.id, quantite: '__QTY__'}) }}"
+                            data-remove-url="{{ path('app_cart_remove', {id: item.equipement.id}) }}"
+                        >
+                            <div class="cart-product">
+                                {% if item.equipement.imageFilename %}
+                                    <img src="{{ vich_uploader_asset(item.equipement, 'imageFile') }}" alt="{{ item.equipement.nom }}" class="cart-thumb">
+                                {% else %}
+                                    <div class="cart-thumb cart-thumb-fallback">AG</div>
+                                {% endif %}
+                                <div>
+                                    <div class="cart-name">{{ item.equipement.nom }}</div>
+                                    <span class="cart-type">{{ item.equipement.type }}</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="cart-label">Prix</div>
+                                <div class="cart-price">{{ item.prix_unitaire|number_format(2, '.', ' ') }} TND</div>
+                            </div>
+
+                            <div>
+                                <div class="cart-label">Quantite</div>
+                                <div class="cart-stepper">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-cart-action="decrease">-</button>
+                                    <span class="cart-stepper-value" data-cart-quantity>{{ item.quantite }}</span>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-cart-action="increase">+</button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="cart-label">Sous-total</div>
+                                <div class="cart-subtotal" data-cart-subtotal>{{ item.sous_total|number_format(2, '.', ' ') }} TND</div>
+                            </div>
+
+                            <div>
+                                <button type="button" class="cart-remove" data-cart-action="remove">Retirer</button>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <aside class="cart-card cart-summary">
+                <h3>Recapitulatif</h3>
+                <div class="cart-summary-line">
+                    <span>Total TND</span>
+                    <strong id="cart-total-tnd">{{ total|number_format(2, '.', ' ') }}</strong>
+                </div>
+                <div class="cart-summary-line">
+                    <span>Total EUR</span>
+                    <strong id="cart-total-eur">{{ convertedTotal.EUR|number_format(2, '.', ' ') }}</strong>
+                </div>
+                <div class="cart-summary-line">
+                    <span>Total USD</span>
+                    <strong id="cart-total-usd">{{ convertedTotal.USD|number_format(2, '.', ' ') }}</strong>
+                </div>
+                <div class="cart-summary-note" id="cart-summary-meta">Source: {{ convertedTotal.meta.source }} • {{ convertedTotal.meta.updated_at }}</div>
+
+                <div class="cart-actions">
+                    <a href="{{ path('app_equipement_catalogue') }}" class="btn btn-outline-success">Continuer</a>
+                    <a href="{{ path('app_order_confirm') }}" class="btn btn-success{% if items is empty %} cart-hidden{% endif %}" id="cart-confirm-button">Confirmer la commande</a>
+                </div>
+            </aside>
+        </div>
+    </div>
 </div>
+
+<script>
+    (() => {
+        const itemsList = document.getElementById('cart-items-list');
+        if (!itemsList) {
+            return;
+        }
+
+        const emptyState = document.getElementById('cart-empty-state');
+        const confirmButton = document.getElementById('cart-confirm-button');
+        const totalTnd = document.getElementById('cart-total-tnd');
+        const totalEur = document.getElementById('cart-total-eur');
+        const totalUsd = document.getElementById('cart-total-usd');
+        const summaryMeta = document.getElementById('cart-summary-meta');
+
+        const formatAmount = (value) => new Intl.NumberFormat('fr-FR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(Number(value) || 0).replace(/\u202f/g, ' ');
+
+        const setItemLoading = (item, loading) => {
+            item.classList.toggle('is-loading', loading);
+            item.querySelectorAll('button').forEach((button) => {
+                button.disabled = loading;
+            });
+        };
+
+        const syncItem = (payloadItem) => {
+            const item = itemsList.querySelector(`[data-item-id="${payloadItem.id}"]`);
+            if (!item) {
+                return;
+            }
+
+            item.dataset.stock = payloadItem.stock;
+            item.querySelector('[data-cart-quantity]').textContent = payloadItem.quantite;
+            item.querySelector('[data-cart-subtotal]').textContent = `${formatAmount(payloadItem.sous_total)} TND`;
+        };
+
+        const applyPayload = (payload) => {
+            const remainingIds = new Set((payload.items || []).map((item) => String(item.id)));
+
+            itemsList.querySelectorAll('[data-cart-item]').forEach((item) => {
+                if (!remainingIds.has(item.dataset.itemId)) {
+                    item.remove();
+                }
+            });
+
+            (payload.items || []).forEach(syncItem);
+
+            totalTnd.textContent = formatAmount(payload.total);
+            totalEur.textContent = formatAmount(payload.convertedTotal?.EUR);
+            totalUsd.textContent = formatAmount(payload.convertedTotal?.USD);
+
+            const meta = payload.convertedTotal?.meta || {};
+            summaryMeta.textContent = `Source: ${meta.source || '-'} • ${meta.updated_at || '-'}`;
+
+            const hasItems = (payload.items || []).length > 0;
+            itemsList.classList.toggle('cart-hidden', !hasItems);
+            emptyState.classList.toggle('cart-hidden', hasItems);
+            confirmButton.classList.toggle('cart-hidden', !hasItems);
+        };
+
+        const sendAction = async (item, url) => {
+            setItemLoading(item, true);
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                });
+
+                const payload = await response.json();
+                applyPayload(payload);
+
+                if (!response.ok && payload.error) {
+                    alert(payload.error);
+                }
+            } catch (error) {
+                window.location.reload();
+            } finally {
+                setItemLoading(item, false);
+            }
+        };
+
+        itemsList.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-cart-action]');
+            if (!button) {
+                return;
+            }
+
+            const item = button.closest('[data-cart-item]');
+            if (!item) {
+                return;
+            }
+
+            const currentQuantity = Number(item.querySelector('[data-cart-quantity]').textContent);
+            const stock = Number(item.dataset.stock);
+            const action = button.dataset.cartAction;
+
+            if (action === 'remove') {
+                sendAction(item, item.dataset.removeUrl);
+                return;
+            }
+
+            const nextQuantity = action === 'increase' ? currentQuantity + 1 : currentQuantity - 1;
+            if (nextQuantity > stock) {
+                return;
+            }
+
+            const url = item.dataset.updateUrl.replace('__QTY__', String(nextQuantity));
+            sendAction(item, url);
+        });
+    })();
+</script>
 {% endblock %}

@@ -1,56 +1,692 @@
 {% extends 'back/base_back.html.twig' %}
 
+{% block title %}Back-office equipements | Agricore{% endblock %}
+
 {% block content %}
-<div class="card">
-    <div class="card-body">
-        <h4>Gestion des equipements</h4>
+<style>
+    .equip-page {
+        --equip-night: #10261b;
+        --equip-forest: #1f6a43;
+        --equip-green: #2f9a61;
+        --equip-lime: #b7f296;
+        --equip-cloud: #f4f8f1;
+        --equip-sand: #fff4d8;
+        --equip-rose: #ff5f88;
+        --equip-gold: #ffcd4d;
+        --equip-line: rgba(16, 38, 27, 0.1);
+        --equip-soft-text: #6a7d70;
+    }
+    .equip-shell {
+        position: relative;
+        overflow: hidden;
+        border-radius: 34px;
+        padding: 1.6rem;
+        background:
+            radial-gradient(circle at top right, rgba(183, 242, 150, 0.18), transparent 18%),
+            radial-gradient(circle at left bottom, rgba(47, 154, 97, 0.12), transparent 25%),
+            linear-gradient(180deg, #f7fbf6 0%, #ffffff 100%);
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        box-shadow: 0 30px 80px rgba(18, 48, 31, 0.1);
+    }
+    .equip-shell::before {
+        content: "";
+        position: absolute;
+        top: -90px;
+        right: -50px;
+        width: 260px;
+        height: 260px;
+        border-radius: 50%;
+        background: rgba(183, 242, 150, 0.12);
+        pointer-events: none;
+    }
+    .equip-hero {
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
+        border-radius: 30px;
+        padding: 2rem;
+        background:
+            radial-gradient(circle at 85% 18%, rgba(183, 242, 150, 0.22), transparent 18%),
+            linear-gradient(135deg, #10261b 0%, #1d603c 48%, #4ca165 100%);
+        color: #fff;
+        box-shadow: 0 26px 54px rgba(21, 62, 40, 0.18);
+    }
+    .equip-hero::after {
+        content: "";
+        position: absolute;
+        right: -60px;
+        bottom: -85px;
+        width: 280px;
+        height: 280px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.08);
+        pointer-events: none;
+    }
+    .equip-hero-grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(280px, .7fr);
+        gap: 1.5rem;
+        align-items: end;
+    }
+    .equip-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.14);
+        padding: .45rem .8rem;
+        color: rgba(255,255,255,.9);
+        font-size: .8rem;
+        font-weight: 800;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+    }
+    .equip-hero h3 {
+        font-size: clamp(2.1rem, 3vw, 3rem);
+        line-height: 1;
+        color: #fff;
+        max-width: 760px;
+        margin-bottom: .9rem;
+    }
+    .equip-hero p {
+        color: rgba(255,255,255,.82) !important;
+        max-width: 760px;
+        font-size: 1.06rem;
+        margin-bottom: 1.25rem;
+    }
+    .equip-hero-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .85rem;
+    }
+    .equip-hero-metric {
+        border-radius: 20px;
+        padding: 1rem;
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.14);
+        backdrop-filter: blur(4px);
+    }
+    .equip-hero-metric span {
+        display: block;
+        font-size: .82rem;
+        color: rgba(255,255,255,.72);
+        margin-bottom: .2rem;
+    }
+    .equip-hero-metric strong {
+        display: block;
+        color: #fff;
+        font-size: 1.35rem;
+        line-height: 1.1;
+    }
+    .equip-hero-actions {
+        display: flex;
+        flex-direction: column;
+        gap: .8rem;
+        align-items: stretch;
+    }
+    .equip-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .5rem;
+        min-height: 62px;
+        border-radius: 18px;
+        padding: .95rem 1.3rem;
+        font-weight: 800;
+        border: 0;
+        transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, color .18s ease;
+    }
+    .equip-action.btn-outline-danger {
+        background: rgba(255,255,255,.08);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,.18);
+    }
+    .equip-action.btn-success {
+        background: #fff;
+        color: var(--equip-night);
+    }
+    .equip-action:hover,
+    .equip-btn:hover,
+    .equip-trigger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 32px rgba(16, 38, 27, 0.16);
+    }
+    .equip-analysis-hub {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1rem;
+        align-items: center;
+        margin: 1.5rem 0;
+        border-radius: 28px;
+        padding: 1.25rem 1.4rem;
+        background:
+            linear-gradient(135deg, rgba(239,247,240,.95), rgba(255,255,255,.96));
+        border: 1px solid rgba(16, 38, 27, 0.06);
+        box-shadow: 0 18px 40px rgba(18, 48, 31, 0.08);
+    }
+    .equip-analysis-hub h4 {
+        margin-bottom: .3rem;
+        color: var(--equip-night);
+        font-size: 1.55rem;
+    }
+    .equip-analysis-hub p {
+        margin: 0;
+        color: var(--equip-soft-text);
+        font-size: 1rem;
+    }
+    .equip-trigger {
+        width: 74px;
+        height: 74px;
+        border-radius: 50%;
+        border: 0;
+        background: linear-gradient(135deg, #1d603c, #2f9a61);
+        color: #fff;
+        font-size: 2rem;
+        font-weight: 900;
+        box-shadow: 0 18px 28px rgba(31, 106, 67, 0.24);
+        transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .equip-insights {
+        display: none;
+        margin-bottom: 1.6rem;
+    }
+    .equip-insights.active {
+        display: block;
+        animation: equip-fade .28s ease;
+    }
+    .equip-insights-grid {
+        display: grid;
+        grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+        gap: 1rem;
+    }
+    .equip-card {
+        border-radius: 28px;
+        padding: 1.35rem;
+        background: rgba(255,255,255,.92);
+        border: 1px solid var(--equip-line);
+        box-shadow: 0 18px 40px rgba(18, 48, 31, 0.07);
+    }
+    .equip-card-dark {
+        background:
+            radial-gradient(circle at top right, rgba(183, 242, 150, 0.12), transparent 26%),
+            linear-gradient(160deg, #11291d 0%, #173c29 100%);
+        color: #fff;
+        border: 0;
+    }
+    .equip-card-dark .equip-block-title,
+    .equip-card-dark .text-muted,
+    .equip-card-dark .small {
+        color: rgba(255,255,255,.75) !important;
+    }
+    .equip-block-title {
+        color: var(--equip-night);
+        font-weight: 900;
+        margin-bottom: 1.2rem;
+        font-size: 1.15rem;
+    }
+    .equip-progress-wrap + .equip-progress-wrap {
+        margin-top: 1rem;
+    }
+    .equip-progress-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: .45rem;
+        font-size: .92rem;
+    }
+    .equip-progress {
+        height: 12px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.16);
+        overflow: hidden;
+    }
+    .equip-card:not(.equip-card-dark) .equip-progress {
+        background: #edf3ee;
+    }
+    .equip-progress .progress-bar {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #7ee19e, #2f9a61);
+    }
+    .equip-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .9rem;
+    }
+    .equip-summary-box {
+        border-radius: 22px;
+        padding: 1rem 1.05rem;
+        background: linear-gradient(180deg, #fbfdfb, #f2f7f2);
+        border: 1px solid #e6efe6;
+    }
+    .equip-summary-box strong {
+        display: block;
+        color: var(--equip-night);
+        font-size: 1.2rem;
+        margin-top: .25rem;
+    }
+    .equip-collection {
+        display: grid;
+        gap: 1rem;
+    }
+    .equip-item {
+        display: grid;
+        grid-template-columns: 120px minmax(0, 1.4fr) minmax(120px, .7fr) minmax(120px, .7fr) minmax(120px, .7fr) minmax(150px, .9fr) minmax(190px, 1fr);
+        gap: 1rem;
+        align-items: center;
+        padding: 1rem 1.05rem;
+        border-radius: 30px;
+        background:
+            linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,251,248,.98));
+        border: 1px solid rgba(16, 38, 27, 0.06);
+        box-shadow: 0 18px 40px rgba(16, 38, 27, 0.06);
+        transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .equip-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 24px 46px rgba(16, 38, 27, 0.1);
+    }
+    .equip-media {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .equip-thumb {
+        width: 88px;
+        height: 88px;
+        object-fit: cover;
+        border-radius: 24px;
+        box-shadow: 0 16px 28px rgba(22, 52, 35, .14);
+        background: linear-gradient(135deg, #eff7f0, #ffffff);
+    }
+    .equip-thumb-fallback {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--equip-forest);
+        font-size: 1.35rem;
+        font-weight: 900;
+    }
+    .equip-col-label {
+        display: none;
+        color: var(--equip-soft-text);
+        font-size: .74rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        font-weight: 800;
+        margin-bottom: .35rem;
+    }
+    .equip-name {
+        font-size: 1.05rem;
+        font-weight: 900;
+        color: var(--equip-night);
+        line-height: 1.2;
+    }
+    .equip-sub {
+        display: block;
+        color: var(--equip-soft-text);
+        font-size: .88rem;
+        margin-top: .25rem;
+    }
+    .equip-type-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        border-radius: 999px;
+        padding: .55rem .9rem;
+        background: #ecf6ee;
+        color: #236b43;
+        font-size: .9rem;
+        font-weight: 800;
+        text-transform: lowercase;
+    }
+    .equip-price {
+        color: var(--equip-night);
+        font-weight: 900;
+        font-size: 1.05rem;
+    }
+    .equip-stock {
+        font-weight: 900;
+        color: #315741;
+        font-size: 1.1rem;
+    }
+    .equip-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        border-radius: 999px;
+        padding: .5rem .85rem;
+        font-weight: 800;
+        font-size: .9rem;
+    }
+    .equip-badge.success { background: #e8f8ee; color: #23814b; }
+    .equip-badge.warning { background: #fff3d9; color: #b47a00; }
+    .equip-badge.danger { background: #ffe4e8; color: #c63d5d; }
+    .equip-actions {
+        display: flex;
+        gap: .7rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+    .equip-btn {
+        border-radius: 16px;
+        padding: .8rem 1rem;
+        font-weight: 800;
+        border: 0;
+        min-width: 114px;
+        box-shadow: 0 12px 22px rgba(0,0,0,.07);
+        transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+    }
+    .equip-btn-warning {
+        background: linear-gradient(135deg, #ffd95a, #ffbf2f);
+        color: #4b3600;
+    }
+    .equip-btn-danger {
+        background: linear-gradient(135deg, #ff758f, #ff4f73);
+        color: #fff;
+    }
+    .equip-empty {
+        padding: 2rem;
+        border-radius: 28px;
+        background: linear-gradient(180deg, #ffffff, #f7fbf7);
+        border: 1px dashed rgba(16, 38, 27, 0.14);
+        text-align: center;
+        color: var(--equip-soft-text);
+    }
+    .equip-btn-loading,
+    .equip-action-loading {
+        pointer-events: none;
+        position: relative;
+        color: transparent !important;
+    }
+    .equip-btn-loading::after,
+    .equip-action-loading::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 18px;
+        height: 18px;
+        margin: -9px 0 0 -9px;
+        border: 2px solid rgba(255,255,255,.55);
+        border-top-color: rgba(255,255,255,1);
+        border-radius: 50%;
+        animation: equip-spin .7s linear infinite;
+    }
+    .equip-action-loading::after {
+        border-color: rgba(255,255,255,.38);
+        border-top-color: rgba(255,255,255,1);
+    }
+    .equip-row-active {
+        animation: equip-pulse .45s ease;
+    }
+    @keyframes equip-spin {
+        to { transform: rotate(360deg); }
+    }
+    @keyframes equip-pulse {
+        0% { box-shadow: 0 0 0 rgba(46,154,97,0); }
+        35% { box-shadow: 0 0 0 6px rgba(46,154,97,.12); }
+        100% { box-shadow: 0 18px 40px rgba(16, 38, 27, 0.06); }
+    }
+    @keyframes equip-fade {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 1399px) {
+        .equip-item {
+            grid-template-columns: 110px minmax(0, 1.3fr) minmax(100px, .7fr) minmax(110px, .7fr) minmax(100px, .6fr) minmax(140px, .8fr) minmax(170px, .95fr);
+        }
+    }
+    @media (max-width: 1199px) {
+        .equip-hero-grid,
+        .equip-insights-grid {
+            grid-template-columns: 1fr;
+        }
+        .equip-hero-actions {
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+        .equip-item {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-items: start;
+        }
+        .equip-media {
+            grid-column: 1 / -1;
+        }
+        .equip-actions {
+            grid-column: 1 / -1;
+            justify-content: flex-start;
+        }
+        .equip-col-label {
+            display: block;
+        }
+    }
+    @media (max-width: 767px) {
+        .equip-shell {
+            padding: 1rem;
+            border-radius: 24px;
+        }
+        .equip-hero,
+        .equip-analysis-hub,
+        .equip-card,
+        .equip-item {
+            border-radius: 22px;
+        }
+        .equip-hero {
+            padding: 1.25rem;
+        }
+        .equip-hero-metrics,
+        .equip-summary-grid,
+        .equip-item {
+            grid-template-columns: 1fr;
+        }
+        .equip-analysis-hub {
+            grid-template-columns: 1fr;
+        }
+        .equip-trigger {
+            width: 62px;
+            height: 62px;
+        }
+    }
+</style>
 
-        {% for message in app.flashes('admin_success') %}
-            <div class="alert alert-success">{{ message }}</div>
-        {% endfor %}
+<div class="equip-page">
+    <div class="row">
+        <div class="col-12">
+            <div class="equip-shell">
+                <div class="equip-hero">
+                    <div class="equip-hero-grid">
+                        <div>
+                            <span class="equip-kicker">Agricore Control Room</span>
+                            <h3>Pilotez votre parc d'equipements comme une collection strategique</h3>
+                            <p>Suivez l'etat du stock, reperez les tensions avant qu'elles n'arrivent et donnez a votre back-office une presence plus forte, plus lisible et plus ambitieuse.</p>
+                            <div class="equip-hero-metrics">
+                                <div class="equip-hero-metric">
+                                    <span>Equipements actifs</span>
+                                    <strong>{{ stats.totals.equipements }}</strong>
+                                </div>
+                                <div class="equip-hero-metric">
+                                    <span>Stock total</span>
+                                    <strong>{{ stats.totals.stock }}</strong>
+                                </div>
+                                <div class="equip-hero-metric">
+                                    <span>Zones a surveiller</span>
+                                    <strong>{{ stats.totals.low_stock + stats.totals.out_of_stock }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="equip-hero-actions">
+                            <a href="{{ path('back_equipement_export_pdf') }}" class="btn btn-outline-danger equip-action">Exporter PDF</a>
+                            <a href="{{ path('back_equipement_new') }}" class="btn btn-success equip-action">+ Ajouter un equipement</a>
+                        </div>
+                    </div>
+                </div>
 
-        <a href="{{ path('back_equipement_new') }}" class="btn btn-success mb-3">+ Ajouter</a>
+                {% for message in app.flashes('admin_success') %}
+                    <div class="alert alert-success rounded-4 border-0 shadow-sm mt-3 mb-0">{{ message }}</div>
+                {% endfor %}
 
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Image</th>
-                    <th>Nom</th>
-                    <th>Type</th>
-                    <th>Prix</th>
-                    <th>Stock</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for eq in equipements %}
-                <tr>
-                    <td>
-                        {% if eq.imageFilename %}
-                            <img src="{{ asset('uploads/equipements/' ~ eq.imageFilename) }}" width="50" alt="{{ eq.nom }}">
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
-                    <td>{{ eq.nom }}</td>
-                    <td>{{ eq.type }}</td>
-                    <td>{{ eq.prix }} TND</td>
-                    <td>{{ eq.quantite }}</td>
-                    <td>
-                        <a href="{{ path('back_equipement_edit', {id: eq.id}) }}" class="btn btn-sm btn-warning">Modifier</a>
-                        <form method="post" action="{{ path('back_equipement_delete', {id: eq.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer ?')">
-                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ eq.id) }}">
-                            <button class="btn btn-sm btn-danger">Supprimer</button>
-                        </form>
-                    </td>
-                </tr>
-            {% else %}
-                <tr>
-                    <td colspan="6">Aucun equipement.</td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+                <div class="equip-analysis-hub">
+                    <div>
+                        <h4>Decouvrir le centre d'analyse</h4>
+                        <p>Faites apparaitre les familles dominantes, les tensions de stock et la lecture devise dans un espace plus vivant et plus editorial.</p>
+                    </div>
+                    <button type="button" class="equip-trigger" id="equip-insights-toggle" aria-expanded="false">+</button>
+                </div>
+
+                <div class="equip-insights" id="equip-insights-section">
+                    <div class="equip-insights-grid">
+                        <div class="equip-card equip-card-dark">
+                            <h5 class="equip-block-title">Les familles qui tirent le parc vers l'avant</h5>
+                            {% for item in stats.by_type %}
+                                {% set ratio = stats.totals.stock > 0 ? (item.stock / stats.totals.stock) * 100 : 0 %}
+                                <div class="equip-progress-wrap">
+                                    <div class="equip-progress-label">
+                                        <span class="fw-semibold">{{ item.type }}</span>
+                                        <span>{{ item.stock }} unite(s)</span>
+                                    </div>
+                                    <div class="equip-progress">
+                                        <div class="progress-bar" style="width: {{ ratio }}%"></div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="text-muted">Aucune donnee a afficher.</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="equip-card">
+                            <h5 class="equip-block-title">Les signaux qui meritent l'attention</h5>
+                            <div class="equip-summary-grid">
+                                <div class="equip-summary-box">
+                                    Produits a surveiller
+                                    <strong>{{ stats.totals.low_stock }}</strong>
+                                </div>
+                                <div class="equip-summary-box">
+                                    Postes indisponibles
+                                    <strong>{{ stats.totals.out_of_stock }}</strong>
+                                </div>
+                                <div class="equip-summary-box">
+                                    Taux EUR
+                                    <strong>{{ rates.EUR|number_format(3, '.', ' ') }}</strong>
+                                </div>
+                                <div class="equip-summary-box">
+                                    Taux USD
+                                    <strong>{{ rates.USD|number_format(3, '.', ' ') }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="equip-collection">
+                    {% for eq in equipements %}
+                        <article class="equip-item">
+                            <div class="equip-media">
+                                {% if eq.imageFilename %}
+                                    <img src="{{ vich_uploader_asset(eq, 'imageFile') }}" class="equip-thumb" alt="{{ eq.nom }}">
+                                {% else %}
+                                    <div class="equip-thumb equip-thumb-fallback">AG</div>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <div class="equip-col-label">Nom</div>
+                                <div class="equip-name">{{ eq.nom }}</div>
+                                <span class="equip-sub">Fiche catalogue Agricore</span>
+                            </div>
+
+                            <div>
+                                <div class="equip-col-label">Type</div>
+                                <span class="equip-type-pill">{{ eq.type }}</span>
+                            </div>
+
+                            <div>
+                                <div class="equip-col-label">Prix</div>
+                                <span class="equip-price">{{ eq.prix }} TND</span>
+                            </div>
+
+                            <div>
+                                <div class="equip-col-label">Stock</div>
+                                <span class="equip-stock">{{ eq.quantite }}</span>
+                            </div>
+
+                            <div>
+                                <div class="equip-col-label">Signal</div>
+                                {% if eq.quantite == 0 %}
+                                    <span class="equip-badge danger">Rupture</span>
+                                {% elseif eq.quantite < 5 %}
+                                    <span class="equip-badge warning">Stock faible</span>
+                                {% else %}
+                                    <span class="equip-badge success">Stable</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="equip-actions">
+                                <a href="{{ path('back_equipement_edit', {id: eq.id}) }}" class="btn equip-btn equip-btn-warning">Modifier</a>
+                                <form method="post" action="{{ path('back_equipement_delete', {id: eq.id}) }}" onsubmit="return confirm('Supprimer ?')">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ eq.id) }}">
+                                    <button class="btn equip-btn equip-btn-danger">Supprimer</button>
+                                </form>
+                            </div>
+                        </article>
+                    {% else %}
+                        <div class="equip-empty">Aucun equipement pour le moment.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const actionButtons = document.querySelectorAll('.equip-btn, .equip-action');
+        const insightsToggle = document.getElementById('equip-insights-toggle');
+        const insightsSection = document.getElementById('equip-insights-section');
+
+        actionButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                const isDeleteButton = button.classList.contains('equip-btn-danger');
+                const isActionButton = button.classList.contains('equip-action');
+
+                if (!isDeleteButton) {
+                    button.classList.add(isActionButton ? 'equip-action-loading' : 'equip-btn-loading');
+                }
+
+                const row = button.closest('.equip-item');
+                if (row) {
+                    row.classList.remove('equip-row-active');
+                    void row.offsetWidth;
+                    row.classList.add('equip-row-active');
+                }
+
+                if (!button.hasAttribute('href') && button.closest('form') && !isDeleteButton) {
+                    window.setTimeout(function () {
+                        button.closest('form').submit();
+                    }, 120);
+                }
+            });
+        });
+
+        if (insightsToggle && insightsSection) {
+            insightsToggle.addEventListener('click', function () {
+                const isOpen = insightsSection.classList.contains('active');
+
+                insightsSection.classList.toggle('active', !isOpen);
+                insightsToggle.setAttribute('aria-expanded', String(!isOpen));
+                insightsToggle.textContent = isOpen ? '+' : '-';
+
+                if (!isOpen) {
+                    insightsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

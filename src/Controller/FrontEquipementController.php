@@ -5,37 +5,92 @@ namespace App\Controller;
 use App\Entity\Commande;
 use App\Entity\Equipement;
 use App\Entity\LigneCommande;
+use App\Repository\EquipementRepository;
 use App\Service\CartService;
+use App\Service\EquipmentAiService;
+use App\Service\EquipmentNewsService;
+use App\Service\EquipmentPdfService;
+use App\Service\ExchangeRateService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Annotation\Route;
 
 class FrontEquipementController extends AbstractController
 {
     #[Route('/achat-equipement/catalogue', name: 'app_equipement_catalogue')]
-    public function catalogue(EntityManagerInterface $em, Request $request): Response
-    {
+    public function catalogue(
+        EquipementRepository $equipementRepository,
+        ExchangeRateService $exchangeRateService,
+        Request $request
+    ): Response {
         $sessionUser = $request->getSession()->get('user');
         if (!$sessionUser) {
             return $this->redirectToRoute('front_login');
         }
 
         $search = trim((string) $request->query->get('search', ''));
-        $qb = $em->getRepository(Equipement::class)->createQueryBuilder('e')
-            ->andWhere('e.isActive = true')
-            ->orderBy('e.id_equipement', 'DESC');
-
-        if ($search !== '') {
-            $qb->andWhere('e.nom LIKE :search OR e.type LIKE :search')
-                ->setParameter('search', '%' . $search . '%');
-        }
+        $equipements = $equipementRepository->findActiveBySearch($search);
+        $stats = $equipementRepository->getCatalogueStats();
+        $featured = array_slice($equipements, 0, 4);
 
         return $this->render('front/achat_equipement/catalogue.html.twig', [
-            'equipements' => $qb->getQuery()->getResult(),
+            'equipements' => $equipements,
             'search' => $search,
+            'stats' => $stats,
+            'featured' => $featured,
+            'rates' => $exchangeRateService->getRatesFromTnd(),
         ]);
+    }
+
+    #[Route('/achat-equipement/detail/{id}', name: 'app_equipement_detail', methods: ['GET'])]
+    public function detail(
+        Equipement $equipement,
+        EquipementRepository $equipementRepository,
+        EquipmentAiService $equipmentAiService,
+        EquipmentNewsService $equipmentNewsService,
+        ExchangeRateService $exchangeRateService,
+        Request $request
+    ): Response {
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        if (!$equipement->isActive()) {
+            throw $this->createNotFoundException('Equipement introuvable.');
+        }
+
+        $priceData = $exchangeRateService->convertFromTnd((float) $equipement->getPrix());
+
+        return $this->render('front/achat_equipement/detail.html.twig', [
+            'equipement' => $equipement,
+            'insights' => $equipmentAiService->generateInsights($equipement),
+            'news' => $equipmentNewsService->getNewsForEquipment($equipement),
+            'relatedEquipements' => $equipementRepository->findRelatedActive($equipement),
+            'priceData' => $priceData,
+        ]);
+    }
+
+    #[Route('/api/equipements/{id}/insights', name: 'app_api_equipement_insights', methods: ['GET'])]
+    public function insightsApi(Equipement $equipement, EquipmentAiService $equipmentAiService): JsonResponse
+    {
+        return $this->json($equipmentAiService->generateInsights($equipement));
+    }
+
+    #[Route('/api/equipements/{id}/news', name: 'app_api_equipement_news', methods: ['GET'])]
+    public function newsApi(Equipement $equipement, EquipmentNewsService $equipmentNewsService): JsonResponse
+    {
+        return $this->json($equipmentNewsService->getNewsForEquipment($equipement));
+    }
+
+    #[Route('/api/equipements/rates', name: 'app_api_equipement_rates', methods: ['GET'])]
+    public function ratesApi(ExchangeRateService $exchangeRateService): JsonResponse
+    {
+        return $this->json($exchangeRateService->getRatesFromTnd());
     }
 
     #[Route('/ajouter-panier/{id}', name: 'app_add_to_cart', methods: ['POST'])]
@@ -59,8 +114,12 @@ class FrontEquipementController extends AbstractController
     }
 
     #[Route('/panier', name: 'app_cart_show')]
-    public function showCart(CartService $cartService, EntityManagerInterface $em, Request $request): Response
-    {
+    public function showCart(
+        CartService $cartService,
+        EntityManagerInterface $em,
+        ExchangeRateService $exchangeRateService,
+        Request $request
+    ): Response {
         $sessionUser = $request->getSession()->get('user');
         if (!$sessionUser) {
             return $this->redirectToRoute('front_login');
@@ -90,11 +149,18 @@ class FrontEquipementController extends AbstractController
         return $this->render('front/achat_equipement/cart.html.twig', [
             'items' => $items,
             'total' => $total,
+            'convertedTotal' => $exchangeRateService->convertFromTnd($total),
         ]);
     }
 
     #[Route('/panier/retirer/{id}', name: 'app_cart_remove')]
-    public function removeFromCart(int $id, CartService $cartService, Request $request): Response
+    public function removeFromCart(
+        int $id,
+        CartService $cartService,
+        EntityManagerInterface $em,
+        ExchangeRateService $exchangeRateService,
+        Request $request
+    ): Response
     {
         $sessionUser = $request->getSession()->get('user');
         if (!$sessionUser) {
@@ -102,18 +168,54 @@ class FrontEquipementController extends AbstractController
         }
 
         $cartService->remove($id);
+
+        if ($request->isXmlHttpRequest()) {
+            return $this->json($this->buildCartPayload($cartService, $em, $exchangeRateService));
+        }
+
         return $this->redirectToRoute('app_cart_show');
     }
 
     #[Route('/panier/modifier/{id}/{quantite}', name: 'app_cart_update')]
-    public function updateCart(int $id, int $quantite, CartService $cartService, Request $request): Response
+    public function updateCart(
+        int $id,
+        int $quantite,
+        CartService $cartService,
+        EntityManagerInterface $em,
+        ExchangeRateService $exchangeRateService,
+        Request $request
+    ): Response
     {
         $sessionUser = $request->getSession()->get('user');
         if (!$sessionUser) {
             return $this->redirectToRoute('front_login');
         }
 
+        /** @var Equipement|null $equipement */
+        $equipement = $em->getRepository(Equipement::class)->find($id);
+
+        if (!$equipement || !$equipement->isActive() || $equipement->getQuantite() <= 0) {
+            $cartService->remove($id);
+
+            if ($request->isXmlHttpRequest()) {
+                return $this->json([
+                    'error' => 'Equipement indisponible.',
+                    ...$this->buildCartPayload($cartService, $em, $exchangeRateService),
+                ], Response::HTTP_NOT_FOUND);
+            }
+
+            $this->addFlash('warning', 'Equipement indisponible.');
+
+            return $this->redirectToRoute('app_cart_show');
+        }
+
+        $quantite = max(0, min($quantite, $equipement->getQuantite()));
         $cartService->updateQuantity($id, $quantite);
+
+        if ($request->isXmlHttpRequest()) {
+            return $this->json($this->buildCartPayload($cartService, $em, $exchangeRateService));
+        }
+
         return $this->redirectToRoute('app_cart_show');
     }
 
@@ -142,6 +244,7 @@ class FrontEquipementController extends AbstractController
 
         $commande = new Commande();
         $commande->setAgriculteurId($sessionUser->getId());
+        $em->persist($commande);
         $totalCommande = 0.0;
 
         foreach ($cart as $id => $qty) {
@@ -155,14 +258,12 @@ class FrontEquipementController extends AbstractController
             $ligne->setQuantite($qty);
             $ligne->setPrixUnitaire(number_format($prix, 2, '.', ''));
             $ligne->setTotalLigne(number_format($totalLigne, 2, '.', ''));
-            $ligne->setCommande($commande);
-            $em->persist($ligne);
+            $commande->addLigne($ligne);
 
             $eq->setQuantite($eq->getQuantite() - $qty);
         }
 
         $commande->setTotal(number_format($totalCommande, 2, '.', ''));
-        $em->persist($commande);
         $em->flush();
 
         $cartService->clear();
@@ -170,7 +271,35 @@ class FrontEquipementController extends AbstractController
 
         return $this->render('front/achat_equipement/order_confirmation.html.twig', [
             'commande' => $commande,
+            'pdfUrl' => $this->generateUrl('app_order_pdf', ['id' => $commande->getId()]),
         ]);
+    }
+
+    #[Route('/commande/{id}/pdf', name: 'app_order_pdf', methods: ['GET'])]
+    public function orderPdf(
+        Commande $commande,
+        EquipmentPdfService $equipmentPdfService,
+        Request $request
+    ): Response {
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser) {
+            return $this->redirectToRoute('front_login');
+        }
+
+        if ($commande->getAgriculteurId() !== $sessionUser->getId()) {
+            throw $this->createAccessDeniedException('Commande non autorisee.');
+        }
+
+        $content = $equipmentPdfService->renderOrderPdf($commande);
+        $response = new Response($content);
+        $disposition = $response->headers->makeDisposition(
+            ResponseHeaderBag::DISPOSITION_INLINE,
+            'commande-' . $commande->getId() . '.pdf'
+        );
+        $response->headers->set('Content-Type', 'application/pdf');
+        $response->headers->set('Content-Disposition', $disposition);
+
+        return $response;
     }
 
     #[Route('/mes-commandes', name: 'app_my_orders')]
@@ -189,5 +318,46 @@ class FrontEquipementController extends AbstractController
         return $this->render('front/achat_equipement/my_orders.html.twig', [
             'commandes' => $commandes,
         ]);
+    }
+
+    private function buildCartPayload(
+        CartService $cartService,
+        EntityManagerInterface $em,
+        ExchangeRateService $exchangeRateService
+    ): array {
+        $items = [];
+        $total = 0.0;
+
+        foreach ($cartService->getCart() as $id => $qty) {
+            /** @var Equipement|null $equipement */
+            $equipement = $em->getRepository(Equipement::class)->find($id);
+            if (!$equipement || !$equipement->isActive() || $equipement->getQuantite() <= 0) {
+                $cartService->remove((int) $id);
+                continue;
+            }
+
+            $quantite = min($qty, $equipement->getQuantite());
+            if ($quantite !== $qty) {
+                $cartService->updateQuantity((int) $id, $quantite);
+            }
+
+            $prixUnitaire = (float) $equipement->getPrix();
+            $sousTotal = $prixUnitaire * $quantite;
+            $total += $sousTotal;
+
+            $items[] = [
+                'id' => $equipement->getId(),
+                'quantite' => $quantite,
+                'stock' => $equipement->getQuantite(),
+                'prix_unitaire' => $prixUnitaire,
+                'sous_total' => $sousTotal,
+            ];
+        }
+
+        return [
+            'items' => $items,
+            'total' => $total,
+            'convertedTotal' => $exchangeRateService->convertFromTnd($total),
+        ];
     }
 }

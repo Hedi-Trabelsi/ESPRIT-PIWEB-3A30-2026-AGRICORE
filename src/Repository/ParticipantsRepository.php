@@ -21,11 +21,11 @@ class ParticipantsRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('p')
             ->select('SUM(p.nbr_places) as total')
             ->where('p.evenement = :ev')
+            ->andWhere('p.statut_participation != :waitlist')
             ->setParameter('ev', $eventId)
-        ;
+            ->setParameter('waitlist', 'waitlist');
 
         $result = $qb->getQuery()->getSingleScalarResult();
-
-        return (int)$result; // cast null to 0
+        return (int)$result;
     }
 }

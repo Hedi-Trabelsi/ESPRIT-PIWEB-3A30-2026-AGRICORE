@@ -16,28 +16,94 @@ class EquipementRepository extends ServiceEntityRepository
         parent::__construct($registry, Equipement::class);
     }
 
-    //    /**
-    //     * @return Equipement[] Returns an array of Equipement objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('e')
-    //            ->andWhere('e.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('e.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * @return Equipement[]
+     */
+    public function findActiveBySearch(string $search = ''): array
+    {
+        $qb = $this->createQueryBuilder('e')
+            ->andWhere('e.isActive = true')
+            ->orderBy('e.id_equipement', 'DESC');
 
-    //    public function findOneBySomeField($value): ?Equipement
-    //    {
-    //        return $this->createQueryBuilder('e')
-    //            ->andWhere('e.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        if ($search !== '') {
+            $qb->andWhere('e.nom LIKE :search OR e.type LIKE :search')
+                ->setParameter('search', '%' . $search . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * @return Equipement[]
+     */
+    public function findRelatedActive(Equipement $equipement, int $limit = 4): array
+    {
+        $type = trim((string) $equipement->getType());
+
+        if ($type === '') {
+            return [];
+        }
+
+        return $this->createQueryBuilder('e')
+            ->andWhere('e.isActive = true')
+            ->andWhere('e.id_equipement != :id')
+            ->andWhere('e.type = :type')
+            ->setParameter('id', $equipement->getId())
+            ->setParameter('type', $type)
+            ->orderBy('e.quantite', 'DESC')
+            ->addOrderBy('e.id_equipement', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function getCatalogueStats(): array
+    {
+        $active = $this->findBy(['isActive' => true]);
+        $totalValue = 0.0;
+        $totalStock = 0;
+        $lowStock = 0;
+        $outOfStock = 0;
+        $byType = [];
+
+        foreach ($active as $equipement) {
+            $qty = (int) $equipement->getQuantite();
+            $price = (float) $equipement->getPrix();
+            $type = $equipement->getType() ?: 'Non classe';
+            $totalStock += $qty;
+            $totalValue += $price * $qty;
+
+            if ($qty === 0) {
+                ++$outOfStock;
+            } elseif ($qty < 5) {
+                ++$lowStock;
+            }
+
+            if (!isset($byType[$type])) {
+                $byType[$type] = [
+                    'type' => $type,
+                    'total' => 0,
+                    'stock' => 0,
+                    'value' => 0.0,
+                ];
+            }
+
+            ++$byType[$type]['total'];
+            $byType[$type]['stock'] += $qty;
+            $byType[$type]['value'] += $price * $qty;
+        }
+
+        usort($byType, static fn (array $left, array $right): int => $right['stock'] <=> $left['stock']);
+
+        return [
+            'totals' => [
+                'equipements' => count($active),
+                'stock' => $totalStock,
+                'value' => $totalValue,
+                'low_stock' => $lowStock,
+                'out_of_stock' => $outOfStock,
+            ],
+            'by_type' => array_values($byType),
+        ];
+    }
 }

@@ -11,8 +11,9 @@
             <a href="{{ path('app_home') }}" class="nav-item nav-link{% if app.request.attributes.get('_route') == 'app_home' %} active{% endif %}">Accueil</a>
             <a href="{{ path('app_about') }}" class="nav-item nav-link{% if app.request.attributes.get('_route') == 'app_about' %} active{% endif %}">À propos</a>
           <div class="nav-item dropdown">
-    <a href="#" class="nav-link dropdown-toggle{% if app.request.attributes.get('_route') in ['app_tech_home', 'app_maintenance_traiter', 'app_maintenance_planifiee', 'app_maintenance', 'app_tache_new', 'app_maintenance_taches', 'app_tache_edit'] %} active{% endif %}" data-bs-toggle="dropdown">Maintenances</a>
+    <a href="#" class="nav-link dropdown-toggle{% if app.request.attributes.get('_route') in ['app_tech_home', 'app_maintenance_traiter', 'app_maintenance_planifiee', 'app_maintenance', 'app_tache_new', 'app_maintenance_taches', 'app_tache_edit', 'app_tech_maintenance_calendar'] %} active{% endif %}" data-bs-toggle="dropdown">Maintenances</a>
     <div class="dropdown-menu bg-light m-0">
+        <a href="{{ path('app_tech_maintenance_calendar') }}" class="dropdown-item">Calendrier des maintenances</a>
         <a href="{{ path('app_maintenance_traiter') }}" class="dropdown-item">Interventions à traiter</a>
         <a href="{{ path('app_maintenance_planifiee') }}" class="dropdown-item">Interventions planifiées</a>
         <a href="{{ path('app_maintenance_historique') }}" class="dropdown-item">Historique des maintenances</a>

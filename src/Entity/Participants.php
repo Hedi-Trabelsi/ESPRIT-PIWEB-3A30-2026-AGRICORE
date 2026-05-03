@@ -43,6 +43,18 @@ class Participants
     #[ORM\Column(type: "integer")]
     private int $entry_code;
 
+    #[ORM\Column(type: "string", length: 180, nullable: true)]
+    private ?string $email = null;
+
+    #[ORM\Column(type: "string", length: 64, nullable: true)]
+    private ?string $confirm_token = null;
+
+    #[ORM\Column(type: "integer", options: ["default" => 0])]
+    private int $nbr_presents = 0;
+
+    #[ORM\Column(type: "integer", options: ["default" => 0])]
+    private int $used_coins = 0;
+
     public function getId_participant()
     {
         return $this->id_participant;
@@ -244,5 +256,79 @@ class Participants
         $this->entry_code = $entry_code;
 
         return $this;
+    }
+
+    public function getEmail(): ?string { return $this->email; }
+    public function setEmail(?string $email): static { $this->email = $email; return $this; }
+
+    public function getConfirmToken(): ?string { return $this->confirm_token; }
+    public function setConfirmToken(?string $token): static { $this->confirm_token = $token; return $this; }
+
+    public function getNbr_presents(): int { return $this->nbr_presents; }
+    public function setNbr_presents(int $nbr_presents): self { $this->nbr_presents = $nbr_presents; return $this; }
+    public function getNbrPresents(): int { return $this->nbr_presents; }
+    public function setNbrPresents(int $nbr_presents): self { $this->nbr_presents = $nbr_presents; return $this; }
+
+    public function getUsedCoins(): int { return $this->used_coins; }
+    public function setUsedCoins(int $used_coins): self { $this->used_coins = $used_coins; return $this; }
+
+    /**
+     * Get presence per day as an associative array: [dayIndex => count]
+     */
+    public function getPresenceData(): array
+    {
+        if (!$this->confirm_token) {
+            return [1 => $this->nbr_presents];
+        }
+        
+        // Check if it's our serialized format (contains '|') or a standard token
+        if (strpos($this->confirm_token, '|') !== false || is_numeric($this->confirm_token)) {
+            $parts = explode('|', $this->confirm_token);
+            $data = [];
+            foreach ($parts as $idx => $val) {
+                $data[$idx + 1] = (int)$val;
+            }
+            return $data;
+        }
+
+        // It's a real token (registration still pending), so no presence data yet
+        return [1 => $this->nbr_presents];
+    }
+
+    public function setPresenceData(int $day, int $count): self
+    {
+        $data = $this->getPresenceData();
+        $data[$day] = $count;
+        
+        // Keep Day 1 in nbr_presents for backward compatibility/main display
+        if ($day === 1) {
+            $this->nbr_presents = $count;
+        }
+
+        // Serialize to pipe-separated string
+        // We need to ensure we have all days from 1 to max(day)
+        $maxDay = max(array_keys($data));
+        $parts = [];
+        for ($i = 1; $i <= $maxDay; $i++) {
+            $parts[] = $data[$i] ?? 0;
+        }
+        
+        $this->confirm_token = implode('|', $parts);
+        
+        return $this;
+    }
+
+    /**
+     * Get the presence for the last day recorded (highest day index)
+     */
+    public function getLastDayPresence(): array
+    {
+        $data = $this->getPresenceData();
+        if (empty($data)) {
+            return ['day' => 1, 'count' => 0];
+        }
+        
+        $lastDay = max(array_keys($data));
+        return ['day' => $lastDay, 'count' => $data[$lastDay]];
     }
 }

@@ -1,0 +1,9 @@
+bazinga_geocoder:
+    providers:
+        nominatim_osm:
+            # External bundle provider used by MaintenanceProximityService.
+            factory: Bazinga\GeocoderBundle\ProviderFactory\NominatimFactory
+            aliases: [app.geocoder.nominatim]
+            options:
+                root_url: 'https://nominatim.openstreetmap.org'
+                user_agent: 'Agricore/1.0 (contact@agricore.com)'

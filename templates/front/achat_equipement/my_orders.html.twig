@@ -1,43 +1,390 @@
 {% extends 'front/base_front.html.twig' %}
 
-{% block body %}
-<div class="container mt-4">
-    <h1>Mes commandes</h1>
+{% block title %}Mes commandes | Agricore{% endblock %}
 
-    {% if commandes is empty %}
-        <p>Vous n'avez encore passe aucune commande.</p>
-        <a href="{{ path('app_equipement_catalogue') }}" class="btn btn-primary">Decouvrir le catalogue</a>
-    {% else %}
-        {% for commande in commandes %}
-            <div class="card mb-4">
-                <div class="card-header bg-success text-white">
-                    <strong>Commande n°{{ commande.id }}</strong> - {{ commande.dateCommande|date('d/m/Y H:i') }}
-                </div>
-                <div class="card-body">
-                    <p>Total : <strong>{{ commande.total }} TND</strong></p>
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Produit</th>
-                                <th>Quantite</th>
-                                <th>Prix unitaire</th>
-                                <th>Sous-total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+{% block body %}
+<style>
+    .orders-page {
+        --orders-night: #123126;
+        --orders-forest: #1f6b44;
+        --orders-green: #2a8f59;
+        --orders-mint: #e8f5ec;
+        --orders-cream: #f7fbf5;
+        --orders-gold: #f4c95d;
+        --orders-ink-soft: #6c7c71;
+        --orders-line: rgba(18, 49, 38, 0.12);
+        padding: 1.6rem 0 3.4rem;
+        background:
+            radial-gradient(circle at top left, rgba(244, 201, 93, 0.14), transparent 20%),
+            radial-gradient(circle at 88% 12%, rgba(42, 143, 89, 0.12), transparent 22%),
+            linear-gradient(180deg, #ffffff 0%, #f7fbf5 100%);
+    }
+    .orders-shell {
+        display: grid;
+        gap: 1.6rem;
+    }
+    .orders-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 34px;
+        padding: 2.2rem;
+        color: #fff;
+        background:
+            radial-gradient(circle at top right, rgba(255,255,255,.14), transparent 18%),
+            linear-gradient(135deg, #123126 0%, #1b5f3b 52%, #2a8f59 100%);
+        box-shadow: 0 30px 60px rgba(18, 49, 38, 0.16);
+    }
+    .orders-hero::after {
+        content: "";
+        position: absolute;
+        right: -90px;
+        bottom: -100px;
+        width: 280px;
+        height: 280px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.07);
+    }
+    .orders-hero > * {
+        position: relative;
+        z-index: 1;
+    }
+    .orders-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .45rem .85rem;
+        border-radius: 999px;
+        margin-bottom: 1rem;
+        border: 1px solid rgba(255,255,255,.18);
+        background: rgba(255,255,255,.1);
+        color: rgba(255,255,255,.92);
+        font-size: .8rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+    .orders-title {
+        margin: 0 0 .85rem;
+        font-size: clamp(2.6rem, 5vw, 4.6rem);
+        line-height: .95;
+        letter-spacing: -.04em;
+        font-weight: 900;
+        max-width: 760px;
+    }
+    .orders-copy {
+        max-width: 760px;
+        margin: 0;
+        color: rgba(255,255,255,.84);
+        font-size: 1.08rem;
+    }
+    .orders-grid {
+        display: grid;
+        gap: 1.35rem;
+    }
+    .order-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 30px;
+        border: 1px solid var(--orders-line);
+        background:
+            radial-gradient(circle at top right, rgba(244,201,93,.14), transparent 18%),
+            linear-gradient(180deg, #ffffff 0%, #f9fcf8 100%);
+        box-shadow: 0 22px 48px rgba(18, 49, 38, 0.08);
+    }
+    .order-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 6px;
+        background: linear-gradient(180deg, #f4c95d, #2a8f59);
+    }
+    .order-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 1rem;
+        align-items: center;
+        padding: 1.4rem 1.5rem 1rem;
+    }
+    .order-ref {
+        display: flex;
+        flex-direction: column;
+        gap: .2rem;
+    }
+    .order-ref-label {
+        color: var(--orders-ink-soft);
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        font-weight: 800;
+    }
+    .order-ref-value {
+        color: var(--orders-night);
+        font-size: 1.8rem;
+        line-height: 1;
+        font-weight: 900;
+    }
+    .order-date {
+        display: inline-flex;
+        align-items: center;
+        gap: .55rem;
+        padding: .7rem 1rem;
+        border-radius: 16px;
+        background: #f2f7f2;
+        color: #345445;
+        font-weight: 700;
+    }
+    .order-total {
+        min-width: 220px;
+        padding: 1rem 1.1rem;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #123126, #215d3b);
+        color: #fff;
+        box-shadow: 0 16px 28px rgba(18, 49, 38, 0.18);
+    }
+    .order-total-label {
+        display: block;
+        color: rgba(255,255,255,.72);
+        font-size: .76rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        margin-bottom: .35rem;
+    }
+    .order-total-value {
+        display: block;
+        font-size: 2rem;
+        line-height: 1;
+        font-weight: 900;
+    }
+    .order-body {
+        padding: 0 1.5rem 1.5rem;
+    }
+    .order-meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .9rem;
+        margin-bottom: 1.2rem;
+    }
+    .order-stat {
+        border-radius: 22px;
+        padding: 1rem 1.1rem;
+        background: #fff;
+        border: 1px solid rgba(18, 49, 38, 0.08);
+        box-shadow: 0 12px 24px rgba(18, 49, 38, 0.05);
+    }
+    .order-stat-label {
+        display: block;
+        color: var(--orders-ink-soft);
+        font-size: .76rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        margin-bottom: .35rem;
+        font-weight: 800;
+    }
+    .order-stat-value {
+        color: var(--orders-night);
+        font-size: 1.4rem;
+        line-height: 1.05;
+        font-weight: 900;
+    }
+    .order-table-wrap {
+        overflow: hidden;
+        border-radius: 24px;
+        border: 1px solid rgba(18, 49, 38, 0.08);
+        background: #fff;
+    }
+    .order-table {
+        width: 100%;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .order-table thead th {
+        padding: 1rem 1.1rem;
+        background: linear-gradient(180deg, #f4faf2 0%, #edf6ee 100%);
+        color: #2f4c3e;
+        font-size: .84rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        font-weight: 900;
+        border: 0;
+    }
+    .order-table tbody td {
+        padding: 1rem 1.1rem;
+        color: #31483c;
+        border-top: 1px solid rgba(18, 49, 38, 0.08);
+        vertical-align: middle;
+    }
+    .order-table tbody tr:hover td {
+        background: #fbfdf9;
+    }
+    .order-product {
+        color: var(--orders-night);
+        font-weight: 800;
+    }
+    .order-money {
+        font-weight: 900;
+        color: var(--orders-night);
+    }
+    .orders-empty {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        border-radius: 30px;
+        border: 1px dashed rgba(18, 49, 38, 0.16);
+        background: linear-gradient(180deg, #ffffff, #f8fbf7);
+        box-shadow: 0 20px 44px rgba(18, 49, 38, 0.06);
+    }
+    .orders-empty-badge {
+        width: 82px;
+        height: 82px;
+        margin: 0 auto 1rem;
+        border-radius: 24px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, #eff8ef, #ffffff);
+        color: var(--orders-green);
+        font-size: 2rem;
+        box-shadow: 0 16px 30px rgba(18, 49, 38, 0.08);
+    }
+    .orders-empty h3 {
+        color: var(--orders-night);
+        font-size: 2rem;
+        font-weight: 900;
+        margin-bottom: .75rem;
+    }
+    .orders-empty p {
+        color: var(--orders-ink-soft);
+        max-width: 560px;
+        margin: 0 auto 1.2rem;
+    }
+    .orders-empty .btn {
+        min-height: 54px;
+        padding-inline: 1.4rem;
+        border-radius: 16px;
+        font-weight: 800;
+    }
+    @media (max-width: 991px) {
+        .order-head {
+            grid-template-columns: 1fr;
+        }
+        .order-total {
+            min-width: 0;
+        }
+        .order-meta {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 767px) {
+        .orders-page {
+            padding: 1rem 0 2.6rem;
+        }
+        .orders-hero,
+        .order-card {
+            border-radius: 24px;
+        }
+        .orders-hero {
+            padding: 1.4rem;
+        }
+        .order-head,
+        .order-body {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        .order-table-wrap {
+            overflow-x: auto;
+        }
+        .order-table {
+            min-width: 620px;
+        }
+    }
+</style>
+
+<div class="orders-page">
+    <div class="container">
+        <div class="orders-shell">
+            <section class="orders-hero">
+                <div class="orders-kicker"><i class="bi bi-bag-check"></i> Historique premium</div>
+                <h1 class="orders-title">Mes commandes</h1>
+                <p class="orders-copy">Retrouvez chaque achat dans une vue plus claire, plus rassurante et plus elegante pour suivre vos equipements en un coup d'oeil.</p>
+            </section>
+
+            {% if commandes is empty %}
+                <section class="orders-empty">
+                    <div class="orders-empty-badge"><i class="bi bi-basket"></i></div>
+                    <h3>Aucune commande pour le moment</h3>
+                    <p>Explorez le catalogue Agricore, comparez les equipements et lancez votre premiere commande depuis une interface plus inspiree.</p>
+                    <a href="{{ path('app_equipement_catalogue') }}" class="btn btn-success">Decouvrir le catalogue</a>
+                </section>
+            {% else %}
+                <section class="orders-grid">
+                    {% for commande in commandes %}
+                        {% set itemCount = commande.lignes|length %}
+                        {% set totalQuantity = 0 %}
                         {% for ligne in commande.lignes %}
-                            <tr>
-                                <td>{{ ligne.equipement.nom }}</td>
-                                <td>{{ ligne.quantite }}</td>
-                                <td>{{ ligne.prixUnitaire }} TND</td>
-                                <td>{{ ligne.totalLigne }} TND</td>
-                            </tr>
+                            {% set totalQuantity = totalQuantity + ligne.quantite %}
                         {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        {% endfor %}
-    {% endif %}
+
+                        <article class="order-card">
+                            <div class="order-head">
+                                <div class="order-ref">
+                                    <span class="order-ref-label">Reference</span>
+                                    <span class="order-ref-value">CMD-{{ commande.id }}</span>
+                                </div>
+
+                                <div class="order-date">
+                                    <i class="bi bi-clock-history"></i>
+                                    <span>{{ commande.dateCommande|date_modify('+1 hour')|date('d/m/Y H:i') }}</span>
+                                </div>
+
+                                <div class="order-total">
+                                    <span class="order-total-label">Montant total</span>
+                                    <span class="order-total-value">{{ commande.total }} TND</span>
+                                </div>
+                            </div>
+
+                            <div class="order-body">
+                                <div class="order-meta">
+                                    <div class="order-stat">
+                                        <span class="order-stat-label">Lignes</span>
+                                        <span class="order-stat-value">{{ itemCount }}</span>
+                                    </div>
+                                    <div class="order-stat">
+                                        <span class="order-stat-label">Quantite totale</span>
+                                        <span class="order-stat-value">{{ totalQuantity }}</span>
+                                    </div>
+                                    <div class="order-stat">
+                                        <span class="order-stat-label">Etat</span>
+                                        <span class="order-stat-value">Confirmee</span>
+                                    </div>
+                                </div>
+
+                                <div class="order-table-wrap">
+                                    <table class="order-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Produit</th>
+                                                <th>Quantite</th>
+                                                <th>Prix unitaire</th>
+                                                <th>Sous-total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for ligne in commande.lignes %}
+                                                <tr>
+                                                    <td class="order-product">{{ ligne.equipement.nom }}</td>
+                                                    <td>{{ ligne.quantite }}</td>
+                                                    <td>{{ ligne.prixUnitaire }} TND</td>
+                                                    <td class="order-money">{{ ligne.totalLigne }} TND</td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </section>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}

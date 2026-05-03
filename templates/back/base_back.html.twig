@@ -57,14 +57,14 @@
    .sidebar-link.active,
 .sidebar-link.active:hover,
 .sidebar-link.active:focus {
-    background-color: transparent !important; /* fond transparent */
-    color: inherit !important;                /* texte conserve sa couleur normale */
-    border-left-color: transparent !important; /* pas de couleur sur la bordure */
+    background-color: rgba(25, 135, 84, 0.08) !important; /* Fond vert très léger */
+    color: #198754 !important;                          /* Texte vert */
+    font-weight: 600;
 }
 
 .sidebar-link.active i,
 .sidebar-link.active .hide-menu {
-    color: inherit !important;               /* icônes et texte secondaires restent normaux */
+    color: #198754 !important;
 }
      </style> 
 
@@ -133,14 +133,14 @@
 
             <!-- Maintenance -->
             <li class="sidebar-item">
-              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_maintenance' %} active{% endif %}" href="{{ path('back_maintenance') }}" aria-expanded="false">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') starts with 'back_maintenance' %} active{% endif %}" href="{{ path('back_maintenance') }}" aria-expanded="false">
                 <i class="ti ti-tools"></i>
                 <span class="hide-menu">Maintenances</span>
               </a>
             </li>
             <!-- Équipement avec Tracteur -->
             <li class="sidebar-item">
-              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_equipements' %} active{% endif %}" href="{{ path('back_equipements') }}" aria-expanded="false">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') starts with 'back_equipement' %} active{% endif %}" href="{{ path('back_equipements') }}" aria-expanded="false">
                 <i class="ti ti-tractor"></i>
                 <span class="hide-menu">Équipements</span>
               </a>
@@ -148,7 +148,7 @@
 
             <!-- Événements -->
             <li class="sidebar-item">
-              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_evenements_list' %} active{% endif %}" href="{{ path('back_evenements_list') }}" aria-expanded="false">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') starts with 'back_evenement' %} active{% endif %}" href="{{ path('back_evenements_list') }}" aria-expanded="false">
                 <i class="ti ti-calendar-event"></i>
                 <span class="hide-menu">Événements</span>
               </a>
@@ -172,17 +172,18 @@
 
             <!-- Ventes et dépenses -->
             <li class="sidebar-item">
-              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_ventes_depenses' %} active{% endif %}" href="{{ path('back_ventes_depenses') }}" aria-expanded="false">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') starts with 'back_ventes' or app.request.attributes.get('_route') starts with 'back_depenses' %} active{% endif %}" href="{{ path('back_ventes_depenses') }}" aria-expanded="false">
                 <i class="ti ti-shopping-cart"></i>
                 <span class="hide-menu">Ventes et dépenses</span>
               </a>
             </li>
             <!-- Utilisateurs -->
             <li class="sidebar-item">
-              <a class="sidebar-link{% if app.request.attributes.get('_route') == 'back_utilisateurs' %} active{% endif %}" href="{{ path('back_utilisateurs') }}" aria-expanded="false">
+              <a class="sidebar-link{% if app.request.attributes.get('_route') starts with 'back_utilisateur' %} active{% endif %}" href="{{ path('back_utilisateurs') }}" aria-expanded="false">
                 <i class="ti ti-users"></i>
                 <span class="hide-menu">Utilisateurs</span>
               </a>
+            </li>
   <li class="sidebar-item" style="margin-top: auto; padding-bottom: 30px;">
   <a class="sidebar-link d-flex align-items-center" href="{{ path('utilisateur_logout') }}" aria-expanded="false" style="padding-left: 1px;">
     <i class="ti ti-logout me-0"></i>

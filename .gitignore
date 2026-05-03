@@ -23,3 +23,7 @@ CLAUDE.md
 ###< symfony/asset-mapper ###
 .env
 .env.test
+
+###> liip/imagine-bundle ###
+/public/media/cache/
+###< liip/imagine-bundle ###

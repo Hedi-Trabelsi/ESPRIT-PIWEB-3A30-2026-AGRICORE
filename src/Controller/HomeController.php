@@ -3,8 +3,10 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use App\Repository\AnimalRepository;
 
 class HomeController extends AbstractController
 {
@@ -26,34 +28,38 @@ class HomeController extends AbstractController
         return $this->render('front/home/contact.html.twig');
     }
 
-    #[Route('/maintenance', name: 'app_maintenance')]
-    public function maintenance(): Response
-    {
-        return $this->render('front/maintenance/maintenance.html.twig');
-    }
-
     #[Route('/evenements', name: 'app_evenements')]
     public function evenements(): Response
     {
         return $this->render('front/evenements/evenements.html.twig');
     }
 
-    #[Route('/suivi-animal', name: 'app_suivi_animal')]
-    public function suiviAnimal(): Response
+     #[Route('/suivi-animal', name: 'app_suivi_animal')]
+    public function suiviAnimal(Request $request, AnimalRepository $animalRepository): Response
     {
-        return $this->render('front/suivi_animal/suivi_animal.html.twig');
+        $q = $request->query->get('q', '');
+        $sortBy = $request->query->get('sortBy', 'codeAnimal');
+        $order = $request->query->get('order', 'ASC');
+
+        $animals = $animalRepository->findAll(); // simple pour maintenant
+
+        return $this->render('front/suivi_animal/animal/index.html.twig', [
+            'animals' => $animals,
+            'q' => $q,
+            'sortBy' => $sortBy,
+            'order' => $order,
+        ]);
     }
 
     #[Route('/achat-equipement', name: 'app_achat_equipement')]
-    public function achatEquipement(): Response
+    public function achatEquipement(Request $request): Response
     {
-        return $this->render('front/achat_equipement/achat_equipement.html.twig');
-    }
+        $sessionUser = $request->getSession()->get('user');
+        if (!$sessionUser) {
+            return $this->redirectToRoute('front_login');
+        }
 
-    #[Route('/ventes-depenses', name: 'app_ventes_depenses')]
-    public function ventesDepenses(): Response
-    {
-        return $this->render('front/ventes_depenses/ventes_depenses.html.twig');
+        return $this->redirectToRoute('app_equipement_catalogue');
     }
 
     #[Route('/services', name: 'app_services')]

@@ -275,7 +275,7 @@
                         <a href="{{ path('back_user_outils', {'id': user.id}) }}" class="btn-card btn-tools">
                             <i class="ti ti-settings"></i> Outils
                         </a>
-                        <a href="#" class="btn-card btn-analysis">
+                        <a href="{{ path('back_user_analyse', {'id': user.id}) }}" class="btn-card btn-analysis">
                             <i class="ti ti-chart-bar"></i> Analyses
                         </a>
                         <a href="{{ path('back_user_details', {'id': user.id}) }}" class="btn-card btn-details">

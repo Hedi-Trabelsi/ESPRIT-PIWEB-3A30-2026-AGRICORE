@@ -1,20 +1,564 @@
 {% extends 'back/base_back.html.twig' %}
 
+{% block title %}{{ equipement.id ? 'Modifier' : 'Ajouter' }} un equipement{% endblock %}
+
 {% block content %}
-<div class="card">
-    <div class="card-body">
-        <h4>{{ equipement.id ? 'Modifier' : 'Ajouter' }} un equipement</h4>
+{% set pageTitle = equipement.id ? 'Modifier un equipement' : 'Ajouter un equipement' %}
+{% set pageSubtitle = equipement.id
+    ? 'Mettez a jour votre fiche produit avec une presentation plus forte et plus claire.'
+    : 'Composez une fiche materiel elegante, lisible et prete pour votre catalogue Agricore.' %}
+
+<style>
+    .equip-form-page {
+        --equip-deep: #173526;
+        --equip-leaf: #2d8a57;
+        --equip-mint: #eef8f1;
+        --equip-sand: #fff6e7;
+        --equip-line: rgba(23, 53, 38, 0.12);
+        --equip-soft-text: #6b7f72;
+    }
+    .equip-form-shell {
+        position: relative;
+        overflow: hidden;
+        border-radius: 34px;
+        padding: 2rem;
+        background:
+            radial-gradient(circle at top right, rgba(251, 191, 36, 0.12), transparent 24%),
+            radial-gradient(circle at left bottom, rgba(45, 138, 87, 0.14), transparent 28%),
+            linear-gradient(180deg, #f7fbf7 0%, #ffffff 100%);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        box-shadow: 0 30px 70px rgba(19, 54, 36, 0.09);
+    }
+    .equip-form-shell::before {
+        content: "";
+        position: absolute;
+        top: -90px;
+        right: -70px;
+        width: 240px;
+        height: 240px;
+        border-radius: 50%;
+        background: rgba(45, 138, 87, 0.08);
+        pointer-events: none;
+    }
+    .equip-hero {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(250px, .7fr);
+        gap: 1.4rem;
+        margin-bottom: 1.5rem;
+    }
+    .equip-banner {
+        position: relative;
+        overflow: hidden;
+        border-radius: 30px;
+        padding: 2rem;
+        background:
+            linear-gradient(135deg, rgba(23, 53, 38, 0.98) 0%, rgba(34, 99, 66, 0.94) 50%, rgba(76, 161, 101, 0.88) 100%);
+        color: #fff;
+        min-height: 255px;
+    }
+    .equip-banner::after {
+        content: "";
+        position: absolute;
+        right: -55px;
+        bottom: -75px;
+        width: 230px;
+        height: 230px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+    }
+    .equip-banner > * {
+        position: relative;
+        z-index: 1;
+    }
+    .equip-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: rgba(255, 255, 255, 0.94);
+        border-radius: 999px;
+        padding: .45rem .8rem;
+        font-size: .8rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 1rem;
+    }
+    .equip-banner h2 {
+        color: #fff;
+        font-size: clamp(2rem, 3vw, 2.7rem);
+        line-height: 1.04;
+        margin-bottom: .8rem;
+    }
+    .equip-banner p {
+        color: rgba(255, 255, 255, 0.82);
+        max-width: 700px;
+        font-size: 1rem;
+        margin-bottom: 1.2rem;
+    }
+    .equip-metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .85rem;
+    }
+    .equip-metric {
+        min-width: 148px;
+        border-radius: 18px;
+        padding: .9rem 1rem;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+    .equip-metric span {
+        display: block;
+        color: rgba(255, 255, 255, 0.74);
+        font-size: .82rem;
+        margin-bottom: .2rem;
+    }
+    .equip-metric strong {
+        display: block;
+        color: #fff;
+        font-size: 1.05rem;
+    }
+    .equip-sidecard {
+        border-radius: 30px;
+        padding: 1.35rem;
+        background: linear-gradient(180deg, #fff7e9 0%, #ffffff 100%);
+        border: 1px solid rgba(237, 178, 64, 0.2);
+        box-shadow: 0 18px 42px rgba(33, 58, 43, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .equip-sidecard small {
+        color: #8d7340;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        font-weight: 800;
+    }
+    .equip-sidebox {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(237, 178, 64, 0.16);
+        border-radius: 20px;
+        padding: 1rem;
+    }
+    .equip-sidebox strong {
+        color: var(--equip-deep);
+        font-size: 1.7rem;
+        line-height: 1;
+    }
+    .equip-sidebox span {
+        color: #806c42;
+        font-weight: 700;
+    }
+    .equip-sidecard p {
+        margin: 0;
+        color: #6d664f;
+    }
+    .equip-content {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(290px, .8fr);
+        gap: 1.4rem;
+        align-items: start;
+    }
+    .equip-panel,
+    .equip-aside {
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid var(--equip-line);
+        border-radius: 30px;
+        padding: 1.5rem;
+        box-shadow: 0 18px 40px rgba(20, 56, 38, 0.06);
+        backdrop-filter: blur(8px);
+    }
+    .equip-panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.3rem;
+    }
+    .equip-panel-head h3 {
+        color: var(--equip-deep);
+        margin-bottom: .35rem;
+    }
+    .equip-panel-head p {
+        margin: 0;
+        color: var(--equip-soft-text);
+    }
+    .equip-return {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        border-radius: 16px;
+        padding: .85rem 1rem;
+        color: var(--equip-leaf);
+        background: rgba(45, 138, 87, 0.08);
+        border: 1px solid rgba(45, 138, 87, 0.2);
+        font-weight: 800;
+        transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+    }
+    .equip-return:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 24px rgba(45, 138, 87, 0.14);
+        background: rgba(45, 138, 87, 0.14);
+        color: var(--equip-leaf);
+    }
+    .equip-fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+    .equip-field-card {
+        border-radius: 24px;
+        padding: 1rem 1rem .7rem;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdfb 100%);
+        border: 1px solid rgba(23, 53, 38, 0.09);
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .equip-field-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(45, 138, 87, 0.22);
+        box-shadow: 0 12px 28px rgba(20, 56, 38, 0.08);
+    }
+    .equip-field-card.full {
+        grid-column: 1 / -1;
+    }
+    .equip-field-card label {
+        color: var(--equip-deep);
+        font-weight: 800;
+        margin-bottom: .55rem;
+    }
+    .equip-field-card .form-control,
+    .equip-field-card input,
+    .equip-field-card select,
+    .equip-field-card textarea {
+        min-height: 54px;
+        border-radius: 16px !important;
+        border: 1px solid rgba(23, 53, 38, 0.12) !important;
+        box-shadow: none !important;
+    }
+    .equip-field-card .form-control:focus,
+    .equip-field-card input:focus,
+    .equip-field-card select:focus,
+    .equip-field-card textarea:focus {
+        border-color: rgba(45, 138, 87, 0.54) !important;
+        box-shadow: 0 0 0 4px rgba(45, 138, 87, 0.12) !important;
+    }
+    .equip-hint {
+        display: block;
+        color: var(--equip-soft-text);
+        font-size: .88rem;
+        margin-top: .35rem;
+    }
+    .equip-preview {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 22px;
+        border: 1px dashed rgba(45, 138, 87, 0.24);
+        background: linear-gradient(135deg, #f3faf4, #ffffff);
+    }
+    .equip-preview img,
+    .equip-preview-fallback {
+        width: 92px;
+        height: 92px;
+        border-radius: 24px;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+    .equip-preview img {
+        box-shadow: 0 16px 30px rgba(20, 56, 38, 0.14);
+    }
+    .equip-preview-fallback {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #def0e4, #f8fbf8);
+        color: var(--equip-leaf);
+        font-size: 1.35rem;
+        font-weight: 800;
+    }
+    .equip-submit {
+        width: 100%;
+        margin-top: 1.2rem;
+        border: 0;
+        border-radius: 18px;
+        padding: 1rem 1.3rem;
+        font-weight: 800;
+        color: #fff;
+        background: linear-gradient(135deg, #2fb96c 0%, #1f9152 100%);
+        box-shadow: 0 18px 34px rgba(47, 185, 108, 0.26);
+        transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .equip-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 36px rgba(47, 185, 108, 0.3);
+    }
+    .equip-aside {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 252, 249, 0.98) 100%);
+    }
+    .equip-aside-block + .equip-aside-block {
+        margin-top: 1rem;
+    }
+    .equip-aside-card {
+        border-radius: 22px;
+        padding: 1rem;
+        border: 1px solid rgba(23, 53, 38, 0.08);
+        background: linear-gradient(180deg, #ffffff 0%, #f9fcf9 100%);
+    }
+    .equip-aside-card strong {
+        display: block;
+        color: var(--equip-deep);
+        margin-bottom: .35rem;
+    }
+    .equip-aside-card p {
+        margin: 0;
+        color: var(--equip-soft-text);
+        font-size: .92rem;
+    }
+    .equip-checklist {
+        display: grid;
+        gap: .8rem;
+    }
+    .equip-check {
+        display: flex;
+        gap: .8rem;
+        align-items: flex-start;
+        border-radius: 18px;
+        padding: .95rem 1rem;
+        background: var(--equip-mint);
+        border: 1px solid rgba(45, 138, 87, 0.12);
+    }
+    .equip-check span:first-child {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        color: var(--equip-leaf);
+        font-weight: 800;
+        box-shadow: 0 6px 16px rgba(45, 138, 87, 0.12);
+        flex-shrink: 0;
+    }
+    .equip-check strong {
+        display: block;
+        color: var(--equip-deep);
+        margin-bottom: .15rem;
+    }
+    .equip-check em {
+        font-style: normal;
+        color: var(--equip-soft-text);
+    }
+    @media (max-width: 1199px) {
+        .equip-hero,
+        .equip-content {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 767px) {
+        .equip-form-shell {
+            padding: 1rem;
+            border-radius: 24px;
+        }
+        .equip-banner,
+        .equip-sidecard,
+        .equip-panel,
+        .equip-aside {
+            padding: 1.2rem;
+            border-radius: 22px;
+        }
+        .equip-fields {
+            grid-template-columns: 1fr;
+        }
+        .equip-panel-head {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<div class="equip-form-page">
+    <div class="equip-form-shell">
+        <div class="equip-hero">
+            <section class="equip-banner">
+                <span class="equip-kicker">Studio Equipement</span>
+                <h2>{{ pageTitle }}</h2>
+                <p>{{ pageSubtitle }}</p>
+                <div class="equip-metrics">
+                    <div class="equip-metric">
+                        <span>Experience</span>
+                        <strong>Catalogue premium</strong>
+                    </div>
+                    <div class="equip-metric">
+                        <span>Focus</span>
+                        <strong>{{ equipement.id ? 'Edition rapide' : 'Nouvelle fiche' }}</strong>
+                    </div>
+                    <div class="equip-metric">
+                        <span>Objectif</span>
+                        <strong>Clair et impactant</strong>
+                    </div>
+                </div>
+            </section>
+
+            <aside class="equip-sidecard">
+                <small>Vue rapide</small>
+                <div class="equip-sidebox">
+                    <div>
+                        <span>Stock</span>
+                        <strong>{{ equipement.quantite is not null ? equipement.quantite : 0 }}</strong>
+                    </div>
+                    <span>{{ equipement.quantite is not null and equipement.quantite > 0 ? 'disponible' : 'a definir' }}</span>
+                </div>
+                <div class="equip-sidebox">
+                    <div>
+                        <span>Prix</span>
+                        <strong>{{ equipement.prix is not null ? equipement.prix|number_format(0, '.', ' ') : '--' }}</strong>
+                    </div>
+                    <span>TND</span>
+                </div>
+                <p>Une fiche bien presentee donne une meilleure lecture du materiel et rend le back-office beaucoup plus agreable a utiliser.</p>
+            </aside>
+        </div>
+
         {{ form_start(form) }}
-        {{ form_row(form.nom) }}
-        {{ form_row(form.type) }}
-        {{ form_row(form.prix) }}
-        {{ form_row(form.quantite) }}
-        {{ form_row(form.imageFile) }}
-        {% if equipement.imageFilename %}
-            <img src="{{ asset('uploads/equipements/' ~ equipement.imageFilename) }}" width="100" alt="{{ equipement.nom }}">
-        {% endif %}
-        <button class="btn btn-primary mt-3">{{ equipement.id ? 'Enregistrer' : 'Ajouter' }}</button>
+        <div class="equip-content">
+            <section class="equip-panel">
+                <div class="equip-panel-head">
+                    <div>
+                        <h3>Informations de l'equipement</h3>
+                        <p>Le meme formulaire, avec une interface plus expressive, plus propre et plus moderne.</p>
+                    </div>
+                    <a href="{{ path('back_equipement_index') }}" class="equip-return">Retour</a>
+                </div>
+
+                <div class="equip-fields">
+                    <div class="equip-field-card">
+                        {{ form_row(form.nom) }}
+                        <span class="equip-hint">Ajoutez un nom clair et facile a retrouver dans le catalogue.</span>
+                    </div>
+                    <div class="equip-field-card">
+                        {{ form_row(form.type) }}
+                        <span class="equip-hint">Choisissez une categorie simple comme tracteur, outil ou irrigation.</span>
+                    </div>
+                    <div class="equip-field-card">
+                        {{ form_row(form.prix) }}
+                        <span class="equip-hint">Le prix reste visible rapidement dans les cartes et dans la liste.</span>
+                    </div>
+                    <div class="equip-field-card">
+                        {{ form_row(form.quantite) }}
+                        <span class="equip-hint">Le stock aide a mieux piloter les disponibilites.</span>
+                    </div>
+                    <div class="equip-field-card full">
+                        {{ form_row(form.imageFile) }}
+                        <span class="equip-hint">Un bon visuel rend la fiche produit plus credibile et plus vivante.</span>
+
+                        <div class="equip-preview">
+                            {% if equipement.imageFilename %}
+                                <img
+                                    id="equip-image-preview"
+                                    src="{{ vich_uploader_asset(equipement, 'imageFile') }}"
+                                    alt="{{ equipement.nom ?: 'Apercu equipement' }}"
+                                >
+                            {% else %}
+                                <span id="equip-image-fallback" class="equip-preview-fallback">AI</span>
+                                <img id="equip-image-preview" src="" alt="Apercu de l'image" style="display:none;">
+                            {% endif %}
+                            <div>
+                                <strong class="d-block text-dark mb-1">Apercu visuel</strong>
+                                <div class="text-muted small">L'image selectionnee s'affichera ici pour controler le rendu avant l'enregistrement.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="equip-submit">{{ equipement.id ? 'Enregistrer les changements' : 'Ajouter l\'equipement' }}</button>
+            </section>
+
+            <aside class="equip-aside">
+                <div class="equip-aside-block">
+                    <div class="equip-aside-card">
+                        <strong>Direction visuelle</strong>
+                        <p>Palette naturelle, volumes doux, cartes arrondies et ambiance plus agricole-tech que formulaire standard.</p>
+                    </div>
+                </div>
+
+                <div class="equip-aside-block">
+                    <div class="equip-aside-card">
+                        <strong>Pourquoi ce style</strong>
+                        <p>La page parait plus premium, plus rassurante et plus moderne sans compliquer l'usage du formulaire.</p>
+                    </div>
+                </div>
+
+                <div class="equip-aside-block">
+                    <div class="equip-checklist">
+                        <div class="equip-check">
+                            <span>1</span>
+                            <div>
+                                <strong>Nommer clairement</strong>
+                                <em>Un bon titre facilite la recherche et la lecture dans les listes.</em>
+                            </div>
+                        </div>
+                        <div class="equip-check">
+                            <span>2</span>
+                            <div>
+                                <strong>Ajouter un visuel</strong>
+                                <em>Une image propre donne plus de valeur a la fiche produit.</em>
+                            </div>
+                        </div>
+                        <div class="equip-check">
+                            <span>3</span>
+                            <div>
+                                <strong>Verifier prix et stock</strong>
+                                <em>Ces deux donnees restent les plus importantes pour l'exploitation du catalogue.</em>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
         {{ form_end(form) }}
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const imageInput = document.getElementById('{{ form.imageFile.vars.id }}');
+        const preview = document.getElementById('equip-image-preview');
+        const fallback = document.getElementById('equip-image-fallback');
+
+        if (!imageInput || !preview) {
+            return;
+        }
+
+        imageInput.addEventListener('change', function (event) {
+            const file = event.target.files && event.target.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (loadEvent) {
+                preview.src = loadEvent.target.result;
+                preview.style.display = 'block';
+                if (fallback) {
+                    fallback.style.display = 'none';
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+</script>
 {% endblock %}

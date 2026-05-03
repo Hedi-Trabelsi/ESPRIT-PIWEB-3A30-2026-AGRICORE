@@ -1,0 +1,380 @@
+{% extends 'back/base_back.html.twig' %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+        --danger-gradient: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+        --info-gradient: linear-gradient(135deg, #3182ce 0%, #2b6cb0 100%);
+        --warning-gradient: linear-gradient(135deg, #ed8936 0%, #c05621 100%);
+    }
+    .page-title {
+        font-weight: 800;
+        font-size: 1.75rem;
+        margin: 0;
+        color: #1a202c;
+        letter-spacing: -0.025em;
+    }
+    .card-detail {
+        background: #fff;
+        border-radius: 20px;
+        border: none;
+        padding: 30px;
+        height: 100%;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    .card-title-custom {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #2d3748;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 25px;
+    }
+    .card-title-custom::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        background: #e53e3e;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .card-title-custom.vente::before { background: #38a169; }
+    .card-title-custom.info::before { background: #3182ce; }
+
+    .kpi-card {
+        border-radius: 20px;
+        padding: 25px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        border: none;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        height: 100%;
+    }
+    .kpi-card.sales { background: var(--primary-gradient); }
+    .kpi-card.expenses { background: var(--danger-gradient); }
+    .kpi-card.net { background: var(--info-gradient); }
+    .kpi-card.anomaly { background: var(--danger-gradient); border: 2px solid rgba(255,255,255,0.2); }
+
+    .kpi-card .icon {
+        position: absolute;
+        right: -10px;
+        bottom: -10px;
+        font-size: 4.5rem;
+        opacity: 0.15;
+        transform: rotate(-15deg);
+    }
+    .kpi-label { font-size: 0.85rem; font-weight: 600; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-value { font-size: 1.6rem; font-weight: 800; margin: 5px 0 0; }
+
+    .advice-container {
+        background: #f0fff4;
+        border: 1px solid #c6f6d5;
+        border-radius: 24px;
+        padding: 30px;
+        margin-top: 30px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        gap: 40px;
+    }
+    .advice-watermark {
+        position: absolute;
+        right: 20px;
+        bottom: -20px;
+        font-size: 8rem;
+        color: #38a169;
+        opacity: 0.04;
+        transform: rotate(-10deg);
+        pointer-events: none;
+    }
+    .ai-badge {
+        position: absolute;
+        top: 20px;
+        left: 30px;
+        background: #10b981;
+        color: white;
+        padding: 6px 14px;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+    }
+    .forecast-left {
+        min-width: 180px;
+        padding-top: 15px;
+        border-right: 1px solid #c6f6d5;
+        padding-right: 40px;
+    }
+    .forecast-label { font-size: 0.75rem; font-weight: 700; color: #718096; text-transform: uppercase; margin-bottom: 5px; }
+    .forecast-value { font-size: 1.5rem; font-weight: 800; color: #059669; }
+    .advice-right { flex-grow: 1; padding-top: 15px; }
+    .advice-title { font-size: 1.05rem; font-weight: 800; color: #064e3b; margin-bottom: 8px; }
+    .advice-quote { font-size: 1rem; color: #065f46; font-style: italic; line-height: 1.5; }
+
+    .anomaly-alert {
+        background: #fff5f5;
+        border-left: 5px solid #e53e3e;
+        border-radius: 15px;
+        padding: 15px 20px;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 4px 6px rgba(229, 62, 62, 0.05);
+    }
+    .anomaly-alert-icon { font-size: 1.25rem; color: #c53030; }
+
+    .anomaly-table { width: 100%; font-size: 0.9rem; }
+    .anomaly-table th { color: #718096; font-weight: 600; padding: 12px; border-bottom: 1px solid #edf2f7; text-align: left; }
+    .anomaly-table td { padding: 14px 12px; vertical-align: middle; border-bottom: 1px solid #f8fafc; }
+
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .status-badge.anomaly { background: #c53030; color: white; box-shadow: 0 2px 4px rgba(197, 48, 48, 0.2); }
+    .status-badge.normal { background: #edf2f7; color: #718096; }
+
+    .z-badge { padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.75rem; }
+    .z-badge.normal { background: #dcfce7; color: #166534; }
+    .z-badge.danger { background: #fee2e2; color: #991b1b; animation: pulse-red 2s infinite; }
+
+    @keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+        70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .btn-retour {
+        background: white;
+        border: 1px solid #e2e8f0;
+        color: #4a5568;
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+    .btn-retour:hover { background: #f7fafc; transform: translateX(-3px); }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="row mb-5 align-items-center">
+        <div class="col-lg-12">
+            <div class="d-flex align-items-center gap-4">
+                <a href="{{ path('back_ventes_depenses') }}" class="btn-retour">
+                    <i class="ti ti-arrow-left"></i> Retour
+                </a>
+                <div>
+                    <h1 class="page-title">Agricore Intelligence : {{ user.nom }} {{ user.prenom }}</h1>
+                    <p class="text-muted mb-0">Analyse prédictive et détection d'anomalies</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if anomaliesCount > 0 %}
+        <div class="anomaly-alert animate__animated animate__headShake">
+            <div class="anomaly-alert-icon">
+                <i class="ti ti-shield-x"></i>
+            </div>
+            <div>
+                <h5 class="mb-1 fw-bold text-danger">Anomalies détectées par l'IA</h5>
+                <p class="mb-0 text-muted small">Nous avons identifié {{ anomaliesCount }} dépense(s) suspecte(s) nécessitant votre attention.</p>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="kpi-card sales">
+                <div class="icon"><i class="ti ti-trending-up"></i></div>
+                <div class="kpi-label">Total Ventes</div>
+                <div class="kpi-value">{{ totalSales|number_format(2, '.', ' ') }} DT</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card expenses">
+                <div class="icon"><i class="ti ti-shopping-cart-x"></i></div>
+                <div class="kpi-label">Total Dépenses</div>
+                <div class="kpi-value">{{ totalExpenses|number_format(2, '.', ' ') }} DT</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card net">
+                <div class="icon"><i class="ti ti-wallet"></i></div>
+                <div class="kpi-label">Bénéfice Net</div>
+                <div class="kpi-value">{{ netProfit|number_format(2, '.', ' ') }} DT</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card anomaly">
+                <div class="icon"><i class="ti ti-alert-triangle"></i></div>
+                <div class="kpi-label">Anomalies Détectées</div>
+                <div class="kpi-value">{{ anomaliesCount }} <small style="font-size: 0.9rem; opacity: 0.8;">({{ anomalyRate|number_format(0) }}%)</small></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-lg-6">
+            <div class="card-detail">
+                <h3 class="card-title-custom">Répartition des Dépenses</h3>
+                <div id="pieChart"></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card-detail">
+                <h3 class="card-title-custom vente">Évolution Mensuelle</h3>
+                <div id="barChart"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-lg-4">
+            <div class="card-detail h-100">
+                <h3 class="card-title-custom danger">Distribution Z-Scores</h3>
+                <div id="zScoreChart"></div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card-detail h-100">
+                <h3 class="card-title-custom danger">Transactions détectées</h3>
+                <div class="table-responsive">
+                    <table class="anomaly-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Date</th>
+                                <th>Montant</th>
+                                <th>Statut</th>
+                                <th>Z-Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for res in anomalyResults %}
+                                <tr {% if res.analysis.isAnomaly %}class="bg-danger-subtle bg-opacity-10"{% endif %}>
+                                    <td class="fw-bold text-dark">{{ res.depense.type }}</td>
+                                    <td class="text-muted">{{ res.depense.date|date('d/m') }}</td>
+                                    <td class="fw-bold">{{ res.depense.montant|number_format(2, '.', ' ') }} DT</td>
+                                    <td>
+                                        {% if res.analysis.isAnomaly %}
+                                            <span class="status-badge anomaly">Anomalie</span>
+                                        {% else %}
+                                            <span class="status-badge normal">Normal</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="z-badge {% if res.analysis.isAnomaly %}danger{% else %}normal{% endif %}">
+                                            {{ res.analysis.score|number_format(2) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card-detail">
+                <h3 class="card-title-custom info">Prévisions des Ventes (Intelligence Artificielle)</h3>
+                <div id="forecastChart"></div>
+
+                <div class="advice-container">
+                    <div class="ai-badge"><i class="ti ti-robot"></i> Agricore Intelligence</div>
+                    <div class="advice-watermark"><i class="ti ti-robot"></i></div>
+
+                    <div class="forecast-left text-center">
+                        <div class="forecast-label">Prévision mois prochain</div>
+                        <div class="forecast-value">{{ forecastData.nextMonthValue|number_format(2, '.', ' ') }} DT</div>
+                    </div>
+
+                    <div class="advice-right">
+                        <div class="advice-title">Conseil Stratégique :</div>
+                        <div class="advice-quote">"{{ forecastData.advice }}"</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const themeColors = ['#38a169', '#e53e3e', '#3182ce', '#ecc94b', '#805ad5'];
+
+        const pieData = {{ expensesByCategory|json_encode|raw }};
+        new ApexCharts(document.querySelector("#pieChart"), {
+            series: Object.values(pieData),
+            labels: Object.keys(pieData),
+            chart: { type: 'donut', height: 350, fontFamily: 'Plus Jakarta Sans' },
+            colors: themeColors,
+            plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, label: 'Total', formatter: () => '{{ totalExpenses|number_format(0, ".", " ") }} DT' } } } } },
+            legend: { position: 'bottom' }
+        }).render();
+
+        const monthlyStats = {{ monthlyStats|json_encode|raw }};
+        const months = Object.keys(monthlyStats);
+        new ApexCharts(document.querySelector("#barChart"), {
+            series: [{ name: 'Ventes', data: months.map(m => monthlyStats[m].sales) }, { name: 'Dépenses', data: months.map(m => monthlyStats[m].expenses) }],
+            chart: { type: 'bar', height: 350, toolbar: { show: false } },
+            plotOptions: { bar: { borderRadius: 6, columnWidth: '45%' } },
+            colors: ['#38a169', '#e53e3e'],
+            xaxis: { categories: months.map(m => { const [y, mon] = m.split('-'); return new Date(y, mon-1).toLocaleString('default', { month: 'short' }); }) },
+            grid: { borderColor: '#f1f1f1' }
+        }).render();
+
+        const zScoreData = {{ anomalyResults|map(r => ({ 'z': r.analysis.score, 'isA': r.analysis.isAnomaly }))|json_encode|raw }};
+        new ApexCharts(document.querySelector("#zScoreChart"), {
+            series: [{ name: 'Z-Score', data: zScoreData.map(r => r.z.toFixed(2)) }],
+            chart: { type: 'bar', height: 350, toolbar: { show: false } },
+            plotOptions: { bar: { distributed: true, borderRadius: 4, columnWidth: '40%' } },
+            colors: zScoreData.map(r => r.isA ? '#e53e3e' : '#38a169'),
+            legend: { show: false },
+            xaxis: { labels: { show: false } }
+        }).render();
+
+        const historyData = {{ forecastData.history|json_encode|raw }};
+        const forecastData = {{ forecastData.forecast|json_encode|raw }};
+        const allDates = [...historyData.map(h => h.date), ...forecastData.map(f => f.date)];
+
+        new ApexCharts(document.querySelector("#forecastChart"), {
+            series: [
+                { name: 'Historique', type: 'line', data: historyData.map(h => h.value) },
+                { name: 'Prévision', type: 'line', data: [...Array(historyData.length).fill(null), ...forecastData.map(f => f.value)] },
+                { name: 'Intervalle', type: 'area', data: [...Array(historyData.length).fill(null), ...forecastData.map(f => ({ x: f.date, y: [f.lower, f.upper] }))] }
+            ],
+            chart: { height: 350, type: 'line', toolbar: { show: false } },
+            colors: ['#38a169', '#3182ce', '#cbd5e0'],
+            stroke: { width: [4, 4, 0], curve: 'smooth', dashArray: [0, 8, 0] },
+            fill: { type: ['solid', 'solid', 'gradient'], gradient: { opacityFrom: 0.3, opacityTo: 0.1 } },
+            xaxis: { categories: allDates.map(d => { const [y, m] = d.split('-'); return new Date(y, m-1).toLocaleString('default', { month: 'short', year: '2-digit' }); }) },
+            legend: { position: 'top', horizontalAlign: 'right' }
+        }).render();
+    });
+</script>
+{% endblock %}

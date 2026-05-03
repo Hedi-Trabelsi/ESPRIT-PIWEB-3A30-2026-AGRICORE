@@ -1,0 +1,35 @@
+liip_imagine:
+    driver: gd
+    twig:
+        mode: lazy
+
+    filter_sets:
+        cache: ~
+
+        equipement_catalog_card:
+            quality: 82
+            filters:
+                thumbnail:
+                    size: [720, 520]
+                    mode: outbound
+
+        equipement_detail_showcase:
+            quality: 88
+            filters:
+                thumbnail:
+                    size: [960, 720]
+                    mode: inset
+
+        equipement_admin_thumb:
+            quality: 80
+            filters:
+                thumbnail:
+                    size: [220, 220]
+                    mode: outbound
+
+        equipement_form_preview:
+            quality: 84
+            filters:
+                thumbnail:
+                    size: [420, 320]
+                    mode: outbound

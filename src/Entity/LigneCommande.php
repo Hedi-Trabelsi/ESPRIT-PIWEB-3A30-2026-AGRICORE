@@ -25,10 +25,10 @@ class LigneCommande
     #[ORM\Column(type: 'integer')]
     private ?int $quantite = null;
 
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
+    #[ORM\Column(name: 'prix_unitaire', type: 'decimal', precision: 10, scale: 2)]
     private ?string $prixUnitaire = null;
 
-    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
+    #[ORM\Column(name: 'total_ligne', type: 'decimal', precision: 10, scale: 2)]
     private ?string $totalLigne = null;
 
     public function getId(): ?int

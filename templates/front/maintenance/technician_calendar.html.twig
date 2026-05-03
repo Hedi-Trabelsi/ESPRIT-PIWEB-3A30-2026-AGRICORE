@@ -1,0 +1,397 @@
+{% extends 'front/base_front.html.twig' %}
+
+{% block title %}Calendrier des maintenances{% endblock %}
+
+{% block navbar %}
+    {% include 'front/partials/_tech_navbar.html.twig' %}
+{% endblock %}
+
+{% block body %}
+<style>
+    /* ── Base ── */
+    body { background: #fff; }
+
+    .header-section {
+        margin-bottom: 2rem;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 20px;
+    }
+
+    /* ── Nav mois ── */
+    .month-nav {
+        display: inline-flex;
+        align-items: center;
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 50px;
+        padding: 4px;
+        gap: 4px;
+    }
+    .month-nav a {
+        padding: 7px 18px;
+        border-radius: 40px;
+        font-weight: 600;
+        font-size: .85rem;
+        color: #666;
+        text-decoration: none;
+        transition: .2s;
+    }
+    .month-nav a:hover { background: #0F4229; color: #fff; }
+    .month-nav .month-label {
+        padding: 7px 18px;
+        font-weight: 700;
+        font-size: .9rem;
+        color: #0F4229;
+    }
+
+    /* ── Stat cards ── */
+    .stat-card {
+        background: #fff;
+        border: 1px solid #f0f0f0;
+        border-radius: 0 40px 0 40px;
+        padding: 20px 24px;
+        transition: all .3s ease;
+        text-align: center;
+    }
+    .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,.07); }
+    .stat-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: #999; font-weight: 700; margin-bottom: 4px; }
+    .stat-value { font-size: 1.8rem; font-weight: 800; color: #0F4229; line-height: 1; }
+
+    /* ── Calendar board ── */
+    .cal-board {
+        background: #fff;
+        border: 1px solid #f0f0f0;
+        border-radius: 0 50px 0 50px;
+        padding: 28px;
+        box-shadow: 0 4px 20px rgba(0,0,0,.04);
+    }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+    .cal-head {
+        text-align: center;
+        font-size: .72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        color: #999;
+        padding-bottom: 10px;
+    }
+
+    /* ── Day cell ── */
+    .day-card {
+        min-height: 110px;
+        border-radius: 0 20px 0 20px;
+        border: 1px solid #f0f0f0;
+        background: #fff;
+        padding: 9px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        transition: all .25s ease;
+    }
+    .day-card.day-clickable:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,.07);
+        border-color: #0F4229;
+        cursor: pointer;
+    }
+    .day-card.is-today    { border-color: #0F4229; background: #f4faf7; }
+    .day-card.is-overloaded { border-color: #dc3545; background: #fff8f8; }
+    .day-card.is-past     { opacity: .6; }
+    .day-card.is-outside  { background: #fafafa; opacity: .35; pointer-events: none; }
+
+    .day-number {
+        font-size: .95rem;
+        font-weight: 800;
+        color: #0F4229;
+        line-height: 1;
+    }
+    .day-card.is-today .day-number {
+        background: #0F4229;
+        color: #fff;
+        width: 24px; height: 24px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .78rem;
+    }
+
+    /* ── Task pills ── */
+    .task-list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; max-height: 75px; }
+    .task-list::-webkit-scrollbar { width: 2px; }
+    .task-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+    .task-pill {
+        border-radius: 0 8px 0 8px;
+        padding: 4px 7px;
+        border-left: 3px solid #f59e0b;
+        background: #fffbeb;
+        font-size: .68rem;
+        font-weight: 700;
+        color: #92400e;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .task-pill.is-overdue  { border-left-color: #dc3545; background: #fff5f5; color: #991b1b; }
+    .task-pill.is-resolved { border-left-color: #198754; background: #f0fff6; color: #14532d; }
+
+    /* ── Side panels ── */
+    .side-panel {
+        background: #fff;
+        border: 1px solid #f0f0f0;
+        border-radius: 0 40px 0 40px;
+        padding: 22px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 15px rgba(0,0,0,.04);
+        transition: all .3s ease;
+    }
+    .side-panel:hover { box-shadow: 0 8px 25px rgba(0,0,0,.07); }
+    .panel-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #999; margin-bottom: 2px; }
+    .panel-title { font-size: .95rem; font-weight: 800; color: #0F4229; margin: 0 0 14px; }
+
+    .overdue-item {
+        border-bottom: 1px solid #f0f0f0;
+        padding: 10px 0;
+    }
+    .overdue-item:last-child { border-bottom: none; }
+
+    .overdue-link { text-decoration: none; color: inherit; display: block; }
+    .overdue-link:hover .overdue-item { background: #f8f9fa; border-radius: 0 10px 0 10px; padding-left: 8px; padding-right: 8px; }
+
+    .today-item {
+        border-bottom: 1px solid #f0f0f0;
+        padding: 10px 0;
+    }
+    .today-item:last-child { border-bottom: none; }
+
+    .today-item-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .today-item-name {
+        font-size: .85rem;
+        font-weight: 700;
+        color: #0F4229;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .today-item-place {
+        font-size: .72rem;
+        font-weight: 700;
+        color: #6b7280;
+        text-align: right;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .overload-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 9px 0;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: .85rem;
+    }
+    .overload-row:last-child { border-bottom: none; }
+
+    .slot-box  { background: #f4faf7; border-radius: 0 15px 0 15px; padding: 12px 16px; color: #0F4229; font-weight: 700; font-size: .88rem; border-left: 3px solid #0F4229; }
+    .empty-box { background: #f8f9fa; border-radius: 0 15px 0 15px; padding: 12px 16px; color: #999; font-size: .85rem; }
+
+    .smart-scroll { max-height: 280px; overflow-y: auto; }
+    .smart-scroll::-webkit-scrollbar { width: 2px; }
+    .smart-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+    /* ── Modal ── */
+    @keyframes modalIn {
+        from { opacity:0; transform:scale(.95) translateY(8px); }
+        to   { opacity:1; transform:scale(1)   translateY(0); }
+    }
+    .modal-task-item {
+        border-radius: 0 15px 0 15px;
+        border: 1px solid #f0f0f0;
+        padding: 12px 14px;
+        text-decoration: none;
+        display: block;
+        margin-bottom: 8px;
+        transition: all .2s ease;
+    }
+    .modal-task-item:last-child { margin-bottom: 0; }
+    .modal-task-item:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.08); }
+</style>
+
+<div class="container mt-5">
+
+    <div class="header-section d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <h1 class="fw-bold m-0">Calendrier des tâches</h1>
+            <p class="text-muted small mb-0 mt-1">Vue mensuelle · retards · surcharges</p>
+        </div>
+        <div class="month-nav">
+            <a href="{{ path('app_tech_maintenance_calendar', {month: previousMonth}) }}">
+                <i class="fas fa-chevron-left me-1"></i> Précédent
+            </a>
+            <span class="month-label">{{ monthLabel }}</span>
+            <a href="{{ path('app_tech_maintenance_calendar', {month: nextMonth}) }}">
+                Suivant <i class="fas fa-chevron-right ms-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="stat-card shadow-sm">
+                <div class="stat-label">Tâches du mois</div>
+                <div class="stat-value">{{ totalTasks }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card shadow-sm">
+                <div class="stat-label">En retard</div>
+                <div class="stat-value" style="color:#dc3545;">{{ overdueCount }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card shadow-sm">
+                <div class="stat-label">Jours surchargés</div>
+                <div class="stat-value" style="color:#dc3545;">{{ overloadedCount }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 align-items-start">
+
+        <div class="col-lg-8">
+            <div class="cal-board">
+                <div class="cal-grid mb-3">
+                    <div class="cal-head">Lun</div>
+                    <div class="cal-head">Mar</div>
+                    <div class="cal-head">Mer</div>
+                    <div class="cal-head">Jeu</div>
+                    <div class="cal-head">Ven</div>
+                    <div class="cal-head">Sam</div>
+                    <div class="cal-head">Dim</div>
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+                    {% for week in calendarWeeks %}
+                    <div class="cal-grid">
+                        {% for day in week %}
+                        {% set dayTasks = day.tasks %}
+                        <div class="day-card
+                            {% if not day.isCurrentMonth %}is-outside{% endif %}
+                            {% if day.isToday %}is-today{% endif %}
+                            {% if day.isOverloaded %}is-overloaded{% endif %}
+                            {% if day.isPast and day.load > 0 and not day.isToday %}is-past{% endif %}"
+                        >
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="day-number">{{ day.date|date('j') }}</div>
+                                {% if day.load > 0 %}
+                                    <span style="font-size:.62rem;font-weight:700;padding:2px 6px;border-radius:50px;
+                                        {% if day.isOverloaded %}background:#fee2e2;color:#dc3545;
+                                        {% elseif day.isToday %}background:#d1fae5;color:#065f46;
+                                        {% else %}background:#f3f4f6;color:#6b7280;{% endif %}">
+                                        {{ day.load }}
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="task-list">
+                                {% for task in dayTasks %}
+                                <a href="{{ path('app_maintenance_taches', {'id_maintenance': task.maintenanceId}) }}" class="task-link">
+                                    <div class="task-pill {% if task.isOverdue %}is-overdue{% elseif task.etat == 1 %}is-resolved{% endif %}">
+                                        {{ task.taskName }}
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="side-panel">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <div class="panel-label">Retards</div>
+                        <div class="panel-title">Tâches en retard</div>
+                    </div>
+                    <i class="fas fa-hourglass-half text-muted"></i>
+                </div>
+                <div class="smart-scroll">
+                    {% for task in overdueTasks %}
+                    <a href="{{ path('app_maintenance_taches', {'id_maintenance': task.maintenanceId}) }}" class="overdue-link">
+                        <div class="overdue-item">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div style="font-size:.85rem;font-weight:700;color:#0F4229;">{{ task.taskName }}</div>
+                                <span class="badge bg-danger" style="font-size:.65rem;">{{ task.daysLate }}j</span>
+                            </div>
+                            <div class="text-muted" style="font-size:.75rem;margin-top:2px;">{{ task.maintenanceName }}</div>
+                            <div class="text-muted" style="font-size:.7rem;">{{ task.date|date('d/m/Y') }} · {{ task.stateLabel }}</div>
+                        </div>
+                    </a>
+                    {% else %}
+                    <div class="empty-box">Aucune tâche en retard.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <div class="panel-label">Aujourd'hui</div>
+                        <div class="panel-title">Liste des tâches du jour</div>
+                    </div>
+                    <i class="fas fa-calendar-day" style="color:#0F4229;"></i>
+                </div>
+                <div class="smart-scroll">
+                    {% for task in todayTasks %}
+                    <a href="{{ path('app_maintenance_taches', {'id_maintenance': task.maintenanceId}) }}" class="overdue-link">
+                        <div class="today-item">
+                            <div class="today-item-row">
+                                <div class="today-item-name">{{ task.taskName }}</div>
+                                <div class="today-item-place">{{ task.maintenanceLieu }}</div>
+                            </div>
+                            <div class="text-muted" style="font-size:.75rem;margin-top:2px;">{{ task.maintenanceName }}</div>
+                            <div class="text-muted" style="font-size:.7rem;">{{ task.stateLabel }}</div>
+                        </div>
+                    </a>
+                    {% else %}
+                    <div class="empty-box">Aucune tâche prévue aujourd'hui.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <div class="panel-label">Surcharge</div>
+                        <div class="panel-title">Jours à surveiller</div>
+                    </div>
+                    <i class="fas fa-exclamation-triangle text-danger"></i>
+                </div>
+                {% for day in overloadedDays %}
+                <div class="overload-row">
+                    <div>
+                        <div style="font-weight:700;font-size:.88rem;">{{ day.date|date('d/m/Y') }}</div>
+                        <div class="text-muted" style="font-size:.75rem;">{{ day.load }} tâches</div>
+                    </div>
+                    <span class="badge bg-danger" style="font-size:.68rem;">Surchargé</span>
+                </div>
+                {% else %}
+                <div class="empty-box">Aucun jour au-dessus du seuil.</div>
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

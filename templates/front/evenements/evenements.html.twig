@@ -1,272 +1,756 @@
 {% extends 'front/base_front.html.twig' %}
 
-{% block title %}Événements - AgriCore Experience{% endblock %}
+{% block title %}Événements - AgriCore{% endblock %}
 
 {% block body %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css"/>
 
+{% if app.session.get('user') %}
+<div id="eventReminderBanner" style="display:none;"></div>
+{% endif %}
 <style>
-    :root {
-        --agri-orange: #fd7e14;
-        --agri-green: #198754;
-        --glass-bg: rgba(255, 255, 255, 0.8);
-        --glass-border: rgba(255, 255, 255, 0.5);
-    }
+:root {
+    --g: #16a34a;
+    --g2: #22c55e;
+    --orange: #f97316;
+    --dark: #0f172a;
+    --muted: #64748b;
+}
 
-    body {
-        background: #f8fafc;
-        background-image:
-            radial-gradient(at 0% 0%, rgba(25, 135, 84, 0.05) 0px, transparent 50%),
-            radial-gradient(at 100% 100%, rgba(253, 126, 20, 0.05) 0px, transparent 50%);
-        min-height: 100vh;
-    }
+body { background: #f8fafc; }
 
-    /* --- Hero Section --- */
-    .hero-visual {
-        height: 380px;
-        background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('{{ asset('img/evenement.jpg') }}');
-        background-size: cover;
-        background-attachment: fixed;
-        border-radius: 0 0 50px 50px;
-        display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    }
+/* ── Hero ── */
+.ev-hero {
+    height: 420px;
+    background: linear-gradient(160deg, rgba(15,23,42,.7) 0%, rgba(22,163,74,.5) 100%),
+                url('{{ asset('img/evenement.jpg') }}') center/cover no-repeat fixed;
+    display: flex; align-items: center; justify-content: center;
+    clip-path: ellipse(120% 100% at 50% 0%);
+    position: relative;
+}
+.ev-hero-title { font-size: clamp(2.5rem,6vw,5rem); font-weight: 900; color: #fff; letter-spacing: -2px; }
+.ev-hero-sub   { color: rgba(255,255,255,.75); font-size: 1.1rem; font-weight: 400; }
 
-    /* --- Search Engine (Adjusted: Lower and Taller) --- */
-    .search-container-floating {
-        margin-top: 15px; /* Descendu légèrement (était -40px) */
-        margin-bottom: 50px;
-        z-index: 100;
-        position: relative;
-    }
+/* ── Filter bar ── */
+.filter-bar {
+    background: #fff;
+    border-radius: 24px;
+    padding: 28px 32px;
+    box-shadow: 0 8px 40px rgba(0,0,0,.07);
+    margin-top: -60px;
+    position: relative;
+    z-index: 10;
+}
+.filter-input {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 11px 18px;
+    font-size: .88rem;
+    background: #f8fafc;
+    outline: none;
+    transition: .2s;
+    width: 100%;
+}
+.filter-input:focus { border-color: var(--g); background: #fff; box-shadow: 0 0 0 3px rgba(22,163,74,.1); }
 
-    .glass-search-box {
-        background: var(--glass-bg);
-        backdrop-filter: blur(15px);
-        border: 2px solid var(--glass-border);
-        border-radius: 35px;
-        padding: 50px; /* Plus grand (était 30px) pour une meilleure vue des filtres */
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-    }
+.status-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.stab {
+    padding: 10px 26px; border-radius: 15px;
+    border: 1px solid rgba(255,255,255,0.5);
+    background: white; font-size: .85rem; font-weight: 700;
+    cursor: pointer; transition: .4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    color: var(--muted); text-decoration: none; display: inline-block;
+}
+.stab:hover { color: var(--dark); border-color: #e2e8f0; }
+.stab.active {
+    background: var(--orange); color: #fff; border-color: var(--orange);
+    transform: scale(1.08) rotate(-2deg);
+    box-shadow: 0 10px 20px rgba(249,115,22,.3);
+}
 
-    .custom-input, .custom-select {
-        background: rgba(255,255,255,0.9);
-        border: 1px solid #e2e8f0 !important;
-        height: 52px; border-radius: 18px !important;
-        padding-left: 20px; font-weight: 500; transition: 0.3s all;
-    }
+/* ── View toggle ── */
+.view-toggle { display: flex; gap: 4px; background: #f1f5f9; border-radius: 12px; padding: 4px; }
+.vtab { width: 36px; height: 36px; border: none; border-radius: 9px; background: transparent; color: #94a3b8; cursor: pointer; transition: .2s; display: flex; align-items: center; justify-content: center; position: relative; }
+.vtab.active { background: #fff; color: var(--g); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
 
-    /* --- Status Pills (Previous Design) --- */
-    .pill-btn {
-        white-space: nowrap; border-radius: 15px; padding: 12px 28px;
-        font-weight: 700; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        border: 1px solid var(--glass-border); background: white;
-        cursor: pointer;
-    }
+/* ── Cards ── */
+.ev-card {
+    border-radius: 22px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 2px 16px rgba(0,0,0,.06);
+    transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s;
+    display: flex; flex-direction: column;
+    height: 100%;
+}
+.ev-card:hover { transform: translateY(-10px); box-shadow: 0 24px 60px rgba(0,0,0,.12); }
 
-    .pill-btn.active {
-        background: var(--agri-orange); color: white;
-        transform: scale(1.1) rotate(-2deg);
-        box-shadow: 0 10px 20px rgba(253, 126, 20, 0.3);
-    }
+.ev-card-img {
+    height: 180px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #e2e8f0, #f1f5f9);
+    display: flex; align-items: center; justify-content: center;
+}.ev-card-img .ev-icon {
+    font-size: 4.5rem;
+    opacity: 0.6;
+    transition: .4s;
+    filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1));
+}
+.ev-card:hover .ev-icon { opacity: 1; transform: scale(1.25) rotate(8deg); }
 
-    /* --- Cards Design & Icon Animation --- */
-    .event-card { perspective: 1000px; transition: 0.5s; }
+.ev-card-img .ev-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 40%, rgba(15,23,42,.55));
+}
 
-    .card-glass-morph {
-        background: white; border: 1px solid #f1f5f9;
-        border-radius: 35px; overflow: hidden; height: 100%;
-        transition: 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-        display: flex; flex-direction: column;
-    }
+.ev-price {
+    position: absolute; top: 14px; right: 14px;
+    background: var(--g); color: #fff;
+    font-size: .78rem; font-weight: 800;
+    padding: 5px 14px; border-radius: 50px;
+    box-shadow: 0 4px 12px rgba(22,163,74,.35);
+    letter-spacing: .3px;
+}
+.ev-price.free { background: var(--orange); box-shadow: 0 4px 12px rgba(249,115,22,.35); }
 
-    .event-card:hover .card-glass-morph {
-        transform: translateY(-15px) rotateX(4deg) rotateY(-2deg);
-        box-shadow: 0 40px 80px rgba(0,0,0,0.1);
-    }
+.ev-status-ribbon {
+    position: absolute; bottom: 14px; left: 14px;
+    font-size: .7rem; font-weight: 800; letter-spacing: .8px;
+    padding: 4px 12px; border-radius: 50px; text-transform: uppercase;
+}
+.ribbon-live   { background: rgba(249,115,22,.9); color: #fff; }
+.ribbon-coming { background: rgba(59,130,246,.9);  color: #fff; }
+.ribbon-closed { background: rgba(100,116,139,.8); color: #fff; }
 
-    .card-header-visual {
-        height: 140px;
-        background: linear-gradient(135deg, #f8fafc, #e2e8f0);
-        position: relative; display: flex; align-items: center; justify-content: center;
-    }
+.ev-card-body { padding: 20px 22px 22px; display: flex; flex-direction: column; flex: 1; }
+.ev-card-title { font-size: 1rem; font-weight: 800; color: var(--dark); margin-bottom: 10px; line-height: 1.3; }
 
-    .dynamic-icon {
-        transition: 0.5s;
-        filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1));
-    }
+.ev-meta { display: flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--muted); }
+.ev-meta i { color: var(--g); width: 14px; }
 
-    .event-card:hover .dynamic-icon {
-        transform: scale(1.3) rotate(8deg);
-        color: var(--agri-orange) !important;
-        opacity: 1 !important;
-    }
+.ev-capacity-bar { height: 5px; background: #e2e8f0; border-radius: 10px; overflow: hidden; margin: 14px 0 6px; }
+.ev-capacity-fill { height: 100%; background: linear-gradient(90deg, var(--g), var(--g2)); border-radius: 10px; transition: width .6s ease; }
 
-    .price-badge-refined {
-        position: absolute; bottom: -20px; right: 30px;
-        background: var(--agri-green); color: white;
-        padding: 12px 24px; border-radius: 20px;
-        font-weight: 800; box-shadow: 0 10px 20px rgba(25, 135, 84, 0.2);
-    }
+.btn-ev {
+    display: block; text-align: center; text-decoration: none;
+    background: var(--dark); color: #fff;
+    border-radius: 14px; padding: 12px;
+    font-size: .85rem; font-weight: 700;
+    transition: .25s; margin-top: auto;
+}
+.btn-ev:hover { background: var(--g); color: #fff; box-shadow: 0 6px 20px rgba(22,163,74,.3); }
 
-    .btn-discover {
-        background: #1e293b; color: white; border-radius: 20px;
-        padding: 15px; font-weight: 700; transition: 0.3s;
-        text-align: center; text-decoration: none;
-    }
+/* ── Participant avatar stack ── */
+.avatar-stack {
+    display: flex; align-items: center; margin-bottom: 14px;
+}
+.avatar-stack .av {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    margin-left: -8px;
+    object-fit: cover;
+    box-shadow: 0 2px 6px rgba(0,0,0,.12);
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .65rem; font-weight: 800; color: #fff;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.avatar-stack .av:first-child { margin-left: 0; }
+.avatar-stack .av img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-stack .av-more {
+    background: #f1f5f9; color: var(--muted);
+    font-size: .65rem; font-weight: 800;
+    border: 2px solid #fff;
+}
+.avatar-stack .av-label {
+    margin-left: 10px; font-size: .75rem;
+    color: var(--muted); font-weight: 600;
+    white-space: nowrap;
+}
 
-    .btn-discover:hover { background: var(--agri-orange); color: white; }
+/* ── Calendar ── */
+#fullcalendar {
+    background: #fff;
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 8px 40px rgba(0,0,0,.07);
+}
+.fc .fc-toolbar {
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.fc .fc-toolbar-title {
+    font-weight: 900;
+    font-size: 1.4rem;
+    color: var(--dark);
+    letter-spacing: -0.5px;
+}
+.fc .fc-button {
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    font-size: .82rem !important;
+    padding: 8px 16px !important;
+    box-shadow: none !important;
+    border: none !important;
+    transition: .2s !important;
+}
+.fc .fc-button-primary {
+    background: var(--g) !important;
+    border-color: var(--g) !important;
+}
+.fc .fc-button-primary:hover {
+    background: #15803d !important;
+    transform: translateY(-1px);
+}
+.fc .fc-button-primary:not(:disabled).fc-button-active {
+    background: var(--dark) !important;
+    border-color: var(--dark) !important;
+}
+.fc .fc-button-group {
+    gap: 4px;
+}
+.fc-theme-standard td, .fc-theme-standard th {
+    border-color: #f1f5f9 !important;
+}
+.fc-theme-standard .fc-scrollgrid {
+    border-color: #f1f5f9 !important;
+    border-radius: 16px;
+    overflow: hidden;
+}
+.fc .fc-col-header-cell {
+    background: #f8fafc;
+    padding: 12px 0 !important;
+}
+.fc-col-header-cell-cushion {
+    color: var(--muted) !important;
+    font-weight: 800 !important;
+    font-size: .78rem !important;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    text-decoration: none !important;
+}
+.fc-daygrid-day-number {
+    color: var(--dark) !important;
+    font-weight: 700 !important;
+    font-size: .85rem !important;
+    text-decoration: none !important;
+    padding: 8px 10px !important;
+}
+.fc-day-today {
+    background: rgba(22,163,74,.04) !important;
+}
+.fc-day-today .fc-daygrid-day-number {
+    background: var(--g);
+    color: #fff !important;
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 6px;
+    padding: 0 !important;
+}
+.fc-event {
+    border-radius: 8px !important;
+    border: none !important;
+    padding: 3px 8px !important;
+    font-size: .75rem !important;
+    font-weight: 700 !important;
+    cursor: pointer;
+    transition: transform .15s, opacity .15s !important;
+    margin-bottom: 2px !important;
+}
+.fc-event:hover {
+    opacity: .88;
+    transform: translateY(-1px);
+}
+.fc-daygrid-event-dot { display: none; }
+.fc-event-title { font-weight: 700 !important; }
+.fc-daygrid-day-frame { min-height: 90px !important; }
 
-    .info-row { font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 8px; }
+/* List view */
+.fc-list-event:hover td { background: #f0fdf4 !important; }
+.fc-list-event-title a { color: var(--dark) !important; font-weight: 700 !important; text-decoration: none !important; }
+.fc-list-day-cushion { background: #f8fafc !important; }
+.fc-list-day-text, .fc-list-day-side-text { color: var(--dark) !important; font-weight: 800 !important; }
+
+/* Week view time */
+.fc-timegrid-slot-label-cushion { color: var(--muted) !important; font-size: .75rem !important; font-weight: 600 !important; }
+.fc-timegrid-now-indicator-line { border-color: var(--orange) !important; border-width: 2px !important; }
+.fc-timegrid-now-indicator-arrow { border-top-color: var(--orange) !important; border-bottom-color: var(--orange) !important; }
+
+.cal-tooltip {
+    position: fixed; background: #fff; border-radius: 16px;
+    padding: 14px 18px; box-shadow: 0 16px 50px rgba(0,0,0,.14);
+    border: 1px solid #e2e8f0; z-index: 9999; min-width: 210px;
+    pointer-events: none; animation: tipIn .18s ease;
+}
+@keyframes tipIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.cal-tooltip h6 { font-weight: 800; color: var(--dark); margin: 0 0 8px; font-size: .88rem; }
+.cal-tooltip .tr { font-size: .76rem; color: var(--muted); display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.cal-tooltip .tr i { color: var(--g); width: 13px; }
+
+/* ── Section header ── */
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+.section-header h4 { font-weight: 800; color: var(--dark); margin: 0; font-size: 1.15rem; }
+.count-badge { background: #f0fdf4; color: var(--g); font-size: .75rem; font-weight: 800; padding: 4px 12px; border-radius: 50px; border: 1px solid #bbf7d0; }
 </style>
 
-<div class="hero-visual animate__animated animate__fadeIn">
-    <div class="text-center text-white">
-        <h1 class="display-1 fw-black mb-0">AGRICORE</h1>
-        <div class="h4 fw-light opacity-80">Intelligence & Culture</div>
+<!-- Hero -->
+<div class="ev-hero">
+    <div class="text-center">
+        <div class="ev-hero-title">AgriCore Events</div>
+        <div class="ev-hero-sub">Découvrez, participez, innovez</div>
     </div>
 </div>
 
-<div class="container search-container-floating">
-    <div class="glass-search-box animate__animated animate__fadeInUp">
-        <div class="row g-4 align-items-end">
-            <div class="col-lg-4">
-                <label class="small fw-bold text-muted mb-2 ms-2">Recherche</label>
-                <input type="text" id="search" class="form-control custom-input" placeholder="Quel futur cherchez-vous ?">
-            </div>
-            <div class="col-lg-2">
-                <label class="small fw-bold text-muted mb-2 ms-2">Trier Prix</label>
-                <select id="sortPrice" class="form-select custom-select">
-                    <option value="none">Pertinence</option>
-                    <option value="asc">Croissant</option>
-                    <option value="desc">Décroissant</option>
-                </select>
-            </div>
-            <div class="col-lg-3">
-                <div class="d-flex justify-content-between">
-                    <label class="small fw-bold text-muted mb-2 ms-2">Date</label>
-                    <span id="resetDate" class="text-danger small fw-bold" style="cursor:pointer; display:none;">Reset</span>
+<div class="container" style="margin-top: -60px; position: relative; z-index: 10;">
+
+    <!-- Filter bar -->
+    <div class="filter-bar mb-5">
+        <form method="get" action="{{ path('app_evenement') }}" id="filterForm">
+            <input type="hidden" name="filter" id="filterHidden" value="{{ filter }}">
+            <div class="row g-3 align-items-end mb-4">
+                <div class="col-lg-4">
+                    <label class="small fw-bold text-muted mb-1 d-block">Recherche</label>
+                    <div class="position-relative">
+                        <i class="fas fa-search position-absolute" style="left:14px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:.85rem;"></i>
+                        <input type="text" name="search" value="{{ search }}" class="filter-input" style="padding-left:38px;" placeholder="Rechercher un événement...">
+                    </div>
                 </div>
-                <input type="date" id="filterDate" class="form-control custom-input">
+                <div class="col-lg-2">
+                    <label class="small fw-bold text-muted mb-1 d-block">Prix</label>
+                    <select name="sort_price" class="filter-input" onchange="this.form.submit()">
+                        <option value="none" {{ sortPrice == 'none' ? 'selected' : '' }}>Pertinence</option>
+                        <option value="asc"  {{ sortPrice == 'asc'  ? 'selected' : '' }}>Croissant</option>
+                        <option value="desc" {{ sortPrice == 'desc' ? 'selected' : '' }}>Décroissant</option>
+                    </select>
+                </div>
+                <div class="col-lg-3">
+                    <label class="small fw-bold text-muted mb-1 d-block">À partir du</label>
+                    <input type="date" name="date_from" value="{{ dateFrom }}" class="filter-input" onchange="this.form.submit()">
+                </div>
+                <div class="col-lg-2">
+                    <label class="small fw-bold text-muted mb-1 d-block">Budget max : <span id="budgetDisplay" style="color:var(--g);">{{ budgetMax }}</span> DT</label>
+                    <input type="range" name="budget_max" id="budgetRange" min="0" max="500" value="{{ budgetMax }}" class="form-range" style="accent-color:var(--g);">
+                </div>
+                <div class="col-lg-1 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn w-100" style="background:var(--g);color:#fff;border-radius:14px;padding:11px;font-weight:700;">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <a href="{{ path('app_evenement') }}" class="btn" title="Réinitialiser les filtres"
+                       style="background:#f1f5f9;color:#64748b;border-radius:14px;padding:11px;font-weight:700;white-space:nowrap;flex-shrink:0;">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
             </div>
-            <div class="col-lg-3">
-                <label class="small fw-bold text-muted mb-2">Budget Max : <span class="text-success" id="budgetValue">500</span> DT</label>
-                <input type="range" id="filterBudget" class="form-range" min="0" max="500" value="500">
-            </div>
+        </form>
+
+        <hr class="my-3 opacity-10">
+
+        <div class="d-flex justify-content-center gap-3 flex-wrap align-items-center">
+            <a href="{{ path('app_evenement', {search: search, sort_price: sortPrice, date_from: dateFrom, budget_max: budgetMax}) }}"
+               class="stab {{ filter == 'TOUT' ? 'active' : '' }}">Tous</a>
+            <a href="{{ path('app_evenement', {filter: 'EN_COURS', search: search, sort_price: sortPrice, date_from: dateFrom, budget_max: budgetMax}) }}"
+               class="stab {{ filter == 'EN_COURS' ? 'active' : '' }}">Maintenant</a>
+            <a href="{{ path('app_evenement', {filter: 'COMING', search: search, sort_price: sortPrice, date_from: dateFrom, budget_max: budgetMax}) }}"
+               class="stab {{ filter == 'COMING' ? 'active' : '' }}">À venir</a>
+
+            {% if search or dateFrom or sortPrice != 'none' or budgetMax < 500 or filter != 'TOUT' %}
+                <a href="{{ path('app_evenement') }}"
+                   style="display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:700;color:#dc2626;text-decoration:none;padding:8px 18px;border-radius:50px;background:#fee2e2;border:1px solid #fca5a5;transition:.2s;"
+                   onmouseover="this.style.background='#fca5a5'" onmouseout="this.style.background='#fee2e2'">
+                    <i class="fas fa-times-circle"></i> Réinitialiser
+                </a>
+            {% endif %}
         </div>
 
-        <hr class="my-5 opacity-10"> <div class="d-flex justify-content-center gap-4 overflow-auto pb-2">
-            <button class="pill-btn active" data-filter="TOUT">Tous</button>
-            <button class="pill-btn" data-filter="EN_COURS">Maintenant</button>
-            <button class="pill-btn" data-filter="COMING">À venir</button>
-            <button class="pill-btn" data-filter="HISTORIQUE">Archives</button>
+        <div class="d-flex justify-content-end mt-3 align-items-center gap-3">
+            {% if app.session.get('user') %}
+            <div class="coin-balance d-flex align-items-center gap-2 px-3 py-2" 
+                 title="Gagnez 10 coins tous les 2 événements auxquels vous participez !"
+                 style="background: #fff7ed; border: 1px solid #ffedd5; border-radius: 12px; box-shadow: 0 2px 10px rgba(251,146,60,0.1); cursor: help;">
+                <div style="background: #fb923c; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .8rem; box-shadow: 0 0 10px rgba(251,146,60,0.3);">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div>
+                    <div style="font-size: .65rem; font-weight: 800; color: #9a3412; text-transform: uppercase; letter-spacing: .5px; line-height: 1;">Mes AgriCoins</div>
+                    <div style="font-size: 1rem; font-weight: 900; color: #7c2d12; line-height: 1;">
+                        {{ userCoins }} <small style="font-size: .65rem; font-weight: 700;">coins</small>
+                        {% if discountPct > 0 %}
+                            <span class="badge bg-success ms-1" style="font-size: .6rem; vertical-align: middle;">-{{ discountPct }}%</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="view-toggle">
+                <button class="vtab active" id="btnGrid" title="Grille"><i class="fas fa-th-large"></i></button>
+                <button class="vtab" id="btnCal" title="Calendrier"><i class="fas fa-calendar-alt"></i></button>
+                {% if app.session.get('user') and mesEvenementsPassés is defined and mesEvenementsPassés|length > 0 %}
+                <button class="vtab" id="btnHistory" title="Mes événements passés">
+                    <i class="fas fa-history"></i>
+                    <span style="position:absolute;top:-4px;right:-4px;background:#f97316;color:#fff;border-radius:50%;width:16px;height:16px;font-size:.55rem;font-weight:800;display:flex;align-items:center;justify-content:center;">{{ mesEvenementsPassés|length }}</span>
+                </button>
+                {% endif %}
+            </div>
         </div>
     </div>
-</div>
 
-<div class="container mb-5">
-    <div class="row g-4" id="eventContainer">
-        {% for ev in evenements %}
+    <!-- Grid view -->
+    <div id="gridView">
+        <div class="section-header">
+            <h4 id="viewLabel">Tous les événements</h4>
+            <span class="count-badge" id="countBadge">{{ evenements|length }} événements</span>
+        </div>
+        <div class="row g-4" id="eventContainer">
+            {% for ev in evenements %}
             <div class="col-xl-4 col-md-6 event-item"
                  data-title="{{ ev.evenement.titre|lower }}"
                  data-status="{{ ev.status }}"
                  data-date="{{ ev.evenement.date_debut|date('Y-m-d') }}"
                  data-price="{{ ev.evenement.frais_inscription }}">
-
-                <div class="event-card">
-                    <div class="card-glass-morph">
-                        <div class="card-header-visual">
-                            {% set titre = ev.evenement.titre|lower %}
-                            {% if 'formation' in titre %}
-                                <i class="fas fa-graduation-cap fa-4x dynamic-icon text-primary opacity-25"></i>
-                            {% elseif 'tractor' in titre or 'tracteur' in titre %}
-                                <i class="fas fa-tractor fa-4x dynamic-icon text-secondary opacity-25"></i>
-                            {% else %}
-                                <i class="fas fa-leaf fa-4x dynamic-icon text-success opacity-25"></i>
-                            {% endif %}
-
-                            <div class="price-badge-refined">
-                                {{ ev.evenement.frais_inscription }} <small>DT</small>
-                            </div>
+                <div class="ev-card h-100">
+                    <div class="ev-card-img">
+                        {% set titre = ev.evenement.titre|lower %}
+                        {% if ev.evenement.image %}
+                            <img src="{{ ev.evenement.image|raw }}" alt="{{ ev.evenement.titre }}"
+                                 style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;">
+                        {% elseif 'formation' in titre %}
+                            <i class="fas fa-graduation-cap ev-icon text-primary"></i>
+                        {% elseif 'tracteur' in titre or 'tractor' in titre %}
+                            <i class="fas fa-tractor ev-icon text-secondary"></i>
+                        {% elseif 'atelier' in titre %}
+                            <i class="fas fa-tools ev-icon text-warning"></i>
+                        {% else %}
+                            <i class="fas fa-seedling ev-icon text-success"></i>
+                        {% endif %}
+                        <div class="ev-overlay"></div>
+                        <div class="ev-price {{ ev.evenement.frais_inscription == 0 ? 'free' : '' }}">
+                            {{ ev.evenement.frais_inscription == 0 ? 'Gratuit' : ev.evenement.frais_inscription ~ ' DT' }}
                         </div>
-
-                        <div class="p-4 pt-5 d-flex flex-column flex-grow-1">
-                            <div class="mb-2">
-                                {% if ev.status == 'EN_COURS' %}
-                                    <span class="badge bg-warning text-dark rounded-pill shadow-sm">● LIVE</span>
-                                {% elseif ev.status == 'COMING' %}
-                                    <span class="badge bg-primary rounded-pill shadow-sm">FUTURE</span>
-                                {% else %}
-                                    <span class="badge bg-secondary rounded-pill shadow-sm">CLOSED</span>
-                                {% endif %}
-                            </div>
-
-                            <h4 class="fw-bold text-dark mb-3">{{ ev.evenement.titre }}</h4>
-
-                            <div class="mt-auto">
-                                <div class="d-flex justify-content-between mb-4 border-top pt-3">
-                                    <div class="info-row"><i class="far fa-calendar-alt text-success"></i> {{ ev.evenement.date_debut|date('d/m/Y') }}</div>
-                                    <div class="info-row"><i class="fas fa-users text-success"></i> {{ ev.placesRestantes }}</div>
+                        <div class="ev-status-ribbon
+                            {% if ev.status == 'EN_COURS' %}ribbon-live
+                            {% elseif ev.status == 'COMING' %}ribbon-coming
+                            {% else %}ribbon-closed{% endif %}">
+                            {% if ev.status == 'EN_COURS' %}<i class="fas fa-circle me-1" style="font-size:.55rem;"></i>Live
+                            {% elseif ev.status == 'COMING' %}<i class="fas fa-clock me-1"></i>À venir
+                            {% else %}<i class="fas fa-lock me-1"></i>Terminé{% endif %}
+                        </div>
+                    </div>
+                    <div class="ev-card-body">
+                        <div class="ev-card-title">{{ ev.evenement.titre }}</div>
+                        <div class="d-flex flex-column gap-2 mb-2">
+                            <div class="ev-meta"><i class="far fa-calendar-alt"></i> {{ ev.evenement.date_debut|date('d/m/Y') }}</div>
+                            <div class="ev-meta"><i class="fas fa-map-marker-alt"></i> {{ ev.evenement.lieu|slice(0,30) }}{% if ev.evenement.lieu|length > 30 %}…{% endif %}</div>
+                        </div>
+                        {% set total = ev.evenement.capacite_max %}
+                        {% set restantes = ev.placesRestantes %}
+                        {% set pct = total > 0 ? ((total - restantes) / total * 100)|round : 0 %}
+                        <div class="ev-capacity-bar">
+                            <div class="ev-capacity-fill" style="width:{{ pct }}%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3">
+                            <span class="small text-muted">{{ restantes }} places libres</span>
+                            <span class="small fw-bold" style="color:var(--g);">{{ total }} max</span>
+                        </div>
+                        {% if ev.totalParticipants > 0 %}
+                        <div class="avatar-stack">
+                            {% for avatar in ev.avatarPreviews %}
+                                <div class="av">
+                                    {% if avatar %}
+                                        <img src="{{ avatar }}" alt="participant">
+                                    {% else %}
+                                        {{ loop.index }}
+                                    {% endif %}
                                 </div>
-                                <a href="{{ path('app_evenement_show', {'id': ev.evenement.id_ev}) }}" class="btn-discover w-100 d-block text-decoration-none">
-                                    Voir Détails
-                                </a>
-                            </div>
+                            {% endfor %}
+                            {% if ev.totalParticipants > ev.avatarPreviews|length %}
+                                <div class="av av-more">+{{ ev.totalParticipants - ev.avatarPreviews|length }}</div>
+                            {% endif %}
+                            <span class="av-label">
+                                {{ ev.totalParticipants }} participant{{ ev.totalParticipants > 1 ? 's' : '' }}
+                            </span>
                         </div>
+                        {% endif %}
+                        <a href="{{ path('app_evenement_show', {'id': ev.evenement.id_ev}) }}" class="btn-ev">
+                            Voir les détails <i class="fas fa-arrow-right ms-1" style="font-size:.75rem;"></i>
+                        </a>                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- My past events view -->
+    {% if app.session.get('user') and mesEvenementsPassés is defined and mesEvenementsPassés|length > 0 %}
+    <div id="historyView" style="display:none;">
+        <div class="section-header mb-4">
+            <h4 style="color:var(--dark);font-weight:800;"><i class="fas fa-history me-2" style="color:var(--muted);"></i> Mes événements passés</h4>
+            <span class="count-badge">{{ mesEvenementsPassés|length }} événement{{ mesEvenementsPassés|length > 1 ? 's' : '' }}</span>
+        </div>
+        <div class="row g-4">
+            {% for item in mesEvenementsPassés %}
+            <div class="col-xl-4 col-md-6">
+                <div class="ev-card h-100" style="opacity:.8;border:1px dashed #cbd5e1;">
+                    <div class="ev-card-img" style="background:linear-gradient(135deg,#e2e8f0,#f1f5f9);">
+                        {% if item.evenement.image %}
+                            <img src="{{ item.evenement.image|raw }}" alt="{{ item.evenement.titre }}"
+                                 style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;filter:grayscale(40%);">
+                        {% else %}
+                            <i class="fas fa-calendar-check ev-icon" style="color:#94a3b8;"></i>
+                        {% endif %}
+                        <div class="ev-overlay"></div>
+                        <div class="ev-status-ribbon ribbon-closed"><i class="fas fa-lock me-1"></i>Terminé</div>
+                    </div>
+                    <div class="ev-card-body">
+                        <div class="ev-card-title">{{ item.evenement.titre }}</div>
+                        <div class="d-flex flex-column gap-2 mb-3">
+                            <div class="ev-meta"><i class="far fa-calendar-alt"></i> {{ item.evenement.date_debut|date('d/m/Y') }} → {{ item.evenement.date_fin|date('d/m/Y') }}</div>
+                            <div class="ev-meta"><i class="fas fa-map-marker-alt"></i> {{ item.evenement.lieu|slice(0,30) }}{% if item.evenement.lieu|length > 30 %}…{% endif %}</div>
+                            <div class="ev-meta"><i class="fas fa-ticket-alt"></i> {{ item.nbr_places }} place{{ item.nbr_places > 1 ? 's' : '' }}</div>
+                        </div>
+                        {% if item.confirmation == 'confirmed' %}
+                        <div class="p-2 rounded-3 mb-3" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+                            <span style="font-size:.75rem;font-weight:700;color:#16a34a;"><i class="fas fa-check-circle me-1"></i>Participation confirmée</span>
+                        </div>
+                        {% endif %}
+                        <a href="{{ path('app_evenement_show', {'id': item.evenement.id_ev}) }}"
+                           class="btn-ev" style="background:#64748b;">
+                            Voir les détails <i class="fas fa-arrow-right ms-1" style="font-size:.75rem;"></i>
+                        </a>
                     </div>
                 </div>
             </div>
-        {% endfor %}
+            {% endfor %}
+        </div>
     </div>
+    {% endif %}
+
+    <!-- Calendar view -->
+    <div id="calView" style="display:none;">
+        <div class="section-header">
+            <h4>Calendrier des événements</h4>
+        </div>
+        <div id="fullcalendar"></div>
+    </div>
+
 </div>
 
+<div style="height:60px;"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+{% if app.session.get('user') %}
+<style>
+.ev-reminder-banner {
+    position: fixed; top: 80px; right: 20px; z-index: 9999;
+    display: flex; flex-direction: column; gap: 10px;
+    max-width: 340px; width: 100%;
+    pointer-events: none;
+}
+.ev-reminder-card {
+    background: #fff;
+    border-left: 4px solid #16a34a;
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    display: flex; gap: 12px; align-items: flex-start;
+    pointer-events: all;
+    animation: slideInRight .4s cubic-bezier(.34,1.56,.64,1) both;
+    position: relative;
+}
+@keyframes slideInRight {
+    from { opacity:0; transform: translateX(60px); }
+    to   { opacity:1; transform: translateX(0); }
+}
+.ev-reminder-card.urgent { border-left-color: #dc2626; }
+.ev-reminder-icon {
+    width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+    background: linear-gradient(135deg,#16a34a,#22c55e);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: .95rem;
+}
+.ev-reminder-card.urgent .ev-reminder-icon { background: linear-gradient(135deg,#dc2626,#ef4444); }
+.ev-reminder-title { font-weight: 800; font-size: .85rem; color: #0f172a; margin-bottom: 2px; }
+.ev-reminder-meta  { font-size: .73rem; color: #64748b; line-height: 1.4; }
+.ev-reminder-time  { font-size: .72rem; font-weight: 800; margin-top: 4px;
+    color: #16a34a; display: flex; align-items: center; gap: 4px; }
+.ev-reminder-card.urgent .ev-reminder-time { color: #dc2626; }
+.ev-reminder-close {
+    position: absolute; top: 8px; right: 10px;
+    background: none; border: none; color: #94a3b8;
+    cursor: pointer; font-size: .9rem; line-height: 1;
+    padding: 2px 4px;
+}
+.ev-reminder-close:hover { color: #0f172a; }
+.ev-reminder-link { text-decoration: none; color: inherit; display: block; }
+</style>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const sInp = document.getElementById('search');
-        const dInp = document.getElementById('filterDate');
-        const bInp = document.getElementById('filterBudget');
-        const sortSel = document.getElementById('sortPrice');
-        const pBtns = document.querySelectorAll('.pill-btn');
-        const container = document.getElementById('eventContainer');
+(function() {
+    async function checkEventReminders() {
+        try {
+            const res  = await fetch('{{ path('front_notifications_events') }}');
+            const data = await res.json();
+            if (!data.length) return;
 
-        function update() {
-            const s = sInp.value.toLowerCase().trim();
-            const d = dInp.value;
-            const b = parseFloat(bInp.value);
-            const st = document.querySelector('.pill-btn.active').dataset.filter;
-            const sortMode = sortSel.value;
+            const banner = document.getElementById('eventReminderBanner');
+            banner.className = 'ev-reminder-banner';
+            banner.style.display = 'flex';
+            banner.innerHTML = '';
 
-            document.getElementById('budgetValue').textContent = b;
-            document.getElementById('resetDate').style.display = d ? 'inline' : 'none';
+            data.forEach((n, i) => {
+                const isUrgent = n.type === 'waitlist' || (n.timeLabel.includes('min') && !n.timeLabel.includes('h'));
+                const key = 'ev_notif_' + n.id + '_' + (n.type || 'reminder');
+                if (sessionStorage.getItem(key)) return;
 
-            let items = Array.from(document.querySelectorAll('.event-item'));
+                const card = document.createElement('div');
+                card.className = 'ev-reminder-card' + (isUrgent ? ' urgent' : '');
+                card.style.animationDelay = (i * 120) + 'ms';
 
-            items.forEach(c => {
-                const matchS = c.dataset.title.includes(s);
-                const matchSt = (st === 'TOUT' || c.dataset.status === st);
-                const matchD = !d || c.dataset.date >= d;
-                const matchB = parseFloat(c.dataset.price) <= b;
-                c.style.display = (matchS && matchSt && matchD && matchB) ? 'block' : 'none';
+                const icon = n.type === 'waitlist' ? 'fa-bell' : 'fa-calendar-alt';
+                const label = n.type === 'waitlist'
+                    ? `🎉 Place disponible — ${n.titre}`
+                    : `📅 ${n.titre}`;
+                const timeLine = n.type === 'waitlist'
+                    ? `<i class="fas fa-check-circle me-1"></i>${n.timeLabel} — inscrivez-vous vite !`
+                    : `<i class="fas fa-bell"></i> Commence ${n.timeLabel}`;
+
+                card.innerHTML = `
+                    <div class="ev-reminder-icon"><i class="fas ${icon}"></i></div>
+                    <a href="${n.url}" class="ev-reminder-link" style="flex:1;">
+                        <div class="ev-reminder-title">${label}</div>
+                        <div class="ev-reminder-meta">
+                            <i class="fas fa-map-marker-alt me-1"></i>${n.lieu || ''}<br>
+                            <i class="fas fa-clock me-1"></i>${n.start}
+                        </div>
+                        <div class="ev-reminder-time">${timeLine}</div>
+                    </a>
+                    <button class="ev-reminder-close" onclick="dismissReminder(this,'${n.id}_${n.type || 'reminder'}')">×</button>
+                `;
+                banner.appendChild(card);
+
+                // Auto-dismiss after 8s
+                setTimeout(() => {
+                    if (card.parentNode) {
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateX(60px)';
+                        card.style.transition = '.3s ease';
+                        setTimeout(() => card.remove(), 300);
+                    }
+                }, 8000 + i * 500);
             });
 
-            if (sortMode !== 'none') {
-                items.sort((a, b) => {
-                    const pA = parseFloat(a.dataset.price);
-                    const pB = parseFloat(b.dataset.price);
-                    return sortMode === 'asc' ? pA - pB : pB - pA;
+            // Browser push notification
+            if (Notification.permission === 'granted') {
+                data.forEach(n => {
+                    const key = 'ev_push_' + n.id;
+                    if (!sessionStorage.getItem(key)) {
+                        new Notification('⏰ Rappel AgriCore', {
+                            body: n.titre + ' commence ' + n.timeLabel,
+                            icon: '/img/logo.png'
+                        });
+                        sessionStorage.setItem(key, '1');
+                    }
                 });
-                items.forEach(i => container.appendChild(i));
+            } else if (Notification.permission === 'default') {
+                Notification.requestPermission();
             }
-        }
+        } catch(e) {}
+    }
 
-        [sInp, dInp, bInp, sortSel].forEach(el => el.addEventListener('input', update));
-        pBtns.forEach(btn => btn.addEventListener('click', function() {
-            pBtns.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            update();
-        }));
-        document.getElementById('resetDate').addEventListener('click', () => { dInp.value = ''; update(); });
+    window.dismissReminder = function(btn, id) {
+        const card = btn.closest('.ev-reminder-card');
+        sessionStorage.setItem('ev_notif_' + id, '1');
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(60px)';
+        card.style.transition = '.3s ease';
+        setTimeout(() => card.remove(), 300);
+    };
+
+    checkEventReminders();
+})();
+</script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const budgetDisplay = document.getElementById('budgetDisplay');
+    if (budgetRange) {
+        budgetRange.addEventListener('input', () => {
+            budgetDisplay.textContent = budgetRange.value;
+        });
+        budgetRange.addEventListener('change', () => {
+            document.getElementById('filterForm').submit();
+        });
+    }
+
+    // View toggle
+    const btnGrid    = document.getElementById('btnGrid');
+    const btnCal     = document.getElementById('btnCal');
+    const btnHistory = document.getElementById('btnHistory');
+    const gridView    = document.getElementById('gridView');
+    const calView     = document.getElementById('calView');
+    const historyView = document.getElementById('historyView');
+    let calInit = false, calendar;
+
+    function showView(active) {
+        [btnGrid, btnCal, btnHistory].forEach(b => b && b.classList.remove('active'));
+        [gridView, calView, historyView].forEach(v => v && (v.style.display = 'none'));
+        active.btn && active.btn.classList.add('active');
+        active.view && (active.view.style.display = '');
+    }
+
+    btnGrid.addEventListener('click', () => showView({ btn: btnGrid, view: gridView }));
+
+    btnCal.addEventListener('click', () => {
+        showView({ btn: btnCal, view: calView });
+        if (!calInit) { initCalendar(); calInit = true; }
+        else { calendar.updateSize(); }
     });
+
+    if (btnHistory) {
+        btnHistory.addEventListener('click', () => showView({ btn: btnHistory, view: historyView }));
+    }
+
+    function initCalendar() {
+        let tooltip = null;
+        calendar = new FullCalendar.Calendar(document.getElementById('fullcalendar'), {
+            initialView: 'dayGridMonth', locale: 'fr', height: 'auto',
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listMonth' },
+            buttonText: { today: "Aujourd'hui", month: 'Mois', week: 'Semaine', list: 'Liste' },
+            events: { url: '/fc-load-events', method: 'GET', extraParams: { filters: JSON.stringify({}) } },
+            eventClick(info) { info.jsEvent.preventDefault(); window.location.href = info.event.url; },
+            eventMouseEnter(info) {
+                removeTooltip();
+                const p = info.event.extendedProps;
+                tooltip = document.createElement('div');
+                tooltip.className = 'cal-tooltip';
+                tooltip.innerHTML = `<h6>${info.event.title}</h6>
+                    <div class="tr"><i class="fas fa-map-marker-alt"></i>${p.lieu||'N/A'}</div>
+                    <div class="tr"><i class="fas fa-tag"></i>${p.prix}</div>
+                    <div class="tr"><i class="fas fa-users"></i>${p.places} places restantes</div>
+                    <div class="tr" style="color:var(--g);font-weight:700;margin-top:6px;"><i class="fas fa-arrow-right"></i>Cliquer pour les détails</div>`;
+                document.body.appendChild(tooltip);
+                pos(info.jsEvent);
+            },
+            eventMouseLeave: removeTooltip,
+        });
+        calendar.render();
+        document.addEventListener('mousemove', e => { if (tooltip) pos(e); });
+        function pos(e) {
+            if (!tooltip) return;
+            const x = e.clientX + 16, y = e.clientY + 16;
+            tooltip.style.left = (x + tooltip.offsetWidth  > window.innerWidth  ? x - tooltip.offsetWidth  - 32 : x) + 'px';
+            tooltip.style.top  = (y + tooltip.offsetHeight > window.innerHeight ? y - tooltip.offsetHeight - 32 : y) + 'px';
+        }
+        function removeTooltip() { if (tooltip) { tooltip.remove(); tooltip = null; } }
+    }
+});
 </script>
 {% endblock %}
