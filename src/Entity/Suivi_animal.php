@@ -5,8 +5,6 @@ namespace App\Entity;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
-use App\Entity\Animal;
-
 #[ORM\Entity]
 #[ORM\Table(name: 'suivi_animal_legacy')]
 class Suivi_animal
@@ -16,9 +14,8 @@ class Suivi_animal
     #[ORM\Column(type: "integer")]
     private int $idSuivi;
 
-        #[ORM\ManyToOne(targetEntity: Animal::class, inversedBy: "suivi_animals")]
-    #[ORM\JoinColumn(name: 'idAnimal', referencedColumnName: 'idAnimal', onDelete: 'CASCADE')]
-    private Animal $idAnimal;
+    #[ORM\Column(name: 'idAnimal', type: 'integer')]
+    private int $idAnimal = 0;
 
     #[ORM\Column(type: "datetime")]
     private \DateTimeInterface $dateSuivi;
@@ -54,12 +51,12 @@ class Suivi_animal
         $this->idSuivi = $value;
     }
 
-    public function getIdAnimal(): Animal
+    public function getIdAnimal(): int
     {
         return $this->idAnimal;
     }
 
-    public function setIdAnimal(Animal $value): void
+    public function setIdAnimal(int $value): void
     {
         $this->idAnimal = $value;
     }

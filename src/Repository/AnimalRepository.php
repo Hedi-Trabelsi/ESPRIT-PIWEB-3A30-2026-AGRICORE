@@ -55,9 +55,12 @@ class AnimalRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
-    /** Compte par espèce — remplace findAll() + foreach */
+    /** Compte par espèce — remplace findAll() + foreach
+     * @return array<string, int>
+     */
     public function countByEspece(): array
     {
+        /** @var array<array{espece: string, nb: string}> $rows */
         $rows = $this->createQueryBuilder('a')
             ->select('a.espece, COUNT(a.idAnimal) AS nb')
             ->groupBy('a.espece')
@@ -67,14 +70,17 @@ class AnimalRepository extends ServiceEntityRepository
 
         $result = [];
         foreach ($rows as $row) {
-            $result[$row['espece']] = (int) $row['nb'];
+            $result[(string) $row['espece']] = (int) $row['nb'];
         }
         return $result;
     }
 
-    /** Compte par race — remplace findAll() + foreach */
+    /** Compte par race — remplace findAll() + foreach
+     * @return array<string, int>
+     */
     public function countByRace(): array
     {
+        /** @var array<array{race: string, nb: string}> $rows */
         $rows = $this->createQueryBuilder('a')
             ->select('a.race, COUNT(a.idAnimal) AS nb')
             ->groupBy('a.race')
@@ -84,14 +90,17 @@ class AnimalRepository extends ServiceEntityRepository
 
         $result = [];
         foreach ($rows as $row) {
-            $result[$row['race']] = (int) $row['nb'];
+            $result[(string) $row['race']] = (int) $row['nb'];
         }
         return $result;
     }
 
-    /** Compte par sexe — remplace findAll() + foreach */
+    /** Compte par sexe — remplace findAll() + foreach
+     * @return array<string, int>
+     */
     public function countBySexe(): array
     {
+        /** @var array<array{sexe: string, nb: string}> $rows */
         $rows = $this->createQueryBuilder('a')
             ->select('a.sexe, COUNT(a.idAnimal) AS nb')
             ->groupBy('a.sexe')
@@ -100,7 +109,7 @@ class AnimalRepository extends ServiceEntityRepository
 
         $result = ['Mâle' => 0, 'Femelle' => 0];
         foreach ($rows as $row) {
-            $result[$row['sexe']] = (int) $row['nb'];
+            $result[(string) $row['sexe']] = (int) $row['nb'];
         }
         return $result;
     }

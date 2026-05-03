@@ -96,9 +96,12 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
-    /** Compte par état de santé — remplace findAll() + foreach */
+    /** Compte par état de santé — remplace findAll() + foreach
+     * @return array<string, int>
+     */
     public function countByEtatSante(): array
     {
+        /** @var array<array{etatSante: string, nb: string}> $rows */
         $rows = $this->createQueryBuilder('s')
             ->select('s.etatSante, COUNT(s.idSuivi) AS nb')
             ->groupBy('s.etatSante')
@@ -108,15 +111,18 @@ class SuiviAnimalRepository extends ServiceEntityRepository
         $result = ['Bon' => 0, 'Moyen' => 0, 'Mauvais' => 0];
         foreach ($rows as $row) {
             if (isset($result[$row['etatSante']])) {
-                $result[$row['etatSante']] = (int) $row['nb'];
+                $result[(string) $row['etatSante']] = (int) $row['nb'];
             }
         }
         return $result;
     }
 
-    /** Compte par niveau d'activité — remplace findAll() + foreach */
+    /** Compte par niveau d'activité — remplace findAll() + foreach
+     * @return array<string, int>
+     */
     public function countByNiveauActivite(): array
     {
+        /** @var array<array{niveauActivite: string, nb: string}> $rows */
         $rows = $this->createQueryBuilder('s')
             ->select('s.niveauActivite, COUNT(s.idSuivi) AS nb')
             ->groupBy('s.niveauActivite')
@@ -126,15 +132,18 @@ class SuiviAnimalRepository extends ServiceEntityRepository
         $result = ['Faible' => 0, 'Modéré' => 0, 'Élevé' => 0];
         foreach ($rows as $row) {
             if (isset($result[$row['niveauActivite']])) {
-                $result[$row['niveauActivite']] = (int) $row['nb'];
+                $result[(string) $row['niveauActivite']] = (int) $row['nb'];
             }
         }
         return $result;
     }
 
-    /** Moyennes température, poids, rythme — remplace findAll() + foreach */
+    /** Moyennes température, poids, rythme — remplace findAll() + foreach
+     * @return array{moyTemp: float, moyPoids: float, moyRythme: float}
+     */
     public function getMoyennes(): array
     {
+        /** @var array{moyTemp: string|null, moyPoids: string|null, moyRythme: string|null}|null $row */
         $row = $this->createQueryBuilder('s')
             ->select(
                 'ROUND(AVG(s.temperature), 1) AS moyTemp',
@@ -151,10 +160,12 @@ class SuiviAnimalRepository extends ServiceEntityRepository
         ];
     }
 
-    /** Compte des suivis par mois (N derniers mois) — remplace findAll() + foreach */
+    /** Compte des suivis par mois (N derniers mois) — remplace findAll() + foreach
+     * @return array<string, int>
+     */
     public function countByMois(int $limit = 6): array
     {
-        // Utilise SUBSTRING pour extraire YYYY-MM sans extension externe
+        /** @var array<array{mois: string, nb: string}> $rows */
         $rows = $this->createQueryBuilder('s')
             ->select("SUBSTRING(s.dateSuivi, 1, 7) AS mois, COUNT(s.idSuivi) AS nb")
             ->groupBy('mois')
@@ -164,7 +175,7 @@ class SuiviAnimalRepository extends ServiceEntityRepository
 
         $parMois = [];
         foreach ($rows as $row) {
-            $parMois[$row['mois']] = (int) $row['nb'];
+            $parMois[(string) $row['mois']] = (int) $row['nb'];
         }
 
         return array_slice($parMois, -$limit, $limit, true);
