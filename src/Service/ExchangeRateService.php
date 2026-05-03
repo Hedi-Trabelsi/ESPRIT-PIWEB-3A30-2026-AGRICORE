@@ -11,6 +11,9 @@ class ExchangeRateService
     ) {
     }
 
+    /**
+     * @return array{EUR:float, USD:float, source:string, updated_at:string}
+     */
     public function getRatesFromTnd(): array
     {
         try {
@@ -18,12 +21,13 @@ class ExchangeRateService
             $data = $response->toArray(false);
             $rates = $data['rates'] ?? [];
 
-            if (isset($rates['EUR'], $rates['USD'])) {
+            if (is_array($rates) && isset($rates['EUR'], $rates['USD']) && is_numeric($rates['EUR']) && is_numeric($rates['USD'])) {
+                $date = $data['date'] ?? date('Y-m-d');
                 return [
                     'EUR' => (float) $rates['EUR'],
                     'USD' => (float) $rates['USD'],
                     'source' => 'Frankfurter',
-                    'updated_at' => $data['date'] ?? date('Y-m-d'),
+                    'updated_at' => is_string($date) ? $date : date('Y-m-d'),
                 ];
             }
         } catch (\Throwable) {
@@ -37,6 +41,9 @@ class ExchangeRateService
         ];
     }
 
+    /**
+     * @return array{TND:float, EUR:float, USD:float, meta:array{EUR:float, USD:float, source:string, updated_at:string}}
+     */
     public function convertFromTnd(float $amount): array
     {
         $rates = $this->getRatesFromTnd();

@@ -12,13 +12,14 @@ class Testtable
     #[ORM\Column(type: "integer")]
     private int $tess;
 
-    public function getTess()
+    public function getTess(): int
     {
         return $this->tess;
     }
 
-    public function setTess($value)
+    public function setTess(int $value): self
     {
         $this->tess = $value;
+        return $this;
     }
 }

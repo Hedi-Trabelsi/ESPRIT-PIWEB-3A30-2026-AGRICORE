@@ -15,7 +15,7 @@ class Tache
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(name: "id_tache", type: "integer")]
-    private int $id_tache;
+    private int $id_tache = 0;
 
     // Ajout de name: "date_prevue" pour être sûr
     #[ORM\Column(name: "date_prevue", type: "date")]
@@ -24,7 +24,7 @@ class Tache
     value: "today",
     message: "La date ne peut pas être antérieure à aujourd'hui."
 )]
-    private ?\DateTimeInterface $date_prevue = null;
+    private \DateTimeInterface $date_prevue;
 
     #[ORM\Column(type: "text")]
     #[Assert\NotBlank(message: "La description est obligatoire.")]
@@ -32,7 +32,7 @@ class Tache
         min: 7,
         minMessage: "La description doit faire au moins 7 caractères et ne pas contenir que des chiffres."
     )]
-    private ?string $description = null;
+    private string $description;
 
     // Ajout de name: "cout_estimee"
     #[ORM\Column(name: "cout_estimee", type: "string", length: 25)]
@@ -55,7 +55,7 @@ class Tache
         pattern: "/^(?=(?:.*\p{L}){3,})[\p{L}0-9\s]{3,}$/u",
         message: "Le nom de la tâche doit contenir au moins 3 des lettres."
     )]
-    private ?string $nomTache = null;
+    private string $nomTache;
 
 
 #[ORM\Column(type: "integer")]
@@ -78,12 +78,12 @@ private int $evaluation = 0;
         return $this->id_tache;
     }
 
-    public function getDatePrevue(): ?\DateTimeInterface
+    public function getDatePrevue(): \DateTimeInterface
     {
         return $this->date_prevue;
     }
 
-    public function setDatePrevue(?\DateTimeInterface $date_prevue): self
+    public function setDatePrevue(\DateTimeInterface $date_prevue): self
     {
         $this->date_prevue = $date_prevue;
         return $this;
@@ -94,11 +94,11 @@ private int $evaluation = 0;
         return $this->description;
     }
 
-    public function setDescription(?string $value): self // <-- Ajoute le ? ici
-{
-    $this->description = $value;
-    return $this;
-}
+    public function setDescription(string $value): self
+    {
+        $this->description = $value;
+        return $this;
+    }
 
     public function getCoutEstimee(): ?string
     {
@@ -118,7 +118,9 @@ private int $evaluation = 0;
 
     public function setIdMaintenance(?Maintenance $id_maintenance): self
     {
-        $this->id_maintenance = $id_maintenance;
+        if ($id_maintenance !== null) {
+            $this->id_maintenance = $id_maintenance;
+        }
         return $this;
     }
 
@@ -127,11 +129,11 @@ private int $evaluation = 0;
         return $this->nomTache;
     }
 
-   public function setNomTache(?string $value): self // <-- Ajoute le ? ici
-{
-    $this->nomTache = $value;
-    return $this;
-}
+   public function setNomTache(string $value): self
+   {
+       $this->nomTache = $value;
+       return $this;
+   }
     public function getEvaluation(): int
     {
         return $this->evaluation;

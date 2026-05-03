@@ -118,8 +118,8 @@ public function new(
             $userId = $sessionUser->getId();
             $userRole = $sessionUser->getRole();
         } elseif (is_array($sessionUser)) {
-            $userId = isset($sessionUser['id']) ? (int) $sessionUser['id'] : null;
-            $userRole = isset($sessionUser['role']) ? (int) $sessionUser['role'] : null;
+            $userId = isset($sessionUser['id']) && is_scalar($sessionUser['id']) ? (int) $sessionUser['id'] : null;
+            $userRole = isset($sessionUser['role']) && is_scalar($sessionUser['role']) ? (int) $sessionUser['role'] : null;
         }
 
         if (!$userId || (int) $userRole !== 2) {
@@ -133,7 +133,7 @@ public function new(
 
         $date = \DateTimeImmutable::createFromFormat('Y-m-d', $dateValue);
         $dateErrors = \DateTimeImmutable::getLastErrors();
-        if (!$date || ($dateErrors !== false && (($dateErrors['warning_count'] ?? 0) > 0 || ($dateErrors['error_count'] ?? 0) > 0))) {
+        if (!$date || ($dateErrors !== false && ($dateErrors['warning_count'] > 0 || $dateErrors['error_count'] > 0))) {
             return new JsonResponse(['error' => 'Date invalide'], Response::HTTP_BAD_REQUEST);
         }
 
@@ -142,7 +142,11 @@ public function new(
             return new JsonResponse(['error' => 'Technicien introuvable'], Response::HTTP_NOT_FOUND);
         }
 
-        $count = $tacheRepository->countTasksForTechnicianOnDate($technician->getId(), $date);
+        $techId = $technician->getId();
+        if ($techId === null) {
+            return new JsonResponse(['error' => 'Technicien sans ID'], Response::HTTP_NOT_FOUND);
+        }
+        $count = $tacheRepository->countTasksForTechnicianOnDate($techId, $date);
 
         return new JsonResponse([
             'date' => $date->format('Y-m-d'),
@@ -150,7 +154,7 @@ public function new(
             'threshold' => self::DAILY_TASK_OVERLOAD_THRESHOLD,
             'isOverloaded' => $count > self::DAILY_TASK_OVERLOAD_THRESHOLD,
             'message' => $count > self::DAILY_TASK_OVERLOAD_THRESHOLD
-            ? sprintf('Ce jour est déjà surchargé: %d tâche%s planifiée%s.', $count, $count > 1 ? 's' : '', $count > 1 ? 's' : '')
+            ? sprintf('Ce jour est déjà surchargé: %d tâches planifiées.', $count)
             : sprintf('Ce jour contient actuellement %d tâche%s planifiée%s.', $count, $count > 1 ? 's' : '', $count > 1 ? 's' : ''),
         ]);
     }
@@ -163,7 +167,8 @@ public function generateDescription(
     EntityManagerInterface $em
 ): JsonResponse {
 
-    $userId = $request->getSession()->get('user')?->getId();
+    $sessionUserRaw = $request->getSession()->get('user');
+    $userId = $sessionUserRaw instanceof User ? $sessionUserRaw->getId() : null;
     $sessionUser = $userId
         ? $em->getRepository(User::class)->find($userId)
         : null;
@@ -172,10 +177,15 @@ public function generateDescription(
         return new JsonResponse(['error' => 'Session invalide'], Response::HTTP_UNAUTHORIZED);
     }
 
-    $payload = json_decode($request->getContent(), true) ?? [];
+    $payload = json_decode($request->getContent(), true);
+    if (!is_array($payload)) {
+        $payload = [];
+    }
 
-    $maintenanceId = (int)($payload['id_maintenance'] ?? 0);
-    $taskName = trim($payload['nomTache'] ?? '');
+    $maintenanceIdRaw = $payload['id_maintenance'] ?? 0;
+    $maintenanceId = is_scalar($maintenanceIdRaw) ? (int) $maintenanceIdRaw : 0;
+    $taskNameRaw = $payload['nomTache'] ?? '';
+    $taskName = is_scalar($taskNameRaw) ? trim((string) $taskNameRaw) : '';
 
     if ($maintenanceId <= 0) {
         return new JsonResponse(['error' => 'Maintenance ID invalide'], Response::HTTP_BAD_REQUEST);
@@ -209,19 +219,15 @@ public function generateDescription(
     {
         $sessionUser = $request->getSession()->get('user');
 
-        $originalDatePrevue = $tache->getDatePrevue() instanceof \DateTimeInterface
-            ? \DateTimeImmutable::createFromInterface($tache->getDatePrevue())
-            : null;
+        $originalDatePrevue = \DateTimeImmutable::createFromInterface($tache->getDatePrevue());
 
         $form = $this->createForm(TacheType::class, $tache);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $newDatePrevue = $tache->getDatePrevue() instanceof \DateTimeInterface
-                ? \DateTimeImmutable::createFromInterface($tache->getDatePrevue())
-                : null;
+            $newDatePrevue = \DateTimeImmutable::createFromInterface($tache->getDatePrevue());
 
-            if ($originalDatePrevue?->format('Y-m-d') !== $newDatePrevue?->format('Y-m-d')) {
+            if ($originalDatePrevue->format('Y-m-d') !== $newDatePrevue->format('Y-m-d')) {
                 $maintenance = $tache->getIdMaintenance();
                 $owner = $maintenance?->getId_agriculteur();
 
@@ -237,8 +243,8 @@ public function generateDescription(
                         'maintenance_name' => $maintenance->getNomMaintenance(),
                         'task_id' => $tache->getId_tache(),
                         'task_name' => $tache->getNomTache(),
-                        'previous_date' => $originalDatePrevue?->format('d/m/Y'),
-                        'new_date' => $newDatePrevue?->format('d/m/Y'),
+                        'previous_date' => $originalDatePrevue->format('d/m/Y'),
+                        'new_date' => $newDatePrevue->format('d/m/Y'),
                         'technician_name' => $technicianName !== '' ? $technicianName : null,
                         'seen_at' => null,
                         'created_at' => (new \DateTimeImmutable())->format(DATE_ATOM),
@@ -248,8 +254,9 @@ public function generateDescription(
 
             $em->flush();
 
+            $tmLink = $tache->getIdMaintenance();
             return $this->redirectToRoute('app_maintenance_taches', [
-                'id_maintenance' => $tache->getIdMaintenance()->getId_maintenance(),
+                'id_maintenance' => $tmLink !== null ? $tmLink->getId_maintenance() : null,
             ]);
         }
 
@@ -262,9 +269,10 @@ public function generateDescription(
     #[Route('/tache/supprimer/{id_tache}', name: 'app_tache_delete', methods: ['POST'])]
     public function delete(Request $request, Tache $tache, EntityManagerInterface $em): Response
     {
-        $maintenanceId = $tache->getIdMaintenance()->getId_maintenance();
+        $maintenanceLink = $tache->getIdMaintenance();
+        $maintenanceId = $maintenanceLink !== null ? $maintenanceLink->getId_maintenance() : null;
 
-        if ($this->isCsrfTokenValid('delete'.$tache->getId_tache(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete'.$tache->getId_tache(), (string) $request->request->get('_token', ''))) {
             $em->remove($tache);
             $em->flush();
 
@@ -279,7 +287,8 @@ public function generateDescription(
     #[Route('/tache/terminer/{id_tache}', name: 'app_tache_complete', methods: ['POST'])]
     public function completeTask(Request $request, Tache $tache, EntityManagerInterface $em): Response
     {
-        $maintenanceId = $tache->getIdMaintenance()->getId_maintenance();
+        $maintenanceLink = $tache->getIdMaintenance();
+        $maintenanceId = $maintenanceLink !== null ? $maintenanceLink->getId_maintenance() : null;
 
         $sessionUser = $request->getSession()->get('user');
         if (!$sessionUser instanceof User || $sessionUser->getRole() !== 2) {
@@ -292,7 +301,7 @@ public function generateDescription(
             return $this->redirectToRoute('front_login');
         }
 
-        if (!$this->isCsrfTokenValid('complete'.$tache->getId_tache(), $request->request->get('_token'))) {
+        if (!$this->isCsrfTokenValid('complete'.$tache->getId_tache(), (string) $request->request->get('_token', ''))) {
             $this->addFlash('danger', 'Action invalide.');
             return $this->redirectToRoute('app_maintenance_taches', [
                 'id_maintenance' => $maintenanceId,
@@ -320,7 +329,7 @@ public function generateDescription(
     #[Route('/maintenance/{id_maintenance}/cloturer', name: 'app_maintenance_cloturer', methods: ['POST'])]
     public function cloturerMaintenance(Request $request, Maintenance $maintenance, EntityManagerInterface $em): Response
     {
-        if (!$this->isCsrfTokenValid('cloturer'.$maintenance->getId_maintenance(), $request->request->get('_token'))) {
+        if (!$this->isCsrfTokenValid('cloturer'.$maintenance->getId_maintenance(), (string) $request->request->get('_token', ''))) {
             $this->addFlash('danger', 'Action invalide.');
             return $this->redirectToRoute('app_maintenance_taches', [
                 'id_maintenance' => $maintenance->getId_maintenance(),
@@ -357,9 +366,14 @@ public function generateDescription(
 
         $em->flush();
 
+        $maintenance = $tache->getIdMaintenance();
+        if ($maintenance === null) {
+            throw $this->createNotFoundException('Maintenance non trouvée');
+        }
+
         // On redirige vers la page des tâches de la maintenance concernée
         return $this->redirectToRoute('app_maintenance_detail', [
-            'id_maintenance' => $tache->getIdMaintenance()->getId_maintenance()
+            'id_maintenance' => $maintenance->getId_maintenance()
         ]);
     }
 

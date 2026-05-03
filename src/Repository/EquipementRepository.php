@@ -30,7 +30,8 @@ class EquipementRepository extends ServiceEntityRepository
                 ->setParameter('search', '%' . $search . '%');
         }
 
-        return $qb->getQuery()->getResult();
+        $result = $qb->getQuery()->getResult();
+        return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof Equipement)) : [];
     }
 
     /**
@@ -44,7 +45,7 @@ class EquipementRepository extends ServiceEntityRepository
             return [];
         }
 
-        return $this->createQueryBuilder('e')
+        $result = $this->createQueryBuilder('e')
             ->andWhere('e.isActive = true')
             ->andWhere('e.id_equipement != :id')
             ->andWhere('e.type = :type')
@@ -55,8 +56,15 @@ class EquipementRepository extends ServiceEntityRepository
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
+        return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof Equipement)) : [];
     }
 
+    /**
+     * @return array{
+     *     totals: array{equipements:int, stock:int, value:float, low_stock:int, out_of_stock:int},
+     *     by_type: list<array{type:string, total:int, stock:int, value:float}>
+     * }
+     */
     public function getCatalogueStats(): array
     {
         $active = $this->findBy(['isActive' => true]);
@@ -103,7 +111,7 @@ class EquipementRepository extends ServiceEntityRepository
                 'low_stock' => $lowStock,
                 'out_of_stock' => $outOfStock,
             ],
-            'by_type' => array_values($byType),
+            'by_type' => $byType,
         ];
     }
 }

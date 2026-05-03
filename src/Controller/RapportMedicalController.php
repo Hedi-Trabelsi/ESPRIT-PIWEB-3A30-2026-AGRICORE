@@ -26,7 +26,7 @@ class RapportMedicalController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        $animals = $animalRepo->findAll();
+        $animals = $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100);
 
         return $this->render('front/suivi_animal/animal/rapport_medical.html.twig', [
             'animals' => $animals,
@@ -42,9 +42,9 @@ class RapportMedicalController extends AbstractController
         }
 
         $animalId  = $request->request->get('animalId');
-        $dateDebut = $request->request->get('dateDebut');
-        $dateFin   = $request->request->get('dateFin');
-        $style     = $request->request->get('style', 'complet');
+        $dateDebut = (string) $request->request->get('dateDebut', '');
+        $dateFin   = (string) $request->request->get('dateFin', '');
+        $style     = (string) $request->request->get('style', 'complet');
 
         $animal = $animalRepo->find($animalId);
         if (!$animal) {
@@ -82,7 +82,8 @@ class RapportMedicalController extends AbstractController
         foreach ($suivis as $s) {
             if (isset($etats[$s->getEtatSante()])) $etats[$s->getEtatSante()]++;
             if (isset($activites[$s->getNiveauActivite()])) $activites[$s->getNiveauActivite()]++;
-            if ($s->getRemarque()) $remarques[] = '- '.$s->getDateSuivi()->format('d/m/Y').': '.$s->getRemarque();
+            $sDate = $s->getDateSuivi();
+            if ($s->getRemarque() && $sDate !== null) $remarques[] = '- '.$sDate->format('d/m/Y').': '.$s->getRemarque();
         }
 
         // Construire le prompt
@@ -138,7 +139,14 @@ Rédige le rapport avec les sections : Identification, Historique clinique, Bila
             ]);
 
             $data    = $response->toArray();
-            $rapport = $data['choices'][0]['message']['content'] ?? 'Erreur de génération.';
+            $choices = $data['choices'] ?? [];
+            $rapport = 'Erreur de génération.';
+            if (is_array($choices) && isset($choices[0]) && is_array($choices[0])) {
+                $msg = $choices[0]['message'] ?? null;
+                if (is_array($msg) && isset($msg['content']) && is_string($msg['content'])) {
+                    $rapport = $msg['content'];
+                }
+            }
 
             return new JsonResponse(['rapport' => $rapport]);
 

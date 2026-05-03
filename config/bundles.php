@@ -26,4 +26,5 @@ return [
     Symfony\UX\Chartjs\ChartjsBundle::class => ['all' => true],
     CalendarBundle\CalendarBundle::class => ['all' => true],
     Vich\UploaderBundle\VichUploaderBundle::class => ['all' => true],
+    AhmedBhs\DoctrineDoctor\DoctrineDoctorBundle::class => ['dev' => true, 'test' => true],
 ];

@@ -30,7 +30,7 @@ class MessengerMessage
     }
 
     #[ORM\Column(type: 'text', nullable: false)]
-    private ?string $body = null;
+    private string $body = '';
 
     public function getBody(): ?string
     {
@@ -44,7 +44,7 @@ class MessengerMessage
     }
 
     #[ORM\Column(type: 'text', nullable: false)]
-    private ?string $headers = null;
+    private string $headers = '';
 
     public function getHeaders(): ?string
     {
@@ -58,7 +58,7 @@ class MessengerMessage
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $queue_name = null;
+    private string $queue_name = '';
 
     public function getQueue_name(): ?string
     {
@@ -72,42 +72,56 @@ class MessengerMessage
     }
 
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $created_at = null;
+    private \DateTimeImmutable $created_at;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeImmutable $updated_at = null;
 
     public function getCreated_at(): ?\DateTimeInterface
     {
         return $this->created_at;
     }
 
-    public function setCreated_at(\DateTimeInterface $created_at): self
+    public function setCreated_at(\DateTimeImmutable $created_at): self
     {
         $this->created_at = $created_at;
         return $this;
     }
 
+    public function getUpdated_at(): ?\DateTimeInterface
+    {
+        return $this->updated_at;
+    }
+
+    public function setUpdated_at(?\DateTimeImmutable $updated_at): self
+    {
+        $this->updated_at = $updated_at;
+        return $this;
+    }
+
     #[ORM\Column(type: 'datetime', nullable: false)]
-    private ?\DateTimeInterface $available_at = null;
+    private \DateTimeImmutable $available_at;
 
     public function getAvailable_at(): ?\DateTimeInterface
     {
         return $this->available_at;
     }
 
-    public function setAvailable_at(\DateTimeInterface $available_at): self
+    public function setAvailable_at(\DateTimeImmutable $available_at): self
     {
         $this->available_at = $available_at;
         return $this;
     }
 
     #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $delivered_at = null;
+    private ?\DateTimeImmutable $delivered_at = null;
 
     public function getDelivered_at(): ?\DateTimeInterface
     {
         return $this->delivered_at;
     }
 
-    public function setDelivered_at(?\DateTimeInterface $delivered_at): self
+    public function setDelivered_at(?\DateTimeImmutable $delivered_at): self
     {
         $this->delivered_at = $delivered_at;
         return $this;
@@ -125,40 +139,57 @@ class MessengerMessage
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTime
+    public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->created_at;
     }
 
-    public function setCreatedAt(\DateTime $created_at): static
+    public function setCreatedAt(\DateTimeImmutable $created_at): static
     {
         $this->created_at = $created_at;
 
         return $this;
     }
 
-    public function getAvailableAt(): ?\DateTime
+    public function getAvailableAt(): ?\DateTimeImmutable
     {
         return $this->available_at;
     }
 
-    public function setAvailableAt(\DateTime $available_at): static
+    public function setAvailableAt(\DateTimeImmutable $available_at): static
     {
         $this->available_at = $available_at;
 
         return $this;
     }
 
-    public function getDeliveredAt(): ?\DateTime
+    public function getDeliveredAt(): ?\DateTimeImmutable
     {
         return $this->delivered_at;
     }
 
-    public function setDeliveredAt(?\DateTime $delivered_at): static
+    public function setDeliveredAt(?\DateTimeImmutable $delivered_at): static
     {
         $this->delivered_at = $delivered_at;
 
         return $this;
     }
 
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updated_at;
+    }
+
+    public function setUpdatedAt(?\DateTimeImmutable $updated_at): static
+    {
+        $this->updated_at = $updated_at;
+
+        return $this;
+    }
+
+    public function __construct()
+    {
+        $this->created_at = new \DateTimeImmutable();
+        $this->available_at = new \DateTimeImmutable();
+    }
 }

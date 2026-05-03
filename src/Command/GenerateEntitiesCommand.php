@@ -21,14 +21,15 @@ class GenerateEntitiesCommand extends Command
 {
     private Connection $connection;
     // private Filesystem $filesystem;
+    /** @var AbstractSchemaManager<\Doctrine\DBAL\Platforms\AbstractPlatform>|null */
     private ?AbstractSchemaManager $schemaManager = null;
+    /** @var array<string, mixed> */
     private array $generatedRelations = [];
 
     /**
      * Constructor.
      *
      * @param Connection $connection The database connection instance.
-     * @param Filesystem $filesystem The filesystem instance.
      */
     public function __construct(Connection $connection)
     {
@@ -93,7 +94,7 @@ class GenerateEntitiesCommand extends Command
     /**
      * Retrieves the schema manager instance, caching it to avoid redundant queries.
      *
-     * @return AbstractSchemaManager The schema manager.
+     * @return AbstractSchemaManager<\Doctrine\DBAL\Platforms\AbstractPlatform> The schema manager.
      */
     private function getSchemaManager(): AbstractSchemaManager
     {
@@ -107,8 +108,9 @@ class GenerateEntitiesCommand extends Command
      * Generates an entity class from a database table.
      *
      * @param Table $table The database table.
-     * @param array &$oneToManyRelations Reference to OneToMany relations.
-     * @param array &$manyToOneRelationsName Reference to ManyToOne relations.
+     * @param array<string, list<string>> $oneToManyRelations Reference to OneToMany relations.
+     * @param array<string, string> $manyToOneRelationsName Reference to ManyToOne relations.
+     * @param array<string, string> $oneToManyRelationsName Reference to OneToMany relations name map.
      */
     private function generateEntity(Table $table, array &$oneToManyRelations, array &$manyToOneRelationsName, array &$oneToManyRelationsName): void
     {
@@ -149,10 +151,17 @@ class GenerateEntitiesCommand extends Command
                     $processedRelations[] = $relation; // Mark relation as added
 
                     $relationArray = $this->parseRelationAnnotation($relation);
-                    $relationKey = "$className-{$relationArray['mappedBy']}";
+                    $mappedBy = $relationArray['mappedBy'];
+                    $targetEntity = $relationArray['targetEntity'];
+
+                    if ($mappedBy === null || $targetEntity === null) {
+                        continue;
+                    }
+
+                    $relationKey = "$className-$mappedBy";
 
                     if (!isset($this->generatedRelations[$relationKey])) {
-                        $entityCode .= $this->generateRelationMethods($className, $relationArray['mappedBy'], $relationArray['targetEntity']);
+                        $entityCode .= $this->generateRelationMethods($className, $mappedBy, $targetEntity);
                         $this->generatedRelations[$relationKey] = true;
                     }
                 }
@@ -171,8 +180,8 @@ class GenerateEntitiesCommand extends Command
     /**
      * Generates necessary import statements based on detected relations.
      *
-     * @param array $oneToManyRelations OneToMany relations.
-     * @param array $manyToOneRelationsName ManyToOne relations.
+     * @param array<string, string> $manyToOneRelationsName ManyToOne relations.
+     * @param array<string, string> $oneToManyRelationsName OneToMany relations name map.
      * @param string $className The name of the entity class.
      * @return string Formatted import statements.
      */
@@ -206,8 +215,8 @@ class GenerateEntitiesCommand extends Command
     /**
      * Retrieves foreign key constraints from the database.
      *
-     * @param array $tables List of table names.
-     * @return array Associative array of foreign keys.
+     * @param array<int, string> $tables List of table names.
+     * @return array<string, array{referencedTable: string, referencedColumn: string}> Associative array of foreign keys.
      */
     public function getForeignKeys(array $tables): array
     {
@@ -224,14 +233,14 @@ class GenerateEntitiesCommand extends Command
             if (in_array($tableName, array_map(fn($table) => $table->getName(), $dbTables))) {
                 // Run a custom SQL query to retrieve foreign keys from the INFORMATION_SCHEMA (MySQL example)
                 $sql = "
-                SELECT 
-                    COLUMN_NAME, 
-                    REFERENCED_TABLE_NAME, 
+                SELECT
+                    COLUMN_NAME,
+                    REFERENCED_TABLE_NAME,
                     REFERENCED_COLUMN_NAME
-                FROM 
-                    INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
-                WHERE 
-                    TABLE_NAME = :tableName AND 
+                FROM
+                    INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                WHERE
+                    TABLE_NAME = :tableName AND
                     REFERENCED_TABLE_NAME IS NOT NULL
             ";
 
@@ -244,9 +253,17 @@ class GenerateEntitiesCommand extends Command
 
                 // Store foreign keys in the array
                 foreach ($fks as $fk) {
-                    $foreignKeys[$fk['COLUMN_NAME']] = [
-                        'referencedTable' => $fk['REFERENCED_TABLE_NAME'],
-                        'referencedColumn' => $fk['REFERENCED_COLUMN_NAME']
+                    $columnName = $fk['COLUMN_NAME'] ?? null;
+                    $refTable = $fk['REFERENCED_TABLE_NAME'] ?? null;
+                    $refColumn = $fk['REFERENCED_COLUMN_NAME'] ?? null;
+
+                    if (!is_string($columnName) || !is_string($refTable) || !is_string($refColumn)) {
+                        continue;
+                    }
+
+                    $foreignKeys[$columnName] = [
+                        'referencedTable' => $refTable,
+                        'referencedColumn' => $refColumn,
                     ];
                 }
             }
@@ -303,11 +320,12 @@ class GenerateEntitiesCommand extends Command
      * Generates entity properties based on database columns.
      *
      * @param Column $column The database column.
-     * @param array $primaryKeys List of primary keys.
-     * @param array $foreignKeys List of foreign keys.
+     * @param array<int, string> $primaryKeys List of primary keys.
+     * @param array<string, array{referencedTable: string, referencedColumn: string}> $foreignKeys List of foreign keys.
      * @param string $className The entity class name.
-     * @param array &$oneToManyRelations Reference to OneToMany relations.
-     * @param array &$manyToOneRelationsName Reference to ManyToOne relations.
+     * @param array<string, list<string>> $oneToManyRelations Reference to OneToMany relations.
+     * @param array<string, string> $manyToOneRelationsName Reference to ManyToOne relations.
+     * @param array<string, string> $oneToManyRelationsName Reference to OneToMany relations name map.
      * @return string The generated property code.
      */
     private function generateProperty(Column $column, array $primaryKeys, array $foreignKeys, string $className, array &$oneToManyRelations, array &$manyToOneRelationsName, array &$oneToManyRelationsName): string
@@ -402,7 +420,9 @@ class GenerateEntitiesCommand extends Command
 
         return $mapping[$doctrineType] ?? 'mixed'; // Default to 'mixed' if type is unknown
     }
-    // Helper function to get primary key columns of a table
+    /**
+     * @return array<int, string>
+     */
     private function getPrimaryKeyColumns(string $tableName): array
     {
         $schemaManager = $this->connection->createSchemaManager();
@@ -443,7 +463,7 @@ class GenerateEntitiesCommand extends Command
      * Parses a relation annotation string to extract mappedBy and targetEntity values.
      *
      * @param string $relation The relation annotation string.
-     * @return array Associative array containing 'mappedBy' and 'targetEntity' values.
+     * @return array{mappedBy: string|null, targetEntity: string|null} Associative array containing 'mappedBy' and 'targetEntity' values.
      */
     private function parseRelationAnnotation(string $relation): array
     {

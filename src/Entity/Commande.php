@@ -16,21 +16,22 @@ class Commande
     #[ORM\Column(type: 'integer')]
     private ?int $id = null;
 
-    #[ORM\Column(name: 'date_commande', type: 'datetime')]
-    private ?\DateTimeInterface $dateCommande = null;
+    #[ORM\Column(name: 'date_commande', type: 'datetime_immutable')]
+    private \DateTimeImmutable $dateCommande;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
-    private ?string $total = null;
+    private string $total = '';
 
     #[ORM\Column(name: 'agriculteur_id', type: 'integer')]
     private ?int $agriculteurId = null;
 
-    #[ORM\OneToMany(mappedBy: 'commande', targetEntity: LigneCommande::class, cascade: ['persist', 'remove'])]
+    /** @var Collection<int, LigneCommande> */
+    #[ORM\OneToMany(mappedBy: 'commande', targetEntity: LigneCommande::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $lignes;
 
     public function __construct()
     {
-        $this->dateCommande = new \DateTime();
+        $this->dateCommande = new \DateTimeImmutable();
         $this->lignes = new ArrayCollection();
     }
 
@@ -39,12 +40,18 @@ class Commande
         return $this->id;
     }
 
-    public function getDateCommande(): ?\DateTimeInterface
+    public function setId(int $id): self
+    {
+        $this->id = $id;
+        return $this;
+    }
+
+    public function getDateCommande(): \DateTimeImmutable
     {
         return $this->dateCommande;
     }
 
-    public function setDateCommande(\DateTimeInterface $dateCommande): self
+    public function setDateCommande(\DateTimeImmutable $dateCommande): self
     {
         $this->dateCommande = $dateCommande;
         return $this;

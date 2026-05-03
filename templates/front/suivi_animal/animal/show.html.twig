@@ -173,7 +173,7 @@
 </div>
 
 <div class="ag-grid">
-  {% for suivi in animal.suivis %}
+  {% for suivi in suivis %}
   <div class="ag-suivi-card">
     <div class="ag-suivi-top">
       <span class="ag-suivi-date">
@@ -222,5 +222,70 @@
   <a href="{{ path('app_animal_edit', {'idAnimal': animal.idAnimal}) }}" class="ag-btn-green">✎ Modifier l'animal</a>
   <div>{{ include('front/suivi_animal/animal/_delete_form.html.twig') }}</div>
 </div>
+
+{# ── Modal Alertes Santé — affiché après ajout/modif suivi ── #}
+{% if alertes is not empty %}
+<style>
+  #agri-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;animation:agriIn .3s ease;}
+  #agri-panel{background:#fff;border-radius:20px;width:100%;max-width:480px;margin:1rem;box-shadow:0 24px 64px rgba(0,0,0,.35);animation:agriSlide .4s cubic-bezier(.22,1,.36,1);overflow:hidden;font-family:'Segoe UI',Arial,sans-serif;}
+  .agri-head{padding:20px 22px 16px;display:flex;align-items:center;gap:14px;}
+  .agri-head.critique{background:linear-gradient(135deg,#b71c1c,#c62828);}
+  .agri-head.avertissement{background:linear-gradient(135deg,#bf360c,#e65100);}
+  .agri-head-icon{font-size:34px;flex-shrink:0;}
+  .agri-head-titre{color:#fff;font-size:16px;font-weight:700;margin:0;}
+  .agri-head-sub{color:rgba(255,255,255,.8);font-size:12px;margin:3px 0 0;}
+  .agri-body{padding:18px 22px;}
+  .agri-item{background:#fafafa;border-radius:12px;padding:13px 15px;margin-bottom:10px;border-left:4px solid #c62828;display:flex;gap:12px;align-items:flex-start;}
+  .agri-item.avertissement{border-left-color:#e65100;}
+  .agri-item-icone{font-size:20px;flex-shrink:0;margin-top:1px;}
+  .agri-item-titre{font-size:13px;font-weight:700;color:#1a1a1a;margin:0 0 3px;}
+  .agri-item-msg{font-size:12px;color:#555;margin:0;line-height:1.45;}
+  .agri-foot{padding:13px 22px 17px;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;}
+  .agri-btn{background:#1b4332;color:#fff;border:none;border-radius:10px;padding:10px 26px;font-size:13px;font-weight:700;cursor:pointer;}
+  .agri-btn:hover{background:#2d6a4f;}
+  @keyframes agriIn{from{opacity:0}to{opacity:1}}
+  @keyframes agriSlide{from{opacity:0;transform:scale(.92) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes agriOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.9)}}
+</style>
+
+<script>
+(function(){
+  var ALERTES = {{ alertes|json_encode|raw }};
+  if(!ALERTES||!ALERTES.length) return;
+
+  var niv='avertissement';
+  for(var i=0;i<ALERTES.length;i++){if(ALERTES[i].niveau==='critique'){niv='critique';break;}}
+
+  var icone = niv==='critique'?'🚨':'⚠️';
+  var titre = niv==='critique'?'ALERTE — Animal en danger !':'Avertissement — Surveillance requise';
+  var sous  = ALERTES.length+' anomalie(s) détectée(s)';
+
+  var lignes='';
+  for(var j=0;j<ALERTES.length;j++){
+    var a=ALERTES[j];
+    lignes+='<div class="agri-item '+a.niveau+'"><div class="agri-item-icone">'+(a.niveau==='critique'?'🔴':'🟠')+'</div><div><p class="agri-item-titre">'+a.titre+'</p><p class="agri-item-msg">'+a.message+'</p></div></div>';
+  }
+
+  var o=document.createElement('div');
+  o.id='agri-overlay';
+  o.innerHTML='<div id="agri-panel"><div class="agri-head '+niv+'"><div class="agri-head-icon">'+icone+'</div><div><p class="agri-head-titre">'+titre+'</p><p class="agri-head-sub">'+sous+'</p></div></div><div class="agri-body">'+lignes+'</div><div class="agri-foot"><button class="agri-btn" onclick="agriFermer()">✔ Compris, fermer</button></div></div>';
+  document.body.appendChild(o);
+  o.addEventListener('click',function(e){if(e.target===o)agriFermer();});
+
+  // Notification desktop
+  if('Notification' in window && Notification.permission==='granted'){
+    ALERTES.forEach(function(a,i){
+      setTimeout(function(){new Notification('🐾 '+a.titre,{body:a.message,icon:'/favicon.ico',requireInteraction:a.niveau==='critique'});},i*600);
+    });
+  }
+})();
+
+function agriFermer(){
+  var p=document.getElementById('agri-panel');
+  if(p)p.style.animation='agriOut .25s ease forwards';
+  setTimeout(function(){var o=document.getElementById('agri-overlay');if(o)o.remove();},250);
+}
+</script>
+{% endif %}
 
 {% endblock %}

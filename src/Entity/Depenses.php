@@ -22,42 +22,42 @@ class Depenses
     #[ORM\Column(type: "date")]
     private \DateTimeInterface $Date;
 
-    public function getId_depense()
+    public function getId_depense(): int
     {
         return $this->id_depense;
     }
 
-    public function setId_depense($value)
+    public function setId_depense(int $value): void
     {
         $this->id_depense = $value;
     }
 
-    public function getType_depense()
+    public function getType_depense(): string
     {
         return $this->type_depense;
     }
 
-    public function setType_depense($value)
+    public function setType_depense(string $value): void
     {
         $this->type_depense = $value;
     }
 
-    public function getMontant()
+    public function getMontant(): string
     {
         return $this->montant;
     }
 
-    public function setMontant($value)
+    public function setMontant(string $value): void
     {
         $this->montant = $value;
     }
 
-    public function getDate()
+    public function getDate(): \DateTimeInterface
     {
         return $this->Date;
     }
 
-    public function setDate($value)
+    public function setDate(\DateTimeInterface $value): void
     {
         $this->Date = $value;
     }

@@ -158,11 +158,16 @@
   </a>
 </div>
 
-<div class="ag-count" id="ag-count">{{ animals|length }} animal(aux) trouvé(s)</div>
+<div class="ag-count" id="ag-count">{{ animals.getTotalItemCount() }} animal(aux) trouvé(s)</div>
 
 <div id="ag-spinner"><i class="fas fa-circle-notch fa-spin fa-2x"></i></div>
 <div class="ag-grid" id="ag-grid">
   {% include 'front/suivi_animal/animal/_cards.html.twig' %}
+</div>
+
+{# ── Pagination ── #}
+<div class="d-flex justify-content-center mt-4">
+  {{ knp_pagination_render(animals) }}
 </div>
 
 <script>

@@ -6,6 +6,9 @@ use App\Entity\Evennementagricole;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
+/**
+ * @extends ServiceEntityRepository<Evennementagricole>
+ */
 class EvennementagricoleRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)

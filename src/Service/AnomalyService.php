@@ -8,8 +8,7 @@ class AnomalyService
 {
     /**
      * @param Depense[] $history
-     * @param Depense $candidate
-     * @return array
+     * @return array{isAnomaly:bool, score:float, lowerBound:float|null, upperBound:float|null, mean:float, std:float, message:string}
      */
     public function analyzeDepense(array $history, Depense $candidate): array
     {
@@ -42,7 +41,7 @@ class AnomalyService
 
     /**
      * @param Depense[] $allDepenses
-     * @return array
+     * @return list<array{depense:Depense, analysis:array{isAnomaly:bool, score:float, lowerBound:float|null, upperBound:float|null, mean:float, std:float, message:string}}>
      */
     public function analyzeAll(array $allDepenses): array
     {

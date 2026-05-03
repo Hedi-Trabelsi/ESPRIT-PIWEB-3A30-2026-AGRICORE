@@ -189,11 +189,8 @@
         <ul class="u-notif-list">
             {% for nu in new_users %}
             <li>
-                {% if nu.image %}
-                    <img src="data:image/jpeg;base64,{{ nu.image }}" class="u-notif-avatar" alt="">
-                {% else %}
-                    <img src="{{ asset('img/profile.webp') }}" class="u-notif-avatar" alt="">
-                {% endif %}
+                <img src="{{ path('app_user_avatar', {id: nu.id}) }}" class="u-notif-avatar" alt="">
+
                 <span><strong>{{ nu.prenom }} {{ nu.nom }}</strong> — {{ nu.email }}
                 {% if nu.role == 1 %}
                     <span class="u-badge u-badge-agriculteur" style="font-size:10px;padding:2px 8px;"><i class="ti ti-plant me-1"></i>Agriculteur</span>
@@ -380,11 +377,7 @@ new Chart(document.getElementById('chartStatus'), {
                         <td>
                             <div class="d-flex align-items-center gap-3">
                                 <div class="u-avatar">
-                                    {% if user.image %}
-                                        <img src="data:image/jpeg;base64,{{ user.image }}" alt="">
-                                    {% else %}
-                                        <img src="{{ asset('img/profile.webp') }}" alt="">
-                                    {% endif %}
+                                    <img src="{{ path('app_user_avatar', {id: user.id}) }}" alt="">
                                 </div>
                                 <div>
                                     <div class="fw-semibold">{{ user.prenom }} {{ user.nom }}</div>

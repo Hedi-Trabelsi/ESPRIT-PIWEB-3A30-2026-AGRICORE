@@ -5,11 +5,9 @@ namespace App\Entity;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
-
 #[ORM\Entity]
 class Participants
 {
-
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: "integer")]
@@ -55,24 +53,26 @@ class Participants
     #[ORM\Column(type: "integer", options: ["default" => 0])]
     private int $used_coins = 0;
 
-    public function getId_participant()
+    public function getId_participant(): int
     {
         return $this->id_participant;
     }
 
-    public function setId_participant($value)
+    public function setId_participant(int $value): self
     {
         $this->id_participant = $value;
+        return $this;
     }
 
-    public function getId_utilisateur()
+    public function getId_utilisateur(): int
     {
         return $this->id_utilisateur;
     }
 
-    public function setId_utilisateur($value)
+    public function setId_utilisateur(int $value): self
     {
         $this->id_utilisateur = $value;
+        return $this;
     }
 
     public function getEvenement(): ?Evennementagricole
@@ -86,74 +86,81 @@ class Participants
         return $this;
     }
 
-    public function getDate_inscription()
+    public function getDate_inscription(): \DateTimeInterface
     {
         return $this->date_inscription;
     }
 
-    public function setDate_inscription($value)
+    public function setDate_inscription(\DateTimeInterface $value): self
     {
         $this->date_inscription = $value;
+        return $this;
     }
 
-    public function getStatut_participation()
+    public function getStatut_participation(): string
     {
         return $this->statut_participation;
     }
 
-    public function setStatut_participation($value)
+    public function setStatut_participation(string $value): self
     {
         $this->statut_participation = $value;
+        return $this;
     }
 
-    public function getMontant_payee()
+    public function getMontant_payee(): string
     {
         return $this->montant_payee;
     }
 
-    public function setMontant_payee($value)
+    public function setMontant_payee(string $value): self
     {
         $this->montant_payee = $value;
+        return $this;
     }
 
-    public function getConfirmation()
+    public function getConfirmation(): string
     {
         return $this->confirmation;
     }
 
-    public function setConfirmation($value)
+    public function setConfirmation(string $value): static
     {
         $this->confirmation = $value;
+        return $this;
     }
 
-    public function getNbr_places()
+    public function getNbr_places(): int
     {
         return $this->nbr_places;
     }
 
-    public function setNbr_places($value)
+    public function setNbr_places(int $value): self
     {
         $this->nbr_places = $value;
+        return $this;
     }
 
-    public function getNom_participant()
+    public function getNom_participant(): string
     {
         return $this->nom_participant;
     }
 
-    public function setNom_participant($value)
+    public function setNom_participant(string $value): self
     {
         $this->nom_participant = $value;
+        return $this;
     }
 
-    public function getEntry_code()
+    public function getEntry_code(): int
     {
         return $this->entry_code;
     }
 
-    public function setEntry_code($value)
+    public function setEntry_code(int $value): self
     {
         $this->entry_code = $value;
+        return $this;
     }
 
     public function getIdParticipant(): ?int
@@ -180,18 +187,15 @@ class Participants
 
     public function setIdEv(int $id_ev): static
     {
-        // This setter should now set the evenement instead
-        // Note: This assumes the evenement is already loaded
-        // In practice, you should use setEvenement() instead
         return $this;
     }
 
-    public function getDateInscription(): ?\DateTime
+    public function getDateInscription(): ?\DateTimeInterface
     {
         return $this->date_inscription;
     }
 
-    public function setDateInscription(\DateTime $date_inscription): static
+    public function setDateInscription(\DateTimeInterface $date_inscription): static
     {
         $this->date_inscription = $date_inscription;
 
@@ -260,6 +264,17 @@ class Participants
 
     public function getEmail(): ?string { return $this->email; }
     public function setEmail(?string $email): static { $this->email = $email; return $this; }
+    
+    public function getEmailAddress(): ?string
+    {
+        return $this->email;
+    }
+    
+    public function setEmailAddress(?string $address): static
+    {
+        $this->email = $address;
+        return $this;
+    }
 
     public function getConfirmToken(): ?string { return $this->confirm_token; }
     public function setConfirmToken(?string $token): static { $this->confirm_token = $token; return $this; }
@@ -274,14 +289,14 @@ class Participants
 
     /**
      * Get presence per day as an associative array: [dayIndex => count]
+     * @return array<int, int>
      */
     public function getPresenceData(): array
     {
         if (!$this->confirm_token) {
             return [1 => $this->nbr_presents];
         }
-        
-        // Check if it's our serialized format (contains '|') or a standard token
+
         if (strpos($this->confirm_token, '|') !== false || is_numeric($this->confirm_token)) {
             $parts = explode('|', $this->confirm_token);
             $data = [];
@@ -291,7 +306,6 @@ class Participants
             return $data;
         }
 
-        // It's a real token (registration still pending), so no presence data yet
         return [1 => $this->nbr_presents];
     }
 
@@ -299,27 +313,25 @@ class Participants
     {
         $data = $this->getPresenceData();
         $data[$day] = $count;
-        
-        // Keep Day 1 in nbr_presents for backward compatibility/main display
+
         if ($day === 1) {
             $this->nbr_presents = $count;
         }
 
-        // Serialize to pipe-separated string
-        // We need to ensure we have all days from 1 to max(day)
         $maxDay = max(array_keys($data));
         $parts = [];
         for ($i = 1; $i <= $maxDay; $i++) {
             $parts[] = $data[$i] ?? 0;
         }
-        
+
         $this->confirm_token = implode('|', $parts);
-        
+
         return $this;
     }
 
     /**
      * Get the presence for the last day recorded (highest day index)
+     * @return array{day: int, count: int}
      */
     public function getLastDayPresence(): array
     {
@@ -327,7 +339,7 @@ class Participants
         if (empty($data)) {
             return ['day' => 1, 'count' => 0];
         }
-        
+
         $lastDay = max(array_keys($data));
         return ['day' => $lastDay, 'count' => $data[$lastDay]];
     }

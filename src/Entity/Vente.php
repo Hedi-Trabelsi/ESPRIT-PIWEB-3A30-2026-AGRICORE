@@ -30,7 +30,7 @@ class Vente
     }
 
     #[ORM\Column(name: 'prixUnitaire', type: 'integer', nullable: false)]
-    private ?int $prixUnitaire = null;
+    private int $prixUnitaire = 0;
 
     public function getPrixUnitaire(): ?int
     {
@@ -44,7 +44,7 @@ class Vente
     }
 
     #[ORM\Column(type: 'integer', nullable: false)]
-    private ?int $quantite = null;
+    private int $quantite = 0;
 
     public function getQuantite(): ?int
     {
@@ -58,7 +58,7 @@ class Vente
     }
 
     #[ORM\Column(name: 'chiffreAffaires', type: 'integer', nullable: false)]
-    private ?int $chiffreAffaires = null;
+    private int $chiffreAffaires = 0;
 
     public function getChiffreAffaires(): ?int
     {
@@ -71,22 +71,27 @@ class Vente
         return $this;
     }
 
-    #[ORM\Column(type: 'date', nullable: false)]
-    private ?\DateTimeInterface $date = null;
+    #[ORM\Column(type: 'date_immutable', nullable: false)]
+    private \DateTimeImmutable $date;
 
-    public function getDate(): ?\DateTimeInterface
+    public function __construct()
+    {
+        $this->date = new \DateTimeImmutable();
+    }
+
+    public function getDate(): \DateTimeImmutable
     {
         return $this->date;
     }
 
-    public function setDate(\DateTimeInterface $date): self
+    public function setDate(\DateTimeImmutable $date): self
     {
         $this->date = $date;
         return $this;
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $produit = null;
+    private string $produit = '';
 
     public function getProduit(): ?string
     {

@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Repository\EvennementagricoleRepository;
 use App\Repository\MaintenanceRepository;
@@ -84,8 +85,10 @@ class BackController extends AbstractController
         $currentMonth = (int)date('m');
         
         foreach ($ventes as $v) {
-            $vYear = (int)$v->getDate()->format('Y');
-            $vMonth = (int)$v->getDate()->format('m');
+            $vDate = $v->getDate();
+            if ($vDate === null) continue;
+            $vYear = (int)$vDate->format('Y');
+            $vMonth = (int)$vDate->format('m');
             if ($vYear === $currentYear) {
                 $ventesData[$vMonth] += $v->getChiffreAffaires();
                 if ($vMonth === $currentMonth) {
@@ -96,8 +99,10 @@ class BackController extends AbstractController
 
         $depensesData = array_fill(1, 12, 0);
         foreach ($depenses as $d) {
-            $dYear = (int)$d->getDate()->format('Y');
-            $dMonth = (int)$d->getDate()->format('m');
+            $dDate = $d->getDate();
+            if ($dDate === null) continue;
+            $dYear = (int)$dDate->format('Y');
+            $dMonth = (int)$dDate->format('m');
             if ($dYear === $currentYear) {
                 $depensesData[$dMonth] += $d->getMontant();
             }
@@ -167,7 +172,7 @@ class BackController extends AbstractController
     public function equipements(Request $request): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser || $sessionUser->getRole() !== 0) {
+        if (!$sessionUser instanceof User || $sessionUser->getRole() !== 0) {
             return $this->redirectToRoute('front_login');
         }
 

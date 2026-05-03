@@ -335,7 +335,7 @@
                                 <strong style="color:#64748b;">Événement terminé</strong><br>
                                 <small class="text-muted">Vous avez participé à cet événement.</small>
                             </div>
-                            {% if participantConfirmation == 'confirmed' %}
+                            {% if participantConfirmation == 'confirmed' or participantConfirmation == 'attended' %}
                             <a href="{{ path('app_event_chat', {'id': evenement.id_ev}) }}"
                                class="btn w-100 mb-3"
                                style="background:#64748b;color:white;border-radius:20px;padding:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;transition:0.4s;border:none;text-decoration:none;display:block;text-align:center;">
@@ -343,17 +343,25 @@
                             </a>
                             {% endif %}
                         {% elseif dejaInscrit %}
-                            {% if participantConfirmation == 'confirmed' %}
-                            <div class="alert border-0 shadow-sm rounded-4 py-3 mb-4" style="background:#f0fdf4;border-left:4px solid #16a34a !important;">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                <strong style="color:#16a34a;">Participation confirmée</strong><br>
-                                <small class="text-muted">Votre code d'entrée vous a été envoyé par email.</small>
-                            </div>
-                            <a href="{{ path('app_event_chat', {'id': evenement.id_ev}) }}"
-                               class="btn w-100 mb-3"
-                               style="background:var(--agri-green);color:white;border-radius:20px;padding:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;transition:0.4s;border:none;text-decoration:none;display:block;text-align:center;">
-                                <i class="fas fa-comments me-2"></i> Chat des participants
-                            </a>
+                            {% if participantConfirmation == 'confirmed' or participantConfirmation == 'attended' %}
+                                {% if participantConfirmation == 'attended' %}
+                                    <div class="alert border-0 shadow-sm rounded-4 py-3 mb-4" style="background:#e0f2fe;border-left:4px solid #0ea5e9 !important;">
+                                        <i class="fas fa-user-check text-info me-2"></i>
+                                        <strong style="color:#0369a1;">Présent à l'événement</strong><br>
+                                        <small class="text-muted">Vous avez été marqué comme présent. Merci de votre participation !</small>
+                                    </div>
+                                {% else %}
+                                    <div class="alert border-0 shadow-sm rounded-4 py-3 mb-4" style="background:#f0fdf4;border-left:4px solid #16a34a !important;">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <strong style="color:#16a34a;">Participation confirmée</strong><br>
+                                        <small class="text-muted">Votre code d'entrée vous a été envoyé par email.</small>
+                                    </div>
+                                {% endif %}
+                                <a href="{{ path('app_event_chat', {'id': evenement.id_ev}) }}"
+                                   class="btn w-100 mb-3"
+                                   style="background:var(--agri-green);color:white;border-radius:20px;padding:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;transition:0.4s;border:none;text-decoration:none;display:block;text-align:center;">
+                                    <i class="fas fa-comments me-2"></i> Chat des participants
+                                </a>
                             {% else %}
                             <div class="alert border-0 shadow-sm rounded-4 py-3 mb-4" style="background:#fffbeb;border-left:4px solid #f59e0b !important;">
                                 <i class="fas fa-clock me-2" style="color:#f59e0b;"></i>

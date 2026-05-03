@@ -4,6 +4,13 @@ namespace App\Service;
 
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
+/**
+ * @phpstan-type NotificationRecord array{
+ *   farmer_id: int|string,
+ *   maintenance_id: int|string,
+ *   seen_at?: string|null
+ * }&array<string, mixed>
+ */
 final class MaintenanceDateChangeNotificationStore
 {
     private string $storagePath;
@@ -13,6 +20,7 @@ final class MaintenanceDateChangeNotificationStore
         $this->storagePath = rtrim($projectDir, '\\/') . DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'maintenance_date_change_notifications.json';
     }
 
+    /** @param NotificationRecord $notification */
     public function addChangeNotification(array $notification): void
     {
         $records = $this->readAll();
@@ -20,10 +28,11 @@ final class MaintenanceDateChangeNotificationStore
         $this->writeAll($records);
     }
 
+    /** @return list<NotificationRecord> */
     public function getUnreadForFarmer(int $farmerId): array
     {
         return array_values(array_filter($this->readAll(), static function (array $notification) use ($farmerId): bool {
-            return (int) ($notification['farmer_id'] ?? 0) === $farmerId && empty($notification['seen_at']);
+            return (int) $notification['farmer_id'] === $farmerId && empty($notification['seen_at']);
         }));
     }
 
@@ -33,7 +42,7 @@ final class MaintenanceDateChangeNotificationStore
         $now = (new \DateTimeImmutable())->format(DATE_ATOM);
 
         foreach ($records as &$record) {
-            if ((int) ($record['farmer_id'] ?? 0) === $farmerId && (int) ($record['maintenance_id'] ?? 0) === $maintenanceId) {
+            if ((int) $record['farmer_id'] === $farmerId && (int) $record['maintenance_id'] === $maintenanceId) {
                 $record['seen_at'] = $now;
             }
         }
@@ -42,6 +51,7 @@ final class MaintenanceDateChangeNotificationStore
         $this->writeAll($records);
     }
 
+    /** @return list<NotificationRecord> */
     private function readAll(): array
     {
         if (!is_file($this->storagePath)) {
@@ -55,9 +65,31 @@ final class MaintenanceDateChangeNotificationStore
 
         $decoded = json_decode($content, true);
 
-        return is_array($decoded) ? $decoded : [];
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $records = [];
+        foreach ($decoded as $r) {
+            if (is_array($r) && isset($r['farmer_id'], $r['maintenance_id'])
+                && (is_int($r['farmer_id']) || is_string($r['farmer_id']))
+                && (is_int($r['maintenance_id']) || is_string($r['maintenance_id']))
+            ) {
+                $record = [
+                    'farmer_id' => $r['farmer_id'],
+                    'maintenance_id' => $r['maintenance_id'],
+                ];
+                if (array_key_exists('seen_at', $r)) {
+                    $seenAt = $r['seen_at'];
+                    $record['seen_at'] = $seenAt === null ? null : (is_scalar($seenAt) ? (string) $seenAt : null);
+                }
+                $records[] = $record;
+            }
+        }
+        return $records;
     }
 
+    /** @param list<NotificationRecord> $records */
     private function writeAll(array $records): void
     {
         $directory = dirname($this->storagePath);
@@ -67,7 +99,7 @@ final class MaintenanceDateChangeNotificationStore
 
         file_put_contents(
             $this->storagePath,
-            json_encode(array_values($records), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+            json_encode($records, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
             LOCK_EX
         );
     }

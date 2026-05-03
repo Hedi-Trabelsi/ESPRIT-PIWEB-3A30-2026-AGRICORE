@@ -30,13 +30,17 @@ class CalendarSubscriber implements EventSubscriberInterface
         $start = $calendarEvent->getStart();
         $end   = $calendarEvent->getEnd();
 
-        $evenements = $this->em->getRepository(Evennementagricole::class)
+        $rawEvenements = $this->em->getRepository(Evennementagricole::class)
             ->createQueryBuilder('e')
             ->where('e.date_debut <= :end AND e.date_fin >= :start')
             ->setParameter('start', $start)
             ->setParameter('end', $end)
             ->getQuery()
             ->getResult();
+
+        $evenements = is_array($rawEvenements)
+            ? array_values(array_filter($rawEvenements, fn($r) => $r instanceof Evennementagricole))
+            : [];
 
         $now = new \DateTime();
 
@@ -61,9 +65,11 @@ class CalendarSubscriber implements EventSubscriberInterface
 
             $places = max(0, $ev->getCapaciteMax() - $reserved);
 
+            $start = $ev->getDateDebut();
+            if ($start === null) continue;
             $event = new Event(
                 $ev->getTitre() . ' — ' . $places . ' places',
-                $ev->getDateDebut(),
+                $start,
                 $ev->getDateFin()
             );
 

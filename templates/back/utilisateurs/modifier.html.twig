@@ -91,11 +91,7 @@
         <div class="card border-0 shadow-sm">
             <div class="card-body text-center py-4">
                 <div class="u-avatar-lg mx-auto mb-3">
-                    {% if user.image %}
-                        <img src="data:image/jpeg;base64,{{ user.image }}" alt="">
-                    {% else %}
-                        <img src="{{ asset('img/profile.webp') }}" alt="">
-                    {% endif %}
+                    <img src="{{ path('app_user_avatar', {id: user.id}) }}" alt="">
                 </div>
                 <h5 class="fw-bold mb-1">{{ user.prenom }} {{ user.nom }}</h5>
                 <p class="text-muted mb-2" style="font-size:14px;">{{ user.email }}</p>

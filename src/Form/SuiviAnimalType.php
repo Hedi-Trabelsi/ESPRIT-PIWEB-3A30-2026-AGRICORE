@@ -9,6 +9,8 @@ use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -38,9 +40,25 @@ class SuiviAnimalType extends AbstractType
                 'widget' => 'single_text',
                 'label'  => 'Date du suivi',
             ])
-            ->add('temperature', null, ['label' => 'Température (°C)'])
-            ->add('poids',       null, ['label' => 'Poids (kg)'])
-            ->add('rythmeCardiaque', null, ['label' => 'Rythme cardiaque (bpm)'])
+            ->add('temperature', NumberType::class, [
+                'label'      => 'Température (°C)',
+                'scale'      => 1,
+                'html5'      => true,
+                'empty_data' => null,
+                'required'   => true,
+            ])
+            ->add('poids', NumberType::class, [
+                'label'      => 'Poids (kg)',
+                'scale'      => 1,
+                'html5'      => true,
+                'empty_data' => null,
+                'required'   => true,
+            ])
+            ->add('rythmeCardiaque', IntegerType::class, [
+                'label'      => 'Rythme cardiaque (bpm)',
+                'empty_data' => null,
+                'required'   => true,
+            ])
             ->add('niveauActivite', ChoiceType::class, [
                 'label'       => "Niveau d'activité",
                 'choices'     => ['Faible' => 'Faible', 'Modéré' => 'Modéré', 'Élevé' => 'Élevé'],

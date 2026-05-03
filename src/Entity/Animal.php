@@ -20,33 +20,40 @@ class Animal
     #[ORM\Column(name: "idAnimal")]
     private ?int $idAnimal = null;
 
+    public function setIdAnimal(int $idAnimal): self
+    {
+        $this->idAnimal = $idAnimal;
+        return $this;
+    }
+
     #[ORM\Column(name: "idAgriculteur", nullable: true)]
     private ?int $idAgriculteur = null;
 
     #[ORM\Column(name: "codeAnimal", length: 50)]
     #[Assert\NotBlank(message: "Le code animal est obligatoire")]
     #[Assert\Length(max: 50, maxMessage: "Le code animal ne peut pas dépasser {{ limit }} caractères")]
-    private ?string $codeAnimal = null;
+    private string $codeAnimal = '';
 
     #[ORM\Column(name: "espece", length: 50)]
     #[Assert\NotBlank(message: "L'espèce est obligatoire")]
     #[Assert\Length(max: 50, maxMessage: "L'espèce ne peut pas dépasser {{ limit }} caractères")]
-    private ?string $espece = null;
+    private string $espece = '';
 
     #[ORM\Column(name: "race", length: 50)]
     #[Assert\NotBlank(message: "La race est obligatoire")]
     #[Assert\Length(max: 50, maxMessage: "La race ne peut pas dépasser {{ limit }} caractères")]
-    private ?string $race = null;
+    private string $race = '';
 
     #[ORM\Column(name: "sexe", length: 50)]
     #[Assert\NotBlank(message: "Le sexe est obligatoire")]
     #[Assert\Choice(choices: ["Mâle", "Femelle"], message: "Le sexe doit être 'Mâle' ou 'Femelle'")]
-    private ?string $sexe = null;
+    private string $sexe = '';
 
     #[ORM\Column(name: "dateNaissance", type: "date")]
     #[Assert\NotNull(message: "La date de naissance est obligatoire")]
     #[Assert\LessThanOrEqual("today", message: "La date de naissance ne peut pas être dans le futur")]
-    private ?\DateTimeInterface $dateNaissance = null;
+    private \DateTimeInterface $dateNaissance;
+    /** @var Collection<int, SuiviAnimal> */
     #[ORM\OneToMany(mappedBy: "animal", targetEntity: SuiviAnimal::class)]
     private Collection $suivis;
     // ===== ID =====
@@ -68,7 +75,7 @@ class Animal
     }
 
     // ===== CODE =====
-    public function getCodeAnimal(): ?string
+    public function getCodeAnimal(): string
     {
         return $this->codeAnimal;
     }
@@ -80,7 +87,7 @@ class Animal
     }
 
     // ===== ESPECE =====
-    public function getEspece(): ?string
+    public function getEspece(): string
     {
         return $this->espece;
     }
@@ -92,7 +99,7 @@ class Animal
     }
 
     // ===== RACE =====
-    public function getRace(): ?string
+    public function getRace(): string
     {
         return $this->race;
     }
@@ -104,7 +111,7 @@ class Animal
     }
 
     // ===== SEXE =====
-    public function getSexe(): ?string
+    public function getSexe(): string
     {
         return $this->sexe;
     }
@@ -116,16 +123,19 @@ class Animal
     }
 
     // ===== DATE =====
-    public function getDateNaissance(): ?\DateTimeInterface
+    public function getDateNaissance(): \DateTimeInterface
     {
         return $this->dateNaissance;
     }
 
-    public function setDateNaissance(?\DateTimeInterface $dateNaissance): self
+    public function setDateNaissance(\DateTimeInterface $dateNaissance): self
     {
         $this->dateNaissance = $dateNaissance;
         return $this;
     }
+    /**
+     * @return Collection<int, SuiviAnimal>
+     */
     public function getSuivis(): Collection
     {
         return $this->suivis;

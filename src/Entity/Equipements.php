@@ -34,66 +34,67 @@ class Equipements
     #[ORM\JoinColumn(name: 'id_fournisseur', referencedColumnName: 'id', onDelete: 'CASCADE')]
     private User $id_fournisseur;
 
-    public function getId_equipement()
+    public function getId_equipement(): int
     {
         return $this->id_equipement;
     }
 
-    public function setId_equipement($value)
+    public function setId_equipement(int $value): void
     {
         $this->id_equipement = $value;
     }
 
-    public function getNom()
+    public function getNom(): string
     {
         return $this->nom;
     }
 
-    public function setNom($value)
+    public function setNom(string $value): void
     {
         $this->nom = $value;
     }
 
-    public function getType()
+    public function getType(): string
     {
         return $this->type;
     }
 
-    public function setType($value)
+    public function setType(string $value): void
     {
         $this->type = $value;
     }
 
-    public function getPrix()
+    public function getPrix(): string
     {
         return $this->prix;
     }
 
-    public function setPrix($value)
+    public function setPrix(string $value): void
     {
         $this->prix = $value;
     }
 
-    public function getQuantite()
+    public function getQuantite(): int
     {
         return $this->quantite;
     }
 
-    public function setQuantite($value)
+    public function setQuantite(int $value): void
     {
         $this->quantite = $value;
     }
 
-    public function getId_fournisseur()
+    public function getId_fournisseur(): User
     {
         return $this->id_fournisseur;
     }
 
-    public function setId_fournisseur($value)
+    public function setId_fournisseur(User $value): void
     {
         $this->id_fournisseur = $value;
     }
 
+    /** @var Collection<int, Panier> */
     #[ORM\OneToMany(mappedBy: "id_equipement", targetEntity: Panier::class)]
     private Collection $paniers;
 
@@ -102,47 +103,46 @@ class Equipements
         $this->paniers = new ArrayCollection();
     }
 
-        public function getPaniers(): Collection
-        {
-            return $this->paniers;
-        }
-    
-        public function addPanier(Panier $panier): self
-        {
-            if (!$this->paniers->contains($panier)) {
-                $this->paniers[] = $panier;
-                $panier->setId_equipement($this);
-            }
-    
-            return $this;
-        }
-    
-        public function removePanier(Panier $panier): self
-        {
-            if ($this->paniers->removeElement($panier)) {
-                // set the owning side to null (unless already changed)
-                if ($panier->getId_equipement() === $this) {
-                    $panier->setId_equipement(null);
-                }
-            }
-    
-            return $this;
+    /**
+     * @return Collection<int, Panier>
+     */
+    public function getPaniers(): Collection
+    {
+        return $this->paniers;
+    }
+
+    public function addPanier(Panier $panier): self
+    {
+        if (!$this->paniers->contains($panier)) {
+            $this->paniers[] = $panier;
         }
 
-        public function getIdEquipement(): ?int
-        {
-            return $this->id_equipement;
-        }
+        return $this;
+    }
 
-        public function getIdFournisseur(): ?User
-        {
-            return $this->id_fournisseur;
-        }
+    public function removePanier(Panier $panier): self
+    {
+        $this->paniers->removeElement($panier);
 
-        public function setIdFournisseur(?User $id_fournisseur): static
-        {
+        return $this;
+    }
+
+    public function getIdEquipement(): ?int
+    {
+        return $this->id_equipement;
+    }
+
+    public function getIdFournisseur(): ?User
+    {
+        return $this->id_fournisseur;
+    }
+
+    public function setIdFournisseur(?User $id_fournisseur): static
+    {
+        if ($id_fournisseur !== null) {
             $this->id_fournisseur = $id_fournisseur;
-
-            return $this;
         }
+
+        return $this;
+    }
 }

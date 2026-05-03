@@ -13,6 +13,9 @@ use Symfony\Component\Routing\Attribute\Route;
 class NotificationAnimalController extends AbstractController
 {
     // Normes vitales par espèce [tempMin, tempMax, rythmeMin, rythmeMax]
+    /**
+     * @return array{0: float, 1: float, 2: int, 3: int}
+     */
     private function getNormes(string $espece): array
     {
         return match (strtolower(trim($espece))) {
@@ -34,7 +37,7 @@ class NotificationAnimalController extends AbstractController
         if (!$sessionUser) return $this->redirectToRoute('front_login');
 
         return $this->render('front/suivi_animal/animal/notifications.html.twig', [
-            'animals' => $animalRepo->findAll(),
+            'animals' => $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100),
         ]);
     }
 
@@ -42,7 +45,7 @@ class NotificationAnimalController extends AbstractController
     #[Route('/animal/notifications/scanner', name: 'app_notifications_scanner', methods: ['GET'])]
     public function scanner(AnimalRepository $animalRepo, SuiviAnimalRepository $suiviRepo): JsonResponse
     {
-        $animals = $animalRepo->findAll();
+        $animals = $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100);
         $alertes = [];
 
         foreach ($animals as $animal) {
@@ -50,7 +53,7 @@ class NotificationAnimalController extends AbstractController
             if (empty($suivis)) continue;
 
             $s      = $suivis[0];
-            $normes = $this->getNormes($animal->getEspece());
+            $normes = $this->getNormes((string) $animal->getEspece());
             [$tempMin, $tempMax, $rythmeMin, $rythmeMax] = $normes;
 
             $temp   = $s->getTemperature();

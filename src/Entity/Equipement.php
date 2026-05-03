@@ -31,7 +31,7 @@ class Equipement
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $nom = null;
+    private string $nom = '';
 
     public function getNom(): ?string
     {
@@ -45,7 +45,7 @@ class Equipement
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $type = null;
+    private string $type = '';
 
     public function getType(): ?string
     {
@@ -59,7 +59,7 @@ class Equipement
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $prix = null;
+    private string $prix = '';
 
     public function getPrix(): ?string
     {
@@ -73,7 +73,7 @@ class Equipement
     }
 
     #[ORM\Column(type: 'integer', nullable: false)]
-    private ?int $quantite = null;
+    private int $quantite = 0;
 
     public function getQuantite(): ?int
     {
@@ -163,6 +163,7 @@ class Equipement
         return $this;
     }
 
+    /** @var Collection<int, Panier> */
     #[ORM\OneToMany(targetEntity: Panier::class, mappedBy: 'equipement')]
     private Collection $paniers;
 
@@ -176,9 +177,6 @@ class Equipement
      */
     public function getPaniers(): Collection
     {
-        if (!$this->paniers instanceof Collection) {
-            $this->paniers = new ArrayCollection();
-        }
         return $this->paniers;
     }
 
@@ -186,13 +184,18 @@ class Equipement
     {
         if (!$this->getPaniers()->contains($panier)) {
             $this->getPaniers()->add($panier);
+            $panier->setEquipement($this);
         }
         return $this;
     }
 
     public function removePanier(Panier $panier): self
     {
-        $this->getPaniers()->removeElement($panier);
+        if ($this->getPaniers()->removeElement($panier)) {
+            if ($panier->getEquipement() === $this) {
+                $panier->setEquipement(null);
+            }
+        }
         return $this;
     }
 

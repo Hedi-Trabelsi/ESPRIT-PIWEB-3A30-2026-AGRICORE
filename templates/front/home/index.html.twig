@@ -1,9 +1,463 @@
 {% extends 'front/base_front.html.twig' %}
 
-
-
 {% block body %}
 {# Navbar End #}
+
+{% if isAgriculteur %}
+<style>
+    .calendar-icon-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 65px;
+        height: 65px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #16a34a, #22c55e);
+        box-shadow: 0 12px 40px rgba(22,163,74,0.5);
+        border: none;
+        cursor: pointer;
+        z-index: 1000;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { box-shadow: 0 12px 40px rgba(22,163,74,0.5); }
+        50% { box-shadow: 0 12px 50px rgba(22,163,74,0.7); }
+        100% { box-shadow: 0 12px 40px rgba(22,163,74,0.5); }
+    }
+    .calendar-icon-btn:hover {
+        transform: scale(1.15);
+    }
+    .calendar-icon-btn i {
+        color: white;
+        font-size: 32px;
+    }
+    .calendar-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(5px);
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .calendar-modal {
+        background: white;
+        border-radius: 28px;
+        width: 100%;
+        max-width: 1100px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 25px 80px rgba(0,0,0,0.3);
+        position: relative;
+        animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .calendar-modal-header {
+        padding: 28px 32px;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(135deg, #f8fafc, #fff);
+    }
+    .calendar-modal-header h3 {
+        margin: 0;
+        font-weight: 900;
+        color: #0f172a;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .calendar-modal-header h3 i {
+        color: #16a34a;
+    }
+    .calendar-modal-close {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        border: none;
+        background: #f1f5f9;
+        color: #64748b;
+        font-size: 22px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .calendar-modal-close:hover {
+        background: #fee2e2;
+        color: #dc2626;
+        transform: rotate(90deg);
+    }
+    .calendar-modal-body {
+        padding: 32px;
+    }
+    .calendar-legend {
+        display: flex;
+        gap: 24px;
+        margin-bottom: 24px;
+        padding: 16px 20px;
+        background: #f8fafc;
+        border-radius: 16px;
+        flex-wrap: wrap;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748b;
+    }
+    .legend-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+    }
+    .dot-event {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    }
+    .dot-maintenance {
+        background: linear-gradient(135deg, #f97316, #fb923c);
+    }
+    /* FullCalendar custom styles */
+    :root {
+        --g: #16a34a;
+        --g2: #22c55e;
+        --orange: #f97316;
+        --dark: #0f172a;
+        --muted: #64748b;
+    }
+    #homeCalendar {
+        width: 100%;
+    }
+    #homeCalendar .fc-toolbar {
+        margin-bottom: 28px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    #homeCalendar .fc-toolbar-title {
+        font-weight: 900;
+        font-size: 1.5rem;
+        color: var(--dark);
+        letter-spacing: -0.5px;
+    }
+    #homeCalendar .fc-button {
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        font-size: .85rem !important;
+        padding: 10px 18px !important;
+        box-shadow: none !important;
+        border: none !important;
+        transition: .2s !important;
+    }
+    #homeCalendar .fc-button-primary {
+        background: linear-gradient(135deg, var(--g), var(--g2)) !important;
+        border-color: var(--g) !important;
+    }
+    #homeCalendar .fc-button-primary:hover {
+        background: linear-gradient(135deg, #15803d, #16a34a) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(22,163,74,0.3) !important;
+    }
+    #homeCalendar .fc-button-primary:not(:disabled).fc-button-active {
+        background: var(--dark) !important;
+        border-color: var(--dark) !important;
+    }
+    #homeCalendar .fc-button-group {
+        gap: 6px;
+    }
+    #homeCalendar .fc-theme-standard td, #homeCalendar .fc-theme-standard th {
+        border-color: #f1f5f9 !important;
+    }
+    #homeCalendar .fc-theme-standard .fc-scrollgrid {
+        border-color: #f1f5f9 !important;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    #homeCalendar .fc-col-header-cell {
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        padding: 14px 0 !important;
+    }
+    #homeCalendar .fc-col-header-cell-cushion {
+        color: var(--muted) !important;
+        font-weight: 900 !important;
+        font-size: .82rem !important;
+        text-transform: uppercase;
+        letter-spacing: .8px;
+        text-decoration: none !important;
+    }
+    #homeCalendar .fc-daygrid-day-number {
+        color: var(--dark) !important;
+        font-weight: 800 !important;
+        font-size: .9rem !important;
+        text-decoration: none !important;
+        padding: 10px 12px !important;
+    }
+    #homeCalendar .fc-day-today {
+        background: rgba(22,163,74,.06) !important;
+    }
+    #homeCalendar .fc-day-today .fc-daygrid-day-number {
+        background: linear-gradient(135deg, var(--g), var(--g2));
+        color: #fff !important;
+        border-radius: 50%;
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 8px;
+        padding: 0 !important;
+        box-shadow: 0 4px 12px rgba(22,163,74,0.3);
+    }
+    #homeCalendar .fc-event {
+        border-radius: 12px !important;
+        border: none !important;
+        padding: 6px 10px !important;
+        font-size: .78rem !important;
+        font-weight: 700 !important;
+        cursor: pointer;
+        transition: transform .2s, opacity .2s, box-shadow .2s !important;
+        margin-bottom: 4px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    #homeCalendar .fc-event:hover {
+        opacity: .95;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    }
+    #homeCalendar .fc-event.event-type-event {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa) !important;
+        border-color: #3b82f6 !important;
+    }
+    #homeCalendar .fc-event.event-type-maintenance {
+        background: linear-gradient(135deg, #f97316, #fb923c) !important;
+        border-color: #f97316 !important;
+    }
+    #homeCalendar .fc-daygrid-event-dot { display: none; }
+    #homeCalendar .fc-event-title { 
+        font-weight: 700 !important; 
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    #homeCalendar .fc-daygrid-day-frame { 
+        min-height: 100px !important; 
+    }
+    .event-icon {
+        font-size: 0.9rem;
+    }
+    .event-star {
+        color: #fbbf24;
+        font-size: 0.85rem;
+    }
+    .fc-tooltip {
+        position: fixed;
+        background: white;
+        border-radius: 16px;
+        padding: 16px 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        border: 1px solid #e2e8f0;
+        z-index: 10000;
+        min-width: 260px;
+        pointer-events: none;
+        animation: tipIn 0.2s ease;
+    }
+    @keyframes tipIn { 
+        from { opacity: 0; transform: translateY(10px); } 
+        to { opacity: 1; transform: none; } 
+    }
+    .fc-tooltip h6 { 
+        font-weight: 900; 
+        color: var(--dark); 
+        margin: 0 0 10px; 
+        font-size: 1rem; 
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .fc-tooltip .tr { 
+        font-size: .8rem; 
+        color: var(--muted); 
+        display: flex; 
+        align-items: center; 
+        gap: 8px; 
+        margin-bottom: 6px; 
+    }
+    .fc-tooltip .tr i { 
+        color: var(--g); 
+        width: 14px; 
+    }
+    .fc-tooltip .tr-type-event i { color: #3b82f6; }
+    .fc-tooltip .tr-type-maintenance i { color: #f97316; }
+</style>
+
+<button class="calendar-icon-btn" id="openCalendarBtn">
+    <i class="fas fa-calendar-star"></i>
+</button>
+
+<div class="calendar-modal-overlay" id="calendarModalOverlay">
+    <div class="calendar-modal">
+        <div class="calendar-modal-header">
+            <h3><i class="fas fa-calendar-alt"></i> Mon Calendrier</h3>
+            <button class="calendar-modal-close" id="closeCalendarBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="calendar-modal-body">
+            <div class="calendar-legend">
+                <div class="legend-item">
+                    <span class="legend-dot dot-event"></span>
+                    <span><i class="fas fa-calendar-check" style="color:#3b82f6;"></i> Événements inscrits</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot dot-maintenance"></span>
+                    <span><i class="fas fa-tools" style="color:#f97316;"></i> Maintenances planifiées</span>
+                </div>
+            </div>
+            <div id="homeCalendar"></div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const openBtn = document.getElementById('openCalendarBtn');
+    const closeBtn = document.getElementById('closeCalendarBtn');
+    const overlay = document.getElementById('calendarModalOverlay');
+    let calendar = null;
+    let calendarInit = false;
+    let tooltip = null;
+
+    openBtn.addEventListener('click', function() {
+        overlay.style.display = 'flex';
+        if (!calendarInit) {
+            initCalendar();
+            calendarInit = true;
+        } else {
+            calendar.updateSize();
+        }
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            closeModal();
+        }
+    });
+
+    function closeModal() {
+        overlay.style.display = 'none';
+        removeTooltip();
+    }
+
+    function initCalendar() {
+        const events = {{ calendarEvents|json_encode|raw }};
+        
+        events.forEach(event => {
+            if (event.type === 'event') {
+                event.title = '<i class="fas fa-star event-star"></i> ' + event.title;
+                event.className = 'event-type-event';
+                event.color = '#3b82f6';
+            } else if (event.type === 'maintenance') {
+                event.title = '<i class="fas fa-wrench event-icon"></i> ' + event.title;
+                event.className = 'event-type-maintenance';
+                event.color = '#f97316';
+            }
+        });
+
+        calendar = new FullCalendar.Calendar(document.getElementById('homeCalendar'), {
+            initialView: 'dayGridMonth',
+            locale: 'fr',
+            height: 'auto',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,listMonth'
+            },
+            buttonText: {
+                today: "Aujourd'hui",
+                month: 'Mois',
+                week: 'Semaine',
+                list: 'Liste'
+            },
+            events: events,
+            eventContent: function(arg) {
+                return {
+                    html: arg.event.title
+                };
+            },
+            eventClick: function(info) {
+                info.jsEvent.preventDefault();
+            },
+            eventMouseEnter: function(info) {
+                removeTooltip();
+                const props = info.event.extendedProps;
+                tooltip = document.createElement('div');
+                tooltip.className = 'fc-tooltip';
+                
+                let typeIcon, typeClass;
+                if (info.event.extendedProps.type === 'event') {
+                    typeIcon = '<i class="fas fa-calendar-check"></i>';
+                    typeClass = 'tr-type-event';
+                } else {
+                    typeIcon = '<i class="fas fa-tools"></i>';
+                    typeClass = 'tr-type-maintenance';
+                }
+                
+                tooltip.innerHTML = `
+                    <h6>${typeIcon} ${info.event.title.replace(/<[^>]*>/g, '')}</h6>
+                    <div class="tr ${typeClass}"><i class="fas fa-tag"></i> ${info.event.extendedProps.type === 'event' ? 'Événement' : 'Maintenance'}</div>
+                    ${props.lieu ? `<div class="tr"><i class="fas fa-map-marker-alt"></i> ${props.lieu}</div>` : ''}
+                    ${props.equipement ? `<div class="tr"><i class="fas fa-cog"></i> ${props.equipement}</div>` : ''}
+                    ${props.description ? `<div class="tr"><i class="fas fa-info-circle"></i> ${props.description.substring(0, 60)}${props.description.length > 60 ? '...' : ''}</div>` : ''}
+                `;
+                document.body.appendChild(tooltip);
+                posTooltip(info.jsEvent);
+            },
+            eventMouseLeave: removeTooltip,
+        });
+        
+        calendar.render();
+        
+        document.addEventListener('mousemove', function(e) {
+            if (tooltip) posTooltip(e);
+        });
+    }
+    
+    function posTooltip(e) {
+        if (!tooltip) return;
+        const x = e.clientX + 20, y = e.clientY + 20;
+        tooltip.style.left = (x + tooltip.offsetWidth  > window.innerWidth  ? x - tooltip.offsetWidth  - 40 : x) + 'px';
+        tooltip.style.top  = (y + tooltip.offsetHeight > window.innerHeight ? y - tooltip.offsetHeight - 40 : y) + 'px';
+    }
+    
+    function removeTooltip() {
+        if (tooltip) {
+            tooltip.remove();
+            tooltip = null;
+        }
+    }
+});
+</script>
+{% endif %}
 <!-- Carousel Start -->
 <div class="container-fluid p-0 wow fadeIn" data-wow-delay="0.1s">
     <div id="header-carousel" class="carousel slide" data-bs-ride="carousel">

@@ -6,6 +6,12 @@
     <title>{% block title %}Agricore{% endblock %}</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://code.jquery.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
     <link href="{{ asset('img/logoo.png') }}" rel="icon">
 
     <!-- Google Fonts -->
@@ -56,7 +62,7 @@
             </div>
             <div class="col-lg-5 px-5 text-end">
                 <div class="h-100 d-inline-flex align-items-center">
-                    <a href="{{ path('front_login') }}" class="topbar-link me-3">Connexion</a>
+                <a href="{{ path('front_login') }}" class="topbar-link me-3">Connexion</a>
                     <a href="{{ path('front_register') }}" class="topbar-link">Créer un compte</a>
                 </div>
             </div>
@@ -93,8 +99,8 @@
         </div>
          {# ✅ PHOTO PROFILE #}
         <a href="{{ path('app_profile') }}" class="d-none d-lg-block me-4">
-            {% if app.session.get('user') and app.session.get('user').image %}
-                <img src="data:image/jpeg;base64,{{ app.session.get('user').image }}" alt="Profile"
+            {% if app.session.get('user') %}
+                <img src="{{ path('app_user_avatar', {id: app.session.get('user').id}) }}" alt="Profile"
                      style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #198754;">
             {% else %}
                 <img src="{{ asset('img/profile.webp') }}" alt="Profile"
@@ -106,8 +112,114 @@
 <!-- Navbar End -->
 {% endblock %}
 
+
+<div id="page-content">
 {% block body %}{% endblock %}
+</div>
 {# Navbar End #}
+
+{# Loading Indicator #}
+<div id="ajax-loader" style="
+    position: fixed; top: 0; left: 0; width: 100%;
+    height: 4px; background: linear-gradient(90deg, #16a34a, #22c55e);
+    z-index: 99999; display: none; animation: slideRight 0.5s infinite linear;
+"></div>
+<style>
+    @keyframes slideRight {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+</style>
+
+{# AJAX Navigation Script #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loader = document.getElementById('ajax-loader');
+    
+    function isSameOrigin(url) {
+        try {
+            const urlObj = new URL(url);
+            return urlObj.origin === window.location.origin;
+        } catch (e) {
+            return false;
+        }
+    }
+    
+    function loadPage(url, pushState = true) {
+        if (!isSameOrigin(url)) {
+            window.location.href = url;
+            return;
+        }
+        
+        loader.style.display = 'block';
+        
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network error');
+            return response.text();
+        })
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newContent = doc.getElementById('page-content');
+            
+            if (newContent) {
+                document.getElementById('page-content').innerHTML = newContent.innerHTML;
+                
+                const newTitle = doc.querySelector('title');
+                if (newTitle) document.title = newTitle.textContent;
+                
+                if (pushState) {
+                    history.pushState(null, '', url);
+                }
+                
+                window.scrollTo(0, 0);
+                
+                const scripts = newContent.querySelectorAll('script');
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => {
+                        newScript.setAttribute(attr.name, attr.value);
+                    });
+                    newScript.textContent = oldScript.textContent;
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
+            } else {
+                window.location.href = url;
+            }
+        })
+        .catch(() => {
+            window.location.href = url;
+        })
+        .finally(() => {
+            loader.style.display = 'none';
+        });
+    }
+    
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('a[href]');
+        if (!link) return;
+        
+        if (link.target === '_blank' || 
+            link.hasAttribute('download') || 
+            link.href.includes('javascript:') || 
+            link.href.startsWith('#') ||
+            !isSameOrigin(link.href)) {
+            return;
+        }
+        
+        e.preventDefault();
+        loadPage(link.href);
+    });
+    
+    window.addEventListener('popstate', function() {
+        loadPage(window.location.href, false);
+    });
+});
+</script>
+
 
 {# Footer Start #}
 <div class="container-fluid bg-dark text-light footer mt-5 py-5">
@@ -178,25 +290,83 @@
 </script>
 
 {# JavaScript Libraries #}
-<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/wow/1.1.2/wow.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
-<script src="{{ asset('lib/waypoints/waypoints.min.js') }}"></script>
-<script src="{{ asset('lib/owlcarousel/owl.carousel.min.js') }}"></script>
-<script src="{{ asset('lib/counterup/counterup.min.js') }}"></script>
-<script src="{{ asset('lib/parallax/parallax.min.js') }}"></script>
-<script src="{{ asset('lib/isotope/isotope.pkgd.min.js') }}"></script>
-<script src="{{ asset('lib/lightbox/js/lightbox.min.js') }}"></script>
-<script src="{{ asset('js/main.js') }}"></script>
+<script defer src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/wow/1.1.2/wow.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+<script defer src="{{ asset('lib/waypoints/waypoints.min.js') }}"></script>
+<script defer src="{{ asset('lib/owlcarousel/owl.carousel.min.js') }}"></script>
+<script defer src="{{ asset('lib/counterup/counterup.min.js') }}"></script>
+<script defer src="{{ asset('lib/parallax/parallax.min.js') }}"></script>
+<script defer src="{{ asset('lib/isotope/isotope.pkgd.min.js') }}"></script>
+<script defer src="{{ asset('lib/lightbox/js/lightbox.min.js') }}"></script>
+<script defer src="{{ asset('js/main.min.js') }}"></script>
+
+<script>
+  (function () {
+    var prefetched = Object.create(null);
+
+    if (!('requestIdleCallback' in window)) {
+      window.requestIdleCallback = function (cb) {
+        return setTimeout(cb, 1);
+      };
+    }
+
+    function isPrefetchable(link) {
+      if (!link || !link.href) return false;
+      if (link.target === '_blank' || link.hasAttribute('download')) return false;
+      if ((link.getAttribute('href') || '').charAt(0) === '#') return false;
+
+      try {
+        var url = new URL(link.href, window.location.origin);
+        if (url.origin !== window.location.origin) return false;
+        if (url.href === window.location.href) return false;
+        return !prefetched[url.href];
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function prefetchPage(href) {
+      if (prefetched[href]) return;
+
+      var preload = document.createElement('link');
+      preload.rel = 'prefetch';
+      preload.as = 'document';
+      preload.href = href;
+      document.head.appendChild(preload);
+      prefetched[href] = true;
+    }
+
+    function handleLinkEvent(event) {
+      var link = event.target.closest('a[href]');
+      if (!isPrefetchable(link)) return;
+      prefetchPage(link.href);
+    }
+
+    document.addEventListener('mouseover', handleLinkEvent, { passive: true });
+    document.addEventListener('touchstart', handleLinkEvent, { passive: true });
+
+    requestIdleCallback(function () {
+      var links = document.querySelectorAll('a[href]');
+      var warmed = 0;
+
+      for (var i = 0; i < links.length && warmed < 8; i++) {
+        if (!isPrefetchable(links[i])) continue;
+        prefetchPage(links[i].href);
+        warmed++;
+      }
+    });
+  })();
+</script>
 
 {# ============================================================
    AgriCore — Alertes Santé Animaux
    S'affiche automatiquement après création/modification suivi
    ============================================================ #}
-{% set alertes = app.session.get('suivi_alertes') %}
-{% if alertes is not empty %}
-  {% do app.session.remove('suivi_alertes') %}
+{% set alertes_flash = app.flashes('suivi_alertes') %}
+{% set alertes_json = alertes_flash is not empty ? alertes_flash[0] : null %}
+{% if alertes_json %}
 
   <style>
     #agri-overlay {
@@ -246,7 +416,7 @@
 
   <script>
   (function() {
-    var ALERTES = {{ alertes|json_encode|raw }};
+    var ALERTES = {{ alertes_json|raw }};
     if (!ALERTES || ALERTES.length === 0) return;
 
     var niv = 'avertissement';
@@ -294,6 +464,34 @@
     overlay.addEventListener('click', function(e) {
       if (e.target === overlay) agriFermer();
     });
+
+    // ── Notifications Desktop Windows ──────────────────────────
+    function envoyerDesktop(titre, message, niveau) {
+      if (!('Notification' in window)) return;
+      function send() {
+        new Notification(titre, {
+          body: message,
+          icon: '/favicon.ico',
+          requireInteraction: niveau === 'critique',
+          tag: 'agri-' + Date.now(),
+        });
+      }
+      if (Notification.permission === 'granted') {
+        send();
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(function(p) {
+          if (p === 'granted') send();
+        });
+      }
+    }
+
+    // Envoyer une notification desktop pour chaque alerte
+    ALERTES.forEach(function(a, i) {
+      setTimeout(function() {
+        envoyerDesktop('🐾 ' + a.titre, a.message, a.niveau);
+      }, i * 600);
+    });
+
   })();
 
   function agriFermer() {

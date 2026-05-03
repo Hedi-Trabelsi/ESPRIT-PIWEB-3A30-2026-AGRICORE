@@ -15,55 +15,24 @@ class EquipmentAiService
     ) {
     }
 
+    /**
+     * @return array{summary:string, bullets:list<string>, score:int, provider:string, model?:string, api_url?:string, client_class?:string}
+     */
     public function generateInsights(Equipement $equipement): array
     {
-        $fallback = $this->buildFallbackInsights($equipement);
+        $hasGroq = $this->apiKey !== null && $this->apiKey !== '' && $this->apiKey !== 'YOUR_GROQ_API_KEY';
 
-        if (!$this->apiKey) {
-            return $fallback + ['provider' => 'local'];
-        }
-
-        try {
-            $prompt = sprintf(
-                "Tu es un expert en equipements agricoles. Donne une analyse concise en francais pour un equipement nomme %s, de type %s, au prix de %s TND avec un stock de %d unite(s). Retourne du texte structure en 3 courts paragraphes: usage, points de vigilance, conseil d'achat.",
-                $equipement->getNom(),
-                $equipement->getType(),
-                $equipement->getPrix(),
-                $equipement->getQuantite()
-            );
-
-            $response = $this->httpClient->request('POST', $this->apiUrl, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $this->apiKey,
-                    'Content-Type' => 'application/json',
-                ],
-                'json' => [
-                    'model' => $this->model,
-                    'temperature' => 0.5,
-                    'messages' => [
-                        ['role' => 'system', 'content' => 'Tu rediges des fiches produit agricoles utiles, precises et orientees action.'],
-                        ['role' => 'user', 'content' => $prompt],
-                    ],
-                ],
-            ]);
-
-            $data = $response->toArray(false);
-            $content = trim((string) ($data['choices'][0]['message']['content'] ?? ''));
-
-            if ($content !== '') {
-                return [
-                    'summary' => $content,
-                    'bullets' => $fallback['bullets'],
-                    'score' => $fallback['score'],
-                    'provider' => 'groq',
-                ];
-            }
-        } catch (\Throwable) {
-        }
-
-        return $fallback + ['provider' => 'local'];
+        return $this->buildFallbackInsights($equipement) + [
+            'provider'    => $hasGroq ? 'fallback' : 'local',
+            'model'       => $this->model,
+            'api_url'     => $this->apiUrl,
+            'client_class' => $this->httpClient::class,
+        ];
     }
 
+    /**
+     * @return array{summary:string, bullets:list<string>, score:int}
+     */
     private function buildFallbackInsights(Equipement $equipement): array
     {
         $price = (float) $equipement->getPrix();

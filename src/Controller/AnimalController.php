@@ -3,10 +3,12 @@
 namespace App\Controller;
 
 use App\Entity\Animal;
+use App\Entity\User;
 use App\Form\AnimalType;
 use App\Repository\AnimalRepository;
 use App\Repository\SuiviAnimalRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,18 +22,26 @@ use Dompdf\Options;
 final class AnimalController extends AbstractController
 {
     #[Route(name: 'app_animal_index', methods: ['GET'])]
-    public function index(Request $request, AnimalRepository $animalRepository): Response
+    public function index(Request $request, AnimalRepository $animalRepository, PaginatorInterface $paginator): Response
     {
         $sessionUser = $request->getSession()->get('user');
         if (!$sessionUser) {
             return $this->redirectToRoute('front_login');
         }
 
-        $q      = $request->query->get('q', '');
-        $sortBy = $request->query->get('sortBy', 'codeAnimal');
-        $order  = $request->query->get('order', 'ASC');
+        $q      = (string) $request->query->get('q', '');
+        $sortBy = (string) $request->query->get('sortBy', 'codeAnimal');
+        $order  = (string) $request->query->get('order', 'ASC');
 
-        $animals = $animalRepository->search($q, $sortBy, $order, null);
+        // On récupère la Query (pas encore exécutée) au lieu d'un tableau
+        $query = $animalRepository->searchQuery($q, $sortBy, $order, null);
+
+        // Le paginator exécute la query avec LIMIT + OFFSET automatiquement
+        $animals = $paginator->paginate(
+            $query,
+            $request->query->getInt('page', 1), // page courante (défaut : 1)
+            6                                    // 6 animaux par page
+        );
 
         if ($request->isXmlHttpRequest()) {
             return $this->render('front/suivi_animal/animal/_cards.html.twig', [
@@ -56,12 +66,12 @@ final class AnimalController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        $codeAnimal = $request->query->get('codeAnimal', '');
-        $espece     = $request->query->get('espece', '');
-        $race       = $request->query->get('race', '');
-        $sexe       = $request->query->get('sexe', '');
-        $sortBy     = $request->query->get('sortBy', 'codeAnimal');
-        $order      = $request->query->get('order', 'ASC');
+        $codeAnimal = (string) $request->query->get('codeAnimal', '');
+        $espece     = (string) $request->query->get('espece', '');
+        $race       = (string) $request->query->get('race', '');
+        $sexe       = (string) $request->query->get('sexe', '');
+        $sortBy     = (string) $request->query->get('sortBy', 'codeAnimal');
+        $order      = (string) $request->query->get('order', 'ASC');
 
         $animals = $animalRepository->searchStatic($codeAnimal, $espece, $race, $sexe, $sortBy, $order, null);
 
@@ -84,9 +94,9 @@ final class AnimalController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        $q      = $request->query->get('q', '');
-        $sortBy = $request->query->get('sortBy', 'codeAnimal');
-        $order  = $request->query->get('order', 'ASC');
+        $q      = (string) $request->query->get('q', '');
+        $sortBy = (string) $request->query->get('sortBy', 'codeAnimal');
+        $order  = (string) $request->query->get('order', 'ASC');
 
         $animals = $animalRepository->search($q, $sortBy, $order, null);
 
@@ -122,45 +132,29 @@ final class AnimalController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        $animals = $animalRepo->findAll();
-        $suivis  = $suiviRepo->findAll();
+        // ── Requêtes agrégées SQL au lieu de findAll() ──────────────
+        // Résout DoctrineDoctor : "Unrestricted findAll() without LIMIT"
 
-        $totalAnimaux = count($animals);
-        $parEspece = [];
-        $parRace   = [];
-        $parSexe   = ['Mâle' => 0, 'Femelle' => 0];
+        $totalAnimaux = $animalRepo->countAll();
+        $parEspece    = $animalRepo->countByEspece();
+        $parRace      = $animalRepo->countByRace();
+        $parSexe      = $animalRepo->countBySexe();
 
-        foreach ($animals as $a) {
-            $parEspece[$a->getEspece()] = ($parEspece[$a->getEspece()] ?? 0) + 1;
-            $parRace[$a->getRace()]     = ($parRace[$a->getRace()] ?? 0) + 1;
-            $parSexe[$a->getSexe()]     = ($parSexe[$a->getSexe()] ?? 0) + 1;
-        }
         arsort($parEspece);
         arsort($parRace);
 
-        $totalSuivis = count($suivis);
-        $parEtat     = ['Bon' => 0, 'Moyen' => 0, 'Mauvais' => 0];
-        $parActivite = ['Faible' => 0, 'Modéré' => 0, 'Élevé' => 0];
-        $tempSum = $poidsSum = $rythmeSum = 0;
-        $parMois = [];
+        $totalSuivis  = $suiviRepo->countAll();
+        $parEtat      = $suiviRepo->countByEtatSante();
+        $parActivite  = $suiviRepo->countByNiveauActivite();
+        $moyennes     = $suiviRepo->getMoyennes();
+        $derniersMois = $suiviRepo->countByMois(6);
 
-        foreach ($suivis as $s) {
-            $etat = $s->getEtatSante();
-            $act  = $s->getNiveauActivite();
-            if (isset($parEtat[$etat]))    $parEtat[$etat]++;
-            if (isset($parActivite[$act])) $parActivite[$act]++;
-            $tempSum   += $s->getTemperature();
-            $poidsSum  += $s->getPoids();
-            $rythmeSum += $s->getRythmeCardiaque();
-            $mois = $s->getDateSuivi()->format('Y-m');
-            $parMois[$mois] = ($parMois[$mois] ?? 0) + 1;
-        }
-        ksort($parMois);
-        $derniersMois = array_slice($parMois, -6, 6, true);
+        $tempSum   = $moyennes['moyTemp']   ?? 0;
+        $poidsSum  = $moyennes['moyPoids']  ?? 0;
+        $rythmeSum = $moyennes['moyRythme'] ?? 0;
 
-        // ── CMENGoogleChartsBundle — création des objets charts ──────────
+        // ── Google Charts ────────────────────────────────────────────
 
-        // 1. Donut — Animaux par espèce
         $chartEspece = new \CMEN\GoogleChartsBundle\GoogleCharts\Charts\PieChart();
         $especeData  = [['Espèce', 'Animaux']];
         foreach ($parEspece as $esp => $nb) {
@@ -171,40 +165,36 @@ final class AnimalController extends AbstractController
         $chartEspece->getOptions()->setPieHole(0.4);
         $chartEspece->getOptions()->setColors(['#3B6D11','#639922','#C0DD97','#8BC34A','#27500A']);
 
-        // 2. Pie — Répartition par sexe
         $chartSexe = new \CMEN\GoogleChartsBundle\GoogleCharts\Charts\PieChart();
         $chartSexe->getData()->setArrayToDataTable([
             ['Sexe', 'Animaux'],
-            ['Mâle',    $parSexe['Mâle']],
-            ['Femelle', $parSexe['Femelle']],
+            ['Mâle',    $parSexe['Mâle']    ?? 0],
+            ['Femelle', $parSexe['Femelle'] ?? 0],
         ]);
         $chartSexe->getOptions()->setTitle('Répartition par sexe');
         $chartSexe->getOptions()->setColors(['#3B6D11','#C0DD97']);
 
-        // 3. Colonnes — État de santé
         $chartEtat = new \CMEN\GoogleChartsBundle\GoogleCharts\Charts\ColumnChart();
         $chartEtat->getData()->setArrayToDataTable([
             ['État', 'Suivis', ['role' => 'style']],
-            ['Bon',     $parEtat['Bon'],     '#16a34a'],
-            ['Moyen',   $parEtat['Moyen'],   '#ca8a04'],
-            ['Mauvais', $parEtat['Mauvais'], '#dc2626'],
+            ['Bon',     $parEtat['Bon']     ?? 0, '#16a34a'],
+            ['Moyen',   $parEtat['Moyen']   ?? 0, '#ca8a04'],
+            ['Mauvais', $parEtat['Mauvais'] ?? 0, '#dc2626'],
         ]);
         $chartEtat->getOptions()->setTitle('État de santé des suivis');
         $chartEtat->getOptions()->getLegend()->setPosition('none');
 
-        // 4. Colonnes — Niveau d'activité
         $chartActivite = new \CMEN\GoogleChartsBundle\GoogleCharts\Charts\ColumnChart();
         $chartActivite->getData()->setArrayToDataTable([
             ["Activité", 'Suivis'],
-            ['Faible',  $parActivite['Faible']],
-            ['Modéré',  $parActivite['Modéré']],
-            ['Élevé',   $parActivite['Élevé']],
+            ['Faible',  $parActivite['Faible']  ?? 0],
+            ['Modéré',  $parActivite['Modéré']  ?? 0],
+            ['Élevé',   $parActivite['Élevé']   ?? 0],
         ]);
         $chartActivite->getOptions()->setTitle("Niveau d'activité");
         $chartActivite->getOptions()->setColors(['#3B6D11']);
         $chartActivite->getOptions()->getLegend()->setPosition('none');
 
-        // 5. Ligne — Suivis par mois
         $chartMois = new \CMEN\GoogleChartsBundle\GoogleCharts\Charts\LineChart();
         $moisData  = [['Mois', 'Suivis']];
         foreach ($derniersMois as $mois => $nb) {
@@ -218,9 +208,9 @@ final class AnimalController extends AbstractController
         return $this->render('front/suivi_animal/animal/stats.html.twig', [
             'totalAnimaux'  => $totalAnimaux,
             'totalSuivis'   => $totalSuivis,
-            'moyTemp'       => $totalSuivis ? round($tempSum / $totalSuivis, 1) : 0,
-            'moyPoids'      => $totalSuivis ? round($poidsSum / $totalSuivis, 1) : 0,
-            'moyRythme'     => $totalSuivis ? round($rythmeSum / $totalSuivis, 0) : 0,
+            'moyTemp'       => $tempSum,
+            'moyPoids'      => $poidsSum,
+            'moyRythme'     => $rythmeSum,
             'parEtat'       => $parEtat,
             'parRace'       => $parRace,
             'parRaceMax'    => $parRace ? max($parRace) : 1,
@@ -230,23 +220,11 @@ final class AnimalController extends AbstractController
             'chartEtat'     => $chartEtat,
             'chartActivite' => $chartActivite,
             'chartMois'     => $chartMois,
-        ]);
-
-        return $this->render('front/suivi_animal/animal/stats.html.twig', [
-            'totalAnimaux'      => $totalAnimaux,
             'parEspece'         => $parEspece,
             'parEspeceLabels'   => json_encode(array_keys($parEspece)),
             'parEspeceValues'   => json_encode(array_values($parEspece)),
-            'parRace'           => $parRace,
-            'parRaceMax'        => $parRace ? max($parRace) : 1,
             'parSexe'           => $parSexe,
-            'totalSuivis'       => $totalSuivis,
-            'parEtat'           => $parEtat,
             'parActivite'       => $parActivite,
-            'moyTemp'           => $totalSuivis ? round($tempSum / $totalSuivis, 1) : 0,
-            'moyPoids'          => $totalSuivis ? round($poidsSum / $totalSuivis, 1) : 0,
-            'moyRythme'         => $totalSuivis ? round($rythmeSum / $totalSuivis, 0) : 0,
-            'derniersMois'      => $derniersMois,
             'derniersMoisLabels'=> json_encode(array_keys($derniersMois)),
             'derniersMoisValues'=> json_encode(array_values($derniersMois)),
         ]);
@@ -255,7 +233,7 @@ final class AnimalController extends AbstractController
     #[Route('/new', name: 'app_animal_new', methods: ['GET', 'POST'])]    public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
         $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser) {
+        if (!$sessionUser instanceof User || $sessionUser->getId() === null) {
             return $this->redirectToRoute('front_login');
         }
 
@@ -278,10 +256,27 @@ final class AnimalController extends AbstractController
 
     #[Route('/{idAnimal}', name: 'app_animal_show', methods: ['GET'], requirements: ['idAnimal' => '\d+'])]
     public function show(
-        #[MapEntity(mapping: ['idAnimal' => 'idAnimal'])] Animal $animal
+        Request $request,
+        #[MapEntity(mapping: ['idAnimal' => 'idAnimal'])] Animal $animal,
+        SuiviAnimalRepository $suiviRepo
     ): Response {
+        $suivis = $suiviRepo->findByAnimalLimited($animal, 20);
+
+        // Récupérer les alertes passées via URL après création/modification suivi
+        $alertesParam = $request->query->get('alertes');
+        $alertes = null;
+        if (is_string($alertesParam) && $alertesParam !== '') {
+            $decoded = base64_decode($alertesParam, true);
+            if ($decoded !== false) {
+                /** @var array<int, array{titre: string, message: string, niveau: string}>|null $alertes */
+                $alertes = json_decode($decoded, true);
+            }
+        }
+
         return $this->render('front/suivi_animal/animal/show.html.twig', [
-            'animal' => $animal,
+            'animal'  => $animal,
+            'suivis'  => $suivis,
+            'alertes' => $alertes,
         ]);
     }
 
@@ -297,11 +292,11 @@ final class AnimalController extends AbstractController
         }
 
         if ($request->isMethod('POST')) {
-            $animal->setCodeAnimal($request->request->get('codeAnimal'));
-            $animal->setEspece($request->request->get('espece'));
-            $animal->setRace($request->request->get('race'));
-            $animal->setSexe($request->request->get('sexe'));
-            $animal->setDateNaissance(new \DateTime($request->request->get('dateNaissance')));
+            $animal->setCodeAnimal((string) $request->request->get('codeAnimal', ''));
+            $animal->setEspece((string) $request->request->get('espece', ''));
+            $animal->setRace((string) $request->request->get('race', ''));
+            $animal->setSexe((string) $request->request->get('sexe', ''));
+            $animal->setDateNaissance(new \DateTime((string) $request->request->get('dateNaissance', '')));
             $entityManager->flush();
             return $this->redirectToRoute('app_animal_index', [], Response::HTTP_SEE_OTHER);
         }

@@ -19,7 +19,7 @@ class SuiviAnimalBackController extends AbstractController
     {
         $q              = $request->query->get('q', '');
         $sortBy         = $request->query->get('sortBy', 'dateSuivi');
-        $order          = $request->query->get('order', 'DESC');
+        $order          = (string) $request->query->get('order', 'DESC');
         $filterEtat     = $request->query->get('etat', '');
         $filterActivite = $request->query->get('activite', '');
 
@@ -73,7 +73,7 @@ class SuiviAnimalBackController extends AbstractController
     #[Route('/back/suivis/new', name: 'back_suivi_new', methods: ['GET', 'POST'])]
     public function new(Request $request, EntityManagerInterface $em, AnimalRepository $animalRepo): Response
     {
-        $animals = $animalRepo->findAll();
+        $animals = $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100);
 
         if ($request->isMethod('POST')) {
             $animal = $animalRepo->find($request->request->get('idAnimal'));
@@ -85,13 +85,13 @@ class SuiviAnimalBackController extends AbstractController
 
             $suivi = new SuiviAnimal();
             $suivi->setAnimal($animal);
-            $suivi->setDateSuivi(new \DateTime($request->request->get('dateSuivi')));
+            $suivi->setDateSuivi(new \DateTime((string) $request->request->get('dateSuivi', '')));
             $suivi->setTemperature((float) $request->request->get('temperature'));
             $suivi->setPoids((float) $request->request->get('poids'));
             $suivi->setRythmeCardiaque((int) $request->request->get('rythmeCardiaque'));
-            $suivi->setNiveauActivite($request->request->get('niveauActivite'));
-            $suivi->setEtatSante($request->request->get('etatSante'));
-            $suivi->setRemarque($request->request->get('remarque'));
+            $suivi->setNiveauActivite((string) $request->request->get('niveauActivite', ''));
+            $suivi->setEtatSante((string) $request->request->get('etatSante', ''));
+            $suivi->setRemarque((string) $request->request->get('remarque', ''));
 
             $em->persist($suivi);
             $em->flush();
@@ -110,20 +110,20 @@ class SuiviAnimalBackController extends AbstractController
     #[Route('/back/suivis/{id}/edit', name: 'back_suivi_edit', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function edit(SuiviAnimal $suivi, Request $request, EntityManagerInterface $em, AnimalRepository $animalRepo): Response
     {
-        $animals = $animalRepo->findAll();
+        $animals = $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100);
 
         if ($request->isMethod('POST')) {
             $animal = $animalRepo->find($request->request->get('idAnimal'));
             if ($animal) {
                 $suivi->setAnimal($animal);
             }
-            $suivi->setDateSuivi(new \DateTime($request->request->get('dateSuivi')));
+            $suivi->setDateSuivi(new \DateTime((string) $request->request->get('dateSuivi', '')));
             $suivi->setTemperature((float) $request->request->get('temperature'));
             $suivi->setPoids((float) $request->request->get('poids'));
             $suivi->setRythmeCardiaque((int) $request->request->get('rythmeCardiaque'));
-            $suivi->setNiveauActivite($request->request->get('niveauActivite'));
-            $suivi->setEtatSante($request->request->get('etatSante'));
-            $suivi->setRemarque($request->request->get('remarque'));
+            $suivi->setNiveauActivite((string) $request->request->get('niveauActivite', ''));
+            $suivi->setEtatSante((string) $request->request->get('etatSante', ''));
+            $suivi->setRemarque((string) $request->request->get('remarque', ''));
 
             $em->flush();
 

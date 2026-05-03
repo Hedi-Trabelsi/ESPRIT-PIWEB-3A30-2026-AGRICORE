@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Evennementagricole;
 use App\Entity\Participants;
+use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,7 +17,7 @@ class NotificationController extends AbstractController
     public function upcomingEvents(Request $request, EntityManagerInterface $em): JsonResponse
     {
         $user = $request->getSession()->get('user');
-        if (!$user) return new JsonResponse([]);
+        if (!$user instanceof User) return new JsonResponse([]);
 
         $now   = new \DateTime();
         $in24h = (clone $now)->modify('+24 hours');

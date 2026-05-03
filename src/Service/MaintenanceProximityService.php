@@ -192,7 +192,10 @@ class MaintenanceProximityService
                 ]);
 
                 $payload = $response->toArray(false);
-                $distanceMeters = $payload['routes'][0]['distance'] ?? null;
+                $routes = $payload['routes'] ?? null;
+                $distanceMeters = is_array($routes) && isset($routes[0]) && is_array($routes[0])
+                    ? ($routes[0]['distance'] ?? null)
+                    : null;
 
                 if (!is_numeric($distanceMeters)) {
                     return null;

@@ -19,13 +19,16 @@ class EmailService
 
     public string $lastError = '';
 
+    /**
+     * @param array<string, mixed> $analysis
+     */
     public function sendAnomalyAlert(User $user, Depense $depense, array $analysis): bool
     {
         $this->lastError = '';
         try {
             $email = (new TemplatedEmail())
                 ->from('ncibifiras19@gmail.com')
-                ->to($user->getEmail())
+                ->to((string) $user->getEmail())
                 ->subject('Alerte Anomalie - Agricore')
                 ->htmlTemplate('emails/anomaly_alert.html.twig')
                 ->context([

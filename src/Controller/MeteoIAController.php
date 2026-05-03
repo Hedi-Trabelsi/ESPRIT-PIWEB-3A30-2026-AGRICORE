@@ -34,7 +34,7 @@ class MeteoIAController extends AbstractController
         }
 
         return $this->render('front/suivi_animal/animal/meteo_ia.html.twig', [
-            'animals' => $animalRepo->findAll(),
+            'animals' => $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100),
         ]);
     }
 
@@ -44,7 +44,7 @@ class MeteoIAController extends AbstractController
         $sessionUser = $request->getSession()->get('user');
         if (!$sessionUser) return new JsonResponse(['error' => 'Non autorisé'], 401);
 
-        $ville = trim($request->request->get('ville', ''));
+        $ville = trim((string) $request->request->get('ville', ''));
         if (!$ville) return new JsonResponse(['error' => 'Veuillez entrer une ville.'], 400);
 
         // ── 1. Récupérer la météo via OpenWeatherMap ──
@@ -67,19 +67,24 @@ class MeteoIAController extends AbstractController
         }
 
         // ── 2. Extraire données météo ──
-        $temp        = $meteo['main']['temp'] ?? 0;
-        $tempMin     = $meteo['main']['temp_min'] ?? 0;
-        $tempMax     = $meteo['main']['temp_max'] ?? 0;
-        $humidity    = $meteo['main']['humidity'] ?? 0;
-        $windSpeed   = $meteo['wind']['speed'] ?? 0;
-        $description = $meteo['weather'][0]['description'] ?? '';
-        $icon        = $meteo['weather'][0]['icon'] ?? '01d';
-        $pressure    = $meteo['main']['pressure'] ?? 0;
-        $feelsLike   = $meteo['main']['feels_like'] ?? 0;
-        $rain        = $meteo['rain']['1h'] ?? 0;
+        $main = is_array($meteo['main'] ?? null) ? $meteo['main'] : [];
+        $wind = is_array($meteo['wind'] ?? null) ? $meteo['wind'] : [];
+        $weatherList = is_array($meteo['weather'] ?? null) ? $meteo['weather'] : [];
+        $weather0 = isset($weatherList[0]) && is_array($weatherList[0]) ? $weatherList[0] : [];
+        $rainArr = is_array($meteo['rain'] ?? null) ? $meteo['rain'] : [];
+        $temp        = is_numeric($main['temp'] ?? null) ? (float) $main['temp'] : 0;
+        $tempMin     = is_numeric($main['temp_min'] ?? null) ? (float) $main['temp_min'] : 0;
+        $tempMax     = is_numeric($main['temp_max'] ?? null) ? (float) $main['temp_max'] : 0;
+        $humidity    = is_numeric($main['humidity'] ?? null) ? (int) $main['humidity'] : 0;
+        $windSpeed   = is_numeric($wind['speed'] ?? null) ? (float) $wind['speed'] : 0;
+        $description = is_string($weather0['description'] ?? null) ? $weather0['description'] : '';
+        $icon        = is_string($weather0['icon'] ?? null) ? $weather0['icon'] : '01d';
+        $pressure    = is_numeric($main['pressure'] ?? null) ? (int) $main['pressure'] : 0;
+        $feelsLike   = is_numeric($main['feels_like'] ?? null) ? (float) $main['feels_like'] : 0;
+        $rain        = is_numeric($rainArr['1h'] ?? null) ? (float) $rainArr['1h'] : 0;
 
         // ── 3. Charger animaux + derniers suivis ──
-        $animals = $animalRepo->findAll();
+        $animals = $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100);
         $animalData = [];
         foreach ($animals as $animal) {
             $suivis = $suiviRepo->findBy(['animal' => $animal], ['dateSuivi' => 'DESC'], 1);
@@ -105,7 +110,7 @@ class MeteoIAController extends AbstractController
         $prompt = "Tu es un expert vétérinaire et agronome spécialisé en bien-être animal et météorologie agricole.\n\n"
             ."=== MÉTÉO ACTUELLE — {$ville} ===\n"
             ."Température : {$temp}°C (ressenti {$feelsLike}°C, min {$tempMin}°C, max {$tempMax}°C)\n"
-            ."Conditions : {$description}\n"
+            ."Conditions : {$description}\n "
             ."Humidité : {$humidity}%\n"
             ."Vent : {$windSpeed} m/s\n"
             ."Pression : {$pressure} hPa\n"
@@ -145,7 +150,14 @@ class MeteoIAController extends AbstractController
             ]);
 
             $groqData = $groqResp->toArray();
-            $analyse  = $groqData['choices'][0]['message']['content'] ?? '';
+            $choices = $groqData['choices'] ?? [];
+            $analyse = '';
+            if (is_array($choices) && isset($choices[0]) && is_array($choices[0])) {
+                $msg = $choices[0]['message'] ?? null;
+                if (is_array($msg) && isset($msg['content']) && is_string($msg['content'])) {
+                    $analyse = $msg['content'];
+                }
+            }
 
         } catch (\Exception $e) {
             return new JsonResponse(['error' => 'Erreur IA : '.$e->getMessage()], 500);
@@ -153,22 +165,28 @@ class MeteoIAController extends AbstractController
 
         // ── 6. Prévisions formatées ──
         $previsions = [];
-        if (isset($forecast['list'])) {
-            foreach (array_slice($forecast['list'], 0, 5) as $f) {
+        $list = $forecast['list'] ?? null;
+        if (is_array($list)) {
+            foreach (array_slice($list, 0, 5) as $f) {
+                if (!is_array($f)) continue;
+                $fMain = is_array($f['main'] ?? null) ? $f['main'] : [];
+                $fWeather = is_array($f['weather'] ?? null) ? $f['weather'] : [];
+                $fWeather0 = isset($fWeather[0]) && is_array($fWeather[0]) ? $fWeather[0] : [];
                 $previsions[] = [
-                    'heure' => date('H:i', $f['dt']),
-                    'temp'  => round($f['main']['temp']),
-                    'desc'  => $f['weather'][0]['description'] ?? '',
-                    'icon'  => $f['weather'][0]['icon'] ?? '01d',
-                    'hum'   => $f['main']['humidity'],
+                    'heure' => date('H:i', is_numeric($f['dt'] ?? null) ? (int) $f['dt'] : 0),
+                    'temp'  => round(is_numeric($fMain['temp'] ?? null) ? (float) $fMain['temp'] : 0),
+                    'desc'  => is_string($fWeather0['description'] ?? null) ? $fWeather0['description'] : '',
+                    'icon'  => is_string($fWeather0['icon'] ?? null) ? $fWeather0['icon'] : '01d',
+                    'hum'   => is_numeric($fMain['humidity'] ?? null) ? (int) $fMain['humidity'] : 0,
                 ];
             }
         }
 
+        $sys = is_array($meteo['sys'] ?? null) ? $meteo['sys'] : [];
         return new JsonResponse([
             'meteo' => [
-                'ville'       => $meteo['name'] ?? $ville,
-                'pays'        => $meteo['sys']['country'] ?? '',
+                'ville'       => is_string($meteo['name'] ?? null) ? $meteo['name'] : $ville,
+                'pays'        => is_string($sys['country'] ?? null) ? $sys['country'] : '',
                 'temp'        => round($temp),
                 'tempMin'     => round($tempMin),
                 'tempMax'     => round($tempMax),
@@ -186,5 +204,8 @@ class MeteoIAController extends AbstractController
         ]);
     }
 
+    /**
+     * @param array<mixed> $arr
+     */
     private function count(array $arr): int { return count($arr); }
 }

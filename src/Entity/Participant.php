@@ -30,9 +30,9 @@ class Participant
     }
 
     #[ORM\Column(type: 'integer', nullable: false)]
-    private ?int $id_utilisateur = null;
+    private int $id_utilisateur;
 
-    public function getId_utilisateur(): ?int
+    public function getId_utilisateur(): int
     {
         return $this->id_utilisateur;
     }
@@ -44,9 +44,9 @@ class Participant
     }
 
     #[ORM\Column(type: 'integer', nullable: false)]
-    private ?int $id_ev = null;
+    private int $id_ev;
 
-    public function getId_ev(): ?int
+    public function getId_ev(): int
     {
         return $this->id_ev;
     }
@@ -58,23 +58,23 @@ class Participant
     }
 
     #[ORM\Column(type: 'date', nullable: false)]
-    private ?\DateTimeInterface $date_inscription = null;
+    private \DateTimeImmutable $date_inscription;
 
     public function getDate_inscription(): ?\DateTimeInterface
     {
         return $this->date_inscription;
     }
 
-    public function setDate_inscription(\DateTimeInterface $date_inscription): self
+    public function setDate_inscription(\DateTimeImmutable $date_inscription): self
     {
         $this->date_inscription = $date_inscription;
         return $this;
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $statut_participation = null;
+    private string $statut_participation;
 
-    public function getStatut_participation(): ?string
+    public function getStatut_participation(): string
     {
         return $this->statut_participation;
     }
@@ -86,9 +86,9 @@ class Participant
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $montant_payee = null;
+    private string $montant_payee;
 
-    public function getMontant_payee(): ?string
+    public function getMontant_payee(): string
     {
         return $this->montant_payee;
     }
@@ -100,9 +100,9 @@ class Participant
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $confirmation = null;
+    private string $confirmation;
 
-    public function getConfirmation(): ?string
+    public function getConfirmation(): string
     {
         return $this->confirmation;
     }
@@ -114,9 +114,9 @@ class Participant
     }
 
     #[ORM\Column(type: 'integer', nullable: false)]
-    private ?int $nbr_places = null;
+    private int $nbr_places;
 
-    public function getNbr_places(): ?int
+    public function getNbr_places(): int
     {
         return $this->nbr_places;
     }
@@ -128,9 +128,9 @@ class Participant
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private ?string $nom_participant = null;
+    private string $nom_participant;
 
-    public function getNom_participant(): ?string
+    public function getNom_participant(): string
     {
         return $this->nom_participant;
     }
@@ -142,9 +142,9 @@ class Participant
     }
 
     #[ORM\Column(type: 'integer', nullable: false)]
-    private ?int $entry_code = null;
+    private int $entry_code;
 
-    public function getEntry_code(): ?int
+    public function getEntry_code(): int
     {
         return $this->entry_code;
     }
@@ -184,19 +184,19 @@ class Participant
         return $this;
     }
 
-    public function getDateInscription(): ?\DateTime
+    public function getDateInscription(): \DateTimeInterface
     {
         return $this->date_inscription;
     }
 
-    public function setDateInscription(\DateTime $date_inscription): static
+    public function setDateInscription(\DateTimeImmutable $date_inscription): static
     {
         $this->date_inscription = $date_inscription;
 
         return $this;
     }
 
-    public function getStatutParticipation(): ?string
+    public function getStatutParticipation(): string
     {
         return $this->statut_participation;
     }
@@ -208,7 +208,7 @@ class Participant
         return $this;
     }
 
-    public function getMontantPayee(): ?string
+    public function getMontantPayee(): string
     {
         return $this->montant_payee;
     }
@@ -220,7 +220,7 @@ class Participant
         return $this;
     }
 
-    public function getNbrPlaces(): ?int
+    public function getNbrPlaces(): int
     {
         return $this->nbr_places;
     }
@@ -232,7 +232,7 @@ class Participant
         return $this;
     }
 
-    public function getNomParticipant(): ?string
+    public function getNomParticipant(): string
     {
         return $this->nom_participant;
     }
@@ -244,7 +244,7 @@ class Participant
         return $this;
     }
 
-    public function getEntryCode(): ?int
+    public function getEntryCode(): int
     {
         return $this->entry_code;
     }
@@ -256,4 +256,8 @@ class Participant
         return $this;
     }
 
+    public function __construct()
+    {
+        $this->date_inscription = new \DateTimeImmutable();
+    }
 }

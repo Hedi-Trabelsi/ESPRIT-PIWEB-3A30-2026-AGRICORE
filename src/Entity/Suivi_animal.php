@@ -5,8 +5,6 @@ namespace App\Entity;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
-use App\Entity\Animal;
-
 #[ORM\Entity]
 #[ORM\Table(name: 'suivi_animal_legacy')]
 class Suivi_animal
@@ -16,9 +14,8 @@ class Suivi_animal
     #[ORM\Column(type: "integer")]
     private int $idSuivi;
 
-        #[ORM\ManyToOne(targetEntity: Animal::class, inversedBy: "suivi_animals")]
-    #[ORM\JoinColumn(name: 'idAnimal', referencedColumnName: 'idAnimal', onDelete: 'CASCADE')]
-    private Animal $idAnimal;
+    #[ORM\Column(name: 'idAnimal', type: 'integer')]
+    private int $idAnimal = 0;
 
     #[ORM\Column(type: "datetime")]
     private \DateTimeInterface $dateSuivi;
@@ -44,102 +41,102 @@ class Suivi_animal
     #[ORM\Column(type: "string", length: 50)]
     private string $niveauActivite;
 
-    public function getIdSuivi()
+    public function getIdSuivi(): int
     {
         return $this->idSuivi;
     }
 
-    public function setIdSuivi($value)
+    public function setIdSuivi(int $value): void
     {
         $this->idSuivi = $value;
     }
 
-    public function getIdAnimal()
+    public function getIdAnimal(): int
     {
         return $this->idAnimal;
     }
 
-    public function setIdAnimal($value)
+    public function setIdAnimal(int $value): void
     {
         $this->idAnimal = $value;
     }
 
-    public function getDateSuivi()
+    public function getDateSuivi(): \DateTimeInterface
     {
         return $this->dateSuivi;
     }
 
-    public function setDateSuivi($value)
+    public function setDateSuivi(\DateTimeInterface $value): void
     {
         $this->dateSuivi = $value;
     }
 
-    public function getTemperature()
+    public function getTemperature(): float
     {
         return $this->temperature;
     }
 
-    public function setTemperature($value)
+    public function setTemperature(float $value): void
     {
         $this->temperature = $value;
     }
 
-    public function getPoids()
+    public function getPoids(): float
     {
         return $this->poids;
     }
 
-    public function setPoids($value)
+    public function setPoids(float $value): void
     {
         $this->poids = $value;
     }
 
-    public function getRythmeCardiaque()
+    public function getRythmeCardiaque(): int
     {
         return $this->rythmeCardiaque;
     }
 
-    public function setRythmeCardiaque($value)
+    public function setRythmeCardiaque(int $value): void
     {
         $this->rythmeCardiaque = $value;
     }
 
-    public function getNiveauActitive()
+    public function getNiveauActitive(): string
     {
         return $this->niveauActitive;
     }
 
-    public function setNiveauActitive($value)
+    public function setNiveauActitive(string $value): void
     {
         $this->niveauActitive = $value;
     }
 
-    public function getEtatSante()
+    public function getEtatSante(): string
     {
         return $this->etatSante;
     }
 
-    public function setEtatSante($value)
+    public function setEtatSante(string $value): void
     {
         $this->etatSante = $value;
     }
 
-    public function getRemarque()
+    public function getRemarque(): string
     {
         return $this->remarque;
     }
 
-    public function setRemarque($value)
+    public function setRemarque(string $value): void
     {
         $this->remarque = $value;
     }
 
-    public function getNiveauActivite()
+    public function getNiveauActivite(): string
     {
         return $this->niveauActivite;
     }
 
-    public function setNiveauActivite($value)
+    public function setNiveauActivite(string $value): void
     {
         $this->niveauActivite = $value;
     }

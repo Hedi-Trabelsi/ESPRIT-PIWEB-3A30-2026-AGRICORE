@@ -6,8 +6,13 @@ doctrine:
         # either here or in the DATABASE_URL env var (see .env file)
         #server_version: '16'
 
-        profiling_collect_backtrace: '%kernel.debug%'
+        # Backtrace collection is the single biggest dev-mode slowdown for Doctrine —
+        # it captures a full PHP stack trace for every query. Disabled by default; enable
+        # only when actively debugging which controller issued a query.
+        profiling_collect_backtrace: false
         use_savepoints: true
+        options:
+            1002: "SET time_zone = '+01:00'"
     orm:
         auto_generate_proxy_classes: true
         enable_lazy_ghost_objects: true
@@ -15,6 +20,15 @@ doctrine:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
         auto_mapping: true
+        # Cache compiled DQL→SQL and metadata in dev too (cheap, big win on pages with
+        # many repeat queries like dashboards). Run `php bin/console cache:clear` if
+        # you change entity attributes and don't see them reflected.
+        query_cache_driver:
+            type: pool
+            pool: doctrine.system_cache_pool
+        metadata_cache_driver:
+            type: pool
+            pool: doctrine.system_cache_pool
         mappings:
             App:
                 type: attribute
@@ -22,6 +36,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Entity'
                 prefix: 'App\Entity'
                 alias: App
+
+framework:
+    cache:
+        pools:
+            doctrine.system_cache_pool:
+                adapter: cache.system
 
 when@test:
     doctrine:

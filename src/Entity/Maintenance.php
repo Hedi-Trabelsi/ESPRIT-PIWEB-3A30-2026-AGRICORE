@@ -16,7 +16,7 @@ class Maintenance
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: "integer")]
-    private int $id_maintenance;
+    private int $id_maintenance = 0;
 
     #[ORM\Column(type: "string", length: 50)]
     #[Assert\NotBlank(message: "Le nom est obligatoire.")]
@@ -62,14 +62,15 @@ private string $lieu;
     #[ORM\Column(type: "string", length: 20)]
     private string $priorite;
 
-    #[ORM\Column(type: "boolean", options: ["default" => false], nullable: true)]
-    private ?bool $is_read = false;
+    #[ORM\Column(type: "boolean", options: ["default" => false])]
+    private bool $is_read = false;
 
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: "maintenances")]
     #[ORM\JoinColumn(name: 'id_agriculteur', referencedColumnName: 'id', onDelete: 'CASCADE')]
     private ?User $id_agriculteur = null;
 
-    #[ORM\OneToMany(mappedBy: "id_maintenance", targetEntity: Tache::class)]
+    /** @var Collection<int, Tache> */
+    #[ORM\OneToMany(mappedBy: "id_maintenance", targetEntity: Tache::class, cascade: ["persist", "remove"])]
     private Collection $taches;
 
     public function __construct()
@@ -194,6 +195,7 @@ private string $lieu;
         return $this;
     }
 
+    /** @return Collection<int, Tache> */
     public function getTaches(): Collection
     {
         return $this->taches;
@@ -203,7 +205,7 @@ private string $lieu;
     {
         if (!$this->taches->contains($tache)) {
             $this->taches[] = $tache;
-            $tache->setId_maintenance($this);
+            $tache->setIdMaintenance($this);
         }
         return $this;
     }
@@ -211,8 +213,8 @@ private string $lieu;
     public function removeTache(Tache $tache): self
     {
         if ($this->taches->removeElement($tache)) {
-            if ($tache->getId_maintenance() === $this) {
-                $tache->setId_maintenance(null);
+            if ($tache->getIdMaintenance() === $this) {
+                $tache->setIdMaintenance(null);
             }
         }
         return $this;

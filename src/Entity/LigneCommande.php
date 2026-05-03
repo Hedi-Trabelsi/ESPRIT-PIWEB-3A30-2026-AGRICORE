@@ -23,17 +23,23 @@ class LigneCommande
     private ?Equipement $equipement = null;
 
     #[ORM\Column(type: 'integer')]
-    private ?int $quantite = null;
+    private int $quantite = 0;
 
     #[ORM\Column(name: 'prix_unitaire', type: 'decimal', precision: 10, scale: 2)]
-    private ?string $prixUnitaire = null;
+    private string $prixUnitaire = '';
 
     #[ORM\Column(name: 'total_ligne', type: 'decimal', precision: 10, scale: 2)]
-    private ?string $totalLigne = null;
+    private string $totalLigne = '';
 
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function setId(int $id): self
+    {
+        $this->id = $id;
+        return $this;
     }
 
     public function getCommande(): ?Commande

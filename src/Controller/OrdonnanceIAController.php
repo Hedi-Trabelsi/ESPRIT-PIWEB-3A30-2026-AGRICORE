@@ -27,7 +27,7 @@ class OrdonnanceIAController extends AbstractController
         }
 
         return $this->render('front/suivi_animal/animal/ordonnance_ia.html.twig', [
-            'animals' => $animalRepo->findAll(),
+            'animals' => $animalRepo->findBy([], ['codeAnimal' => 'ASC'], 100),
         ]);
     }
 
@@ -57,11 +57,11 @@ class OrdonnanceIAController extends AbstractController
 
         $animalId   = $request->request->get('animalId');
         $poids      = (float) $request->request->get('poids', 0);
-        $pathologie = $request->request->get('pathologie', '');
-        $gravite    = $request->request->get('gravite', '');
-        $symptomes  = $request->request->get('symptomes', '');
-        $age        = $request->request->get('age', 'Adulte (1-7 ans)');
-        $allergies  = $request->request->get('allergies', 'aucune connue');
+        $pathologie = (string) $request->request->get('pathologie', '');
+        $gravite    = (string) $request->request->get('gravite', '');
+        $symptomes  = (string) $request->request->get('symptomes', '');
+        $age        = (string) $request->request->get('age', 'Adulte (1-7 ans)');
+        $allergies  = (string) $request->request->get('allergies', 'aucune connue');
         $gestante   = $request->request->get('gestante') === '1';
         $lactante   = $request->request->get('lactante') === '1';
 
@@ -89,7 +89,14 @@ class OrdonnanceIAController extends AbstractController
             ]);
 
             $data    = $response->toArray();
-            $reponse = $data['choices'][0]['message']['content'] ?? '';
+            $choices = $data['choices'] ?? [];
+            $reponse = '';
+            if (is_array($choices) && isset($choices[0]) && is_array($choices[0])) {
+                $msg = $choices[0]['message'] ?? null;
+                if (is_array($msg) && isset($msg['content']) && is_string($msg['content'])) {
+                    $reponse = $msg['content'];
+                }
+            }
 
             return new JsonResponse([
                 'ordonnance' => $reponse,
@@ -103,7 +110,7 @@ class OrdonnanceIAController extends AbstractController
         }
     }
 
-    private function construirePrompt($animal, float $poids, string $pathologie, string $gravite, string $symptomes, string $age, string $allergies, bool $gestante, bool $lactante): string
+    private function construirePrompt(\App\Entity\Animal $animal, float $poids, string $pathologie, string $gravite, string $symptomes, string $age, string $allergies, bool $gestante, bool $lactante): string
     {
         $poidsInt = (int) $poids;
 

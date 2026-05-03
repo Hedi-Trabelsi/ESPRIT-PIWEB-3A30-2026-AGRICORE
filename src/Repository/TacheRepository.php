@@ -6,6 +6,7 @@ use App\Entity\Tache;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
+/** @extends ServiceEntityRepository<Tache> */
 class TacheRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -13,9 +14,10 @@ class TacheRepository extends ServiceEntityRepository
         parent::__construct($registry, Tache::class);
     }
 
+    /** @return list<Tache> */
     public function findByTechnicianAndDateRange(int $technicianId, \DateTimeInterface $start, \DateTimeInterface $end): array
     {
-        return $this->createQueryBuilder('t')
+        $result = $this->createQueryBuilder('t')
             ->innerJoin('t.id_technicien', 'u')
             ->innerJoin('t.id_maintenance', 'm')
             ->addSelect('m')
@@ -28,11 +30,13 @@ class TacheRepository extends ServiceEntityRepository
             ->addOrderBy('t.nomTache', 'ASC')
             ->getQuery()
             ->getResult();
+        return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof Tache)) : [];
     }
 
+    /** @return list<Tache> */
     public function findOverdueTasksForTechnician(int $technicianId, \DateTimeInterface $today): array
     {
-        return $this->createQueryBuilder('t')
+        $result = $this->createQueryBuilder('t')
             ->innerJoin('t.id_technicien', 'u')
             ->innerJoin('t.id_maintenance', 'm')
             ->addSelect('m')
@@ -46,6 +50,7 @@ class TacheRepository extends ServiceEntityRepository
             ->addOrderBy('t.nomTache', 'ASC')
             ->getQuery()
             ->getResult();
+        return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof Tache)) : [];
     }
 
     public function countActiveTasksForTechnicianOnDate(int $technicianId, \DateTimeInterface $date, ?int $excludeTaskId = null): int
@@ -113,9 +118,10 @@ class TacheRepository extends ServiceEntityRepository
         return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
+    /** @return list<array{id: int|string, nom: mixed, prenom: mixed, negativeCount: int|string}> */
     public function getTechniciansWithNegativeEvaluations(): array
     {
-        return $this->createQueryBuilder('t')
+        $result = $this->createQueryBuilder('t')
             ->select('u.id, u.nom, u.prenom, COUNT(t.id_tache) as negativeCount')
             ->innerJoin('t.id_technicien', 'u')
             ->andWhere('t.evaluation = :negativeEval')
@@ -124,18 +130,55 @@ class TacheRepository extends ServiceEntityRepository
             ->orderBy('negativeCount', 'DESC')
             ->getQuery()
             ->getResult();
+        if (!is_array($result)) {
+            return [];
+        }
+        $rows = [];
+        foreach ($result as $r) {
+            if (is_array($r) && isset($r['id'], $r['nom'], $r['prenom'], $r['negativeCount'])
+                && (is_int($r['id']) || is_string($r['id']))
+                && (is_int($r['negativeCount']) || is_string($r['negativeCount']))
+            ) {
+                $rows[] = [
+                    'id' => $r['id'],
+                    'nom' => $r['nom'],
+                    'prenom' => $r['prenom'],
+                    'negativeCount' => $r['negativeCount'],
+                ];
+            }
+        }
+        return $rows;
     }
-    
+
+    /** @return list<array{id: int|string, nom: mixed, prenom: mixed, positiveCount: int|string}> */
     public function getTechniciansWithPositiveEvaluations(): array
-{
-    return $this->createQueryBuilder('t')
-        ->select('u.id, u.nom, u.prenom, COUNT(t.id_tache) as positiveCount')
-        ->innerJoin('t.id_technicien', 'u')
-        ->andWhere('t.evaluation = :positiveEval') // Ajustez la valeur selon votre base
-        ->setParameter('positiveEval', 1) 
-        ->groupBy('u.id')
-        ->orderBy('positiveCount', 'DESC')
-        ->getQuery()
-        ->getResult();
-}
+    {
+        $result = $this->createQueryBuilder('t')
+            ->select('u.id, u.nom, u.prenom, COUNT(t.id_tache) as positiveCount')
+            ->innerJoin('t.id_technicien', 'u')
+            ->andWhere('t.evaluation = :positiveEval')
+            ->setParameter('positiveEval', 1)
+            ->groupBy('u.id')
+            ->orderBy('positiveCount', 'DESC')
+            ->getQuery()
+            ->getResult();
+        if (!is_array($result)) {
+            return [];
+        }
+        $rows = [];
+        foreach ($result as $r) {
+            if (is_array($r) && isset($r['id'], $r['nom'], $r['prenom'], $r['positiveCount'])
+                && (is_int($r['id']) || is_string($r['id']))
+                && (is_int($r['positiveCount']) || is_string($r['positiveCount']))
+            ) {
+                $rows[] = [
+                    'id' => $r['id'],
+                    'nom' => $r['nom'],
+                    'prenom' => $r['prenom'],
+                    'positiveCount' => $r['positiveCount'],
+                ];
+            }
+        }
+        return $rows;
+    }
 }

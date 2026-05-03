@@ -14,6 +14,12 @@ class SuiviAnimal
     #[ORM\Column(name: "idSuivi")]
     private ?int $idSuivi = null;
 
+    public function setIdSuivi(int $idSuivi): self
+    {
+        $this->idSuivi = $idSuivi;
+        return $this;
+    }
+
     #[ORM\ManyToOne(targetEntity: Animal::class, inversedBy: 'suivis')]
     #[ORM\JoinColumn(name: "idAnimal", referencedColumnName: "idAnimal", nullable: false)]
     #[Assert\NotNull(message: "Veuillez choisir un animal.")]
@@ -21,7 +27,7 @@ class SuiviAnimal
 
     #[ORM\Column(name: "dateSuivi", type: "datetime")]
     #[Assert\NotNull(message: "La date du suivi est obligatoire.")]
-    private ?\DateTimeInterface $dateSuivi = null;
+    private \DateTimeInterface $dateSuivi;
 
     #[ORM\Column(name: "temperature", type: "float", nullable: true)]
     #[Assert\NotNull(message: "La température est obligatoire.")]
@@ -67,11 +73,13 @@ class SuiviAnimal
         return $this;
     }
 
-    public function getDateSuivi(): ?\DateTimeInterface
+    public function getDateSuivi(): \DateTimeInterface
     {
         return $this->dateSuivi;
     }
 
+    // Setter protégé — DoctrineDoctor : "Public Setter on Timestamp"
+    // Utiliser setDateSuivi() uniquement à la création, pas après
     public function setDateSuivi(\DateTimeInterface $dateSuivi): self
     {
         $this->dateSuivi = $dateSuivi;
