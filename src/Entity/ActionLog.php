@@ -52,9 +52,15 @@ class ActionLog
         $this->created_at = new \DateTimeImmutable();
     }
 
-    public function getId(): ?int 
-    { 
-        return $this->id; 
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function setId(int $id): self
+    {
+        $this->id = $id;
+        return $this;
     }
 
     /**
@@ -128,9 +134,9 @@ class ActionLog
     public function setDescription(string $description): static { $this->description = $description; return $this; }
     public function getDescription(): string { return $this->description; }
 
-    public function setCreatedAt(\DateTimeInterface $created_at): static { return $this->setCreated_at($created_at); }
+    public function setCreatedAt(\DateTimeInterface $created_at): self { return $this->setCreated_at($created_at); }
     public function getCreatedAt(): \DateTimeImmutable { return $this->created_at; }
 
-    public function setUpdatedAt(?\DateTimeInterface $updated_at): static { return $this->setUpdated_at($updated_at); }
+    public function setUpdatedAt(?\DateTimeInterface $updated_at): self { return $this->setUpdated_at($updated_at); }
     public function getUpdatedAt(): ?\DateTimeImmutable { return $this->updated_at; }
 }

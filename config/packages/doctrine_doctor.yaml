@@ -23,6 +23,15 @@ doctrine_doctor:
         # legacy reasons, no need to change to object relations
         foreign_key_mapping:
             enabled: false
+        # Disabled: User.email/password etc. — DDD value-object suggestions, high blast
+        # radius to refactor (touches login, registration, password reset, mailer, every
+        # template). Keep primitive types.
+        missing_embeddable_opportunity:
+            enabled: false
+        # Note: TimeZoneAnalyzer is disabled via compiler pass (src/DependencyInjection/
+        # Compiler/DisableTimeZoneAnalyzerPass.php) because it has no `enabled` config key
+        # in the bundle. It compared MySQL's "+01:00" with PHP's "Africa/Tunis" as raw
+        # strings — they never match even though both resolve to UTC+1 year-round.
 #
 #    # Performance Analyzers (all enabled by default with production-ready thresholds)
 #    analyzers:

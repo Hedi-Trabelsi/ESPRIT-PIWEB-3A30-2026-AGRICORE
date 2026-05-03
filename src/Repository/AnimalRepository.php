@@ -55,7 +55,10 @@ class AnimalRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
-    /** Compte par espèce — remplace findAll() + foreach */
+    /**
+     * Compte par espèce — remplace findAll() + foreach
+     * @return array<string, int>
+     */
     public function countByEspece(): array
     {
         $rows = $this->createQueryBuilder('a')
@@ -65,14 +68,27 @@ class AnimalRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
 
+        if (!is_array($rows)) {
+            return [];
+        }
         $result = [];
         foreach ($rows as $row) {
-            $result[$row['espece']] = (int) $row['nb'];
+            if (!is_array($row)) {
+                continue;
+            }
+            $espece = $row['espece'] ?? null;
+            $nb = $row['nb'] ?? null;
+            if (is_string($espece) && is_numeric($nb)) {
+                $result[$espece] = (int) $nb;
+            }
         }
         return $result;
     }
 
-    /** Compte par race — remplace findAll() + foreach */
+    /**
+     * Compte par race — remplace findAll() + foreach
+     * @return array<string, int>
+     */
     public function countByRace(): array
     {
         $rows = $this->createQueryBuilder('a')
@@ -82,14 +98,27 @@ class AnimalRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
 
+        if (!is_array($rows)) {
+            return [];
+        }
         $result = [];
         foreach ($rows as $row) {
-            $result[$row['race']] = (int) $row['nb'];
+            if (!is_array($row)) {
+                continue;
+            }
+            $race = $row['race'] ?? null;
+            $nb = $row['nb'] ?? null;
+            if (is_string($race) && is_numeric($nb)) {
+                $result[$race] = (int) $nb;
+            }
         }
         return $result;
     }
 
-    /** Compte par sexe — remplace findAll() + foreach */
+    /**
+     * Compte par sexe — remplace findAll() + foreach
+     * @return array<string, int>
+     */
     public function countBySexe(): array
     {
         $rows = $this->createQueryBuilder('a')
@@ -99,8 +128,18 @@ class AnimalRepository extends ServiceEntityRepository
             ->getResult();
 
         $result = ['Mâle' => 0, 'Femelle' => 0];
+        if (!is_array($rows)) {
+            return $result;
+        }
         foreach ($rows as $row) {
-            $result[$row['sexe']] = (int) $row['nb'];
+            if (!is_array($row)) {
+                continue;
+            }
+            $sexe = $row['sexe'] ?? null;
+            $nb = $row['nb'] ?? null;
+            if (is_string($sexe) && is_numeric($nb)) {
+                $result[$sexe] = (int) $nb;
+            }
         }
         return $result;
     }

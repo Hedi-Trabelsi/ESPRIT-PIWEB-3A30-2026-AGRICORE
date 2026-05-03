@@ -12,6 +12,9 @@ if (!is_file(dirname(__DIR__).'/vendor/autoload_runtime.php')) {
     throw new LogicException('Symfony Runtime is missing. Try running "composer require symfony/runtime".');
 }
 
+// Same timezone alignment as public/index.php — keep CLI commands consistent with web requests.
+date_default_timezone_set('Africa/Tunis');
+
 require_once dirname(__DIR__).'/vendor/autoload_runtime.php';
 
 return function (array $context) {

@@ -62,7 +62,7 @@ $message = sprintf(
     "Merci de consulter votre calendrier sur AgriCore.",
     $techName,
     $maintenance->getEquipement(),
-    $tache->getDatePrevue()?->format('d/m/Y') ?? 'non définie'
+    $tache->getDatePrevue()->format('d/m/Y')
 );
         $url = sprintf(
             'https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json',

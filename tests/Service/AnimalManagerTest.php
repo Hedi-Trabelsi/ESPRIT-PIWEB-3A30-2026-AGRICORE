@@ -85,7 +85,8 @@ class AnimalManagerTest extends TestCase
         $animal = new Animal();
         $animal->setCodeAnimal('A002')
                ->setEspece('Ovin')
-               ->setSexe('Mâle');
+               ->setSexe('Mâle')
+               ->setDateNaissance(new \DateTime('2020-01-01'));
 
         $this->assertTrue($this->manager->validate($animal));
     }
@@ -100,6 +101,7 @@ class AnimalManagerTest extends TestCase
         $animal = new Animal();
         $animal->setCodeAnimal('A003')
                ->setEspece('Caprin')
+               ->setSexe('Mâle')
                ->setDateNaissance(new \DateTime('+1 year'));
 
         $this->manager->validate($animal);
@@ -110,6 +112,7 @@ class AnimalManagerTest extends TestCase
         $animal = new Animal();
         $animal->setCodeAnimal('A004')
                ->setEspece('Porcin')
+               ->setSexe('Mâle')
                ->setDateNaissance(new \DateTime('2019-06-01'));
 
         $this->assertTrue($this->manager->validate($animal));

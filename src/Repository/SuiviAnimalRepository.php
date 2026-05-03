@@ -96,7 +96,10 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
-    /** Compte par état de santé — remplace findAll() + foreach */
+    /**
+     * Compte par état de santé — remplace findAll() + foreach
+     * @return array<string, int>
+     */
     public function countByEtatSante(): array
     {
         $rows = $this->createQueryBuilder('s')
@@ -106,15 +109,26 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->getResult();
 
         $result = ['Bon' => 0, 'Moyen' => 0, 'Mauvais' => 0];
+        if (!is_array($rows)) {
+            return $result;
+        }
         foreach ($rows as $row) {
-            if (isset($result[$row['etatSante']])) {
-                $result[$row['etatSante']] = (int) $row['nb'];
+            if (!is_array($row)) {
+                continue;
+            }
+            $etat = $row['etatSante'] ?? null;
+            $nb = $row['nb'] ?? null;
+            if (is_string($etat) && isset($result[$etat]) && is_numeric($nb)) {
+                $result[$etat] = (int) $nb;
             }
         }
         return $result;
     }
 
-    /** Compte par niveau d'activité — remplace findAll() + foreach */
+    /**
+     * Compte par niveau d'activité — remplace findAll() + foreach
+     * @return array<string, int>
+     */
     public function countByNiveauActivite(): array
     {
         $rows = $this->createQueryBuilder('s')
@@ -124,15 +138,26 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->getResult();
 
         $result = ['Faible' => 0, 'Modéré' => 0, 'Élevé' => 0];
+        if (!is_array($rows)) {
+            return $result;
+        }
         foreach ($rows as $row) {
-            if (isset($result[$row['niveauActivite']])) {
-                $result[$row['niveauActivite']] = (int) $row['nb'];
+            if (!is_array($row)) {
+                continue;
+            }
+            $niveau = $row['niveauActivite'] ?? null;
+            $nb = $row['nb'] ?? null;
+            if (is_string($niveau) && isset($result[$niveau]) && is_numeric($nb)) {
+                $result[$niveau] = (int) $nb;
             }
         }
         return $result;
     }
 
-    /** Moyennes température, poids, rythme — remplace findAll() + foreach */
+    /**
+     * Moyennes température, poids, rythme — remplace findAll() + foreach
+     * @return array{moyTemp: float, moyPoids: float, moyRythme: float}
+     */
     public function getMoyennes(): array
     {
         $row = $this->createQueryBuilder('s')
@@ -144,14 +169,25 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
 
+        if (!is_array($row)) {
+            return ['moyTemp' => 0.0, 'moyPoids' => 0.0, 'moyRythme' => 0.0];
+        }
+
+        $moyTemp = $row['moyTemp'] ?? null;
+        $moyPoids = $row['moyPoids'] ?? null;
+        $moyRythme = $row['moyRythme'] ?? null;
+
         return [
-            'moyTemp'   => (float) ($row['moyTemp']   ?? 0),
-            'moyPoids'  => (float) ($row['moyPoids']  ?? 0),
-            'moyRythme' => (float) ($row['moyRythme'] ?? 0),
+            'moyTemp'   => is_numeric($moyTemp) ? (float) $moyTemp : 0.0,
+            'moyPoids'  => is_numeric($moyPoids) ? (float) $moyPoids : 0.0,
+            'moyRythme' => is_numeric($moyRythme) ? (float) $moyRythme : 0.0,
         ];
     }
 
-    /** Compte des suivis par mois (N derniers mois) — remplace findAll() + foreach */
+    /**
+     * Compte des suivis par mois (N derniers mois) — remplace findAll() + foreach
+     * @return array<string, int>
+     */
     public function countByMois(int $limit = 6): array
     {
         // Utilise SUBSTRING pour extraire YYYY-MM sans extension externe
@@ -163,8 +199,18 @@ class SuiviAnimalRepository extends ServiceEntityRepository
             ->getResult();
 
         $parMois = [];
+        if (!is_array($rows)) {
+            return $parMois;
+        }
         foreach ($rows as $row) {
-            $parMois[$row['mois']] = (int) $row['nb'];
+            if (!is_array($row)) {
+                continue;
+            }
+            $mois = $row['mois'] ?? null;
+            $nb = $row['nb'] ?? null;
+            if (is_string($mois) && is_numeric($nb)) {
+                $parMois[$mois] = (int) $nb;
+            }
         }
 
         return array_slice($parMois, -$limit, $limit, true);

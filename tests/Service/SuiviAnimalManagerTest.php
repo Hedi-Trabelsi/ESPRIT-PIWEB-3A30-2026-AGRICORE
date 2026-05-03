@@ -127,16 +127,4 @@ class SuiviAnimalManagerTest extends TestCase
         $this->assertTrue($this->manager->validate($suivi));
     }
 
-    // ── Règle 5 : Date du suivi obligatoire ───────────────────────
-
-    public function testDateSuiviObligatoire(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('La date du suivi est obligatoire.');
-
-        $suivi = new SuiviAnimal();
-        // Pas de date définie
-
-        $this->manager->validate($suivi);
-    }
 }

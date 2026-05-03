@@ -252,9 +252,11 @@ class Action_logs
         return $this->created_at;
     }
 
-    public function setCreatedAt(\DateTimeInterface $created_at): static
+    public function setCreatedAt(\DateTimeInterface $created_at): self
     {
-        $this->created_at = $created_at;
+        $this->created_at = $created_at instanceof \DateTimeImmutable
+            ? $created_at
+            : \DateTimeImmutable::createFromInterface($created_at);
         return $this;
     }
 

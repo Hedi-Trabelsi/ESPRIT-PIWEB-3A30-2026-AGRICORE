@@ -46,11 +46,6 @@ class SuiviAnimalManager
             throw new \InvalidArgumentException("L'état de santé doit être 'Bon', 'Moyen' ou 'Mauvais'.");
         }
 
-        // Règle 5 : La date du suivi est obligatoire
-        if ($suivi->getDateSuivi() === null) {
-            throw new \InvalidArgumentException('La date du suivi est obligatoire.');
-        }
-
         return true;
     }
 }

@@ -60,14 +60,14 @@ class AnimalTest extends TestCase
         $this->assertNull($this->animal->getIdAnimal());
     }
 
-    public function testCodeAnimalIsNullByDefault(): void
+    public function testCodeAnimalIsEmptyByDefault(): void
     {
-        $this->assertNull($this->animal->getCodeAnimal());
+        $this->assertSame('', $this->animal->getCodeAnimal());
     }
 
-    public function testEspeceIsNullByDefault(): void
+    public function testEspeceIsEmptyByDefault(): void
     {
-        $this->assertNull($this->animal->getEspece());
+        $this->assertSame('', $this->animal->getEspece());
     }
 
     // ── Tests logique métier ───────────────────────────────────────
@@ -87,7 +87,7 @@ class AnimalTest extends TestCase
     public function testCodeAnimalIsString(): void
     {
         $this->animal->setCodeAnimal('B999');
-        $this->assertIsString($this->animal->getCodeAnimal());
+        $this->assertSame('B999', $this->animal->getCodeAnimal());
     }
 
     public function testDateNaissanceIsDateTimeInterface(): void

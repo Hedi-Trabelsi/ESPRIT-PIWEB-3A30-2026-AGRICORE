@@ -968,7 +968,7 @@ public function evaluer(Tache $tache, int $note, EntityManagerInterface $em): Re
 }
 
 /**
- * @return array{id: int|null, date: \DateTimeInterface|null, dateKey: string, maintenanceId: int|null, taskName: string, maintenanceName: string, maintenanceLieu: string, maintenanceStatus: string, description: string, technicianName: string, etat: int, isResolved: bool, isOverdue: bool, isToday: bool, daysLate: int, stateLabel: string}
+ * @return array{id: int|null, date: \DateTimeInterface, dateKey: string, maintenanceId: int|null, taskName: string, maintenanceName: string, maintenanceLieu: string, maintenanceStatus: string, description: string, technicianName: string, etat: int, isResolved: bool, isOverdue: bool, isToday: bool, daysLate: int, stateLabel: string}
  */
 private function buildCalendarTaskData(Tache $task, string $todayKey): array
 {
@@ -976,11 +976,11 @@ private function buildCalendarTaskData(Tache $task, string $todayKey): array
     $maintenance = $task->getIdMaintenance();
     $maintenanceStatus = $maintenance?->getStatut() ?? 'Inconnue';
     $isResolved = in_array($maintenanceStatus, ['Résolu', 'Résolue'], true);
-    $dateKey = $taskDate?->format('Y-m-d') ?? '';
+    $dateKey = $taskDate->format('Y-m-d');
     $etat = $task->getEtat() ?? 0;
-    $isOverdue = !$isResolved && ($etat === -1 || ($dateKey !== '' && $dateKey < $todayKey && $etat !== 1));
+    $isOverdue = !$isResolved && ($etat === -1 || ($dateKey < $todayKey && $etat !== 1));
     $isToday = $dateKey === $todayKey;
-    $daysLate = $isOverdue && $taskDate instanceof \DateTimeInterface
+    $daysLate = $isOverdue
         ? (int) $taskDate->diff(new \DateTimeImmutable('today'))->format('%a')
         : 0;
 

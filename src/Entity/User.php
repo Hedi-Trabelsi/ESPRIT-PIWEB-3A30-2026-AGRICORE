@@ -157,13 +157,15 @@ class User
     }
 
     /**
-     * Convert the image resource to string so the object can be serialized into the session.
+     * Strip the avatar BLOB before the User object is serialized into the session.
+     * The avatar is served via the dedicated `app_user_avatar` route instead, so dragging
+     * 200-500 KB of base64 through every session read/write is wasteful. Templates that
+     * previously did `<img src="data:image/...;base64,{{ user.image }}">` should use
+     * `<img src="{{ path('app_user_avatar', {id: user.id}) }}">` instead.
      */
     public function prepareForSession(): self
     {
-        if (is_resource($this->image)) {
-            $this->image = stream_get_contents($this->image);
-        }
+        $this->image = null;
         return $this;
     }
 

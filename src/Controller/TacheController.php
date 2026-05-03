@@ -219,19 +219,15 @@ public function generateDescription(
     {
         $sessionUser = $request->getSession()->get('user');
 
-        $originalDatePrevue = $tache->getDatePrevue() instanceof \DateTimeInterface
-            ? \DateTimeImmutable::createFromInterface($tache->getDatePrevue())
-            : null;
+        $originalDatePrevue = \DateTimeImmutable::createFromInterface($tache->getDatePrevue());
 
         $form = $this->createForm(TacheType::class, $tache);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $newDatePrevue = $tache->getDatePrevue() instanceof \DateTimeInterface
-                ? \DateTimeImmutable::createFromInterface($tache->getDatePrevue())
-                : null;
+            $newDatePrevue = \DateTimeImmutable::createFromInterface($tache->getDatePrevue());
 
-            if ($originalDatePrevue?->format('Y-m-d') !== $newDatePrevue?->format('Y-m-d')) {
+            if ($originalDatePrevue->format('Y-m-d') !== $newDatePrevue->format('Y-m-d')) {
                 $maintenance = $tache->getIdMaintenance();
                 $owner = $maintenance?->getId_agriculteur();
 
@@ -247,8 +243,8 @@ public function generateDescription(
                         'maintenance_name' => $maintenance->getNomMaintenance(),
                         'task_id' => $tache->getId_tache(),
                         'task_name' => $tache->getNomTache(),
-                        'previous_date' => $originalDatePrevue?->format('d/m/Y'),
-                        'new_date' => $newDatePrevue?->format('d/m/Y'),
+                        'previous_date' => $originalDatePrevue->format('d/m/Y'),
+                        'new_date' => $newDatePrevue->format('d/m/Y'),
                         'technician_name' => $technicianName !== '' ? $technicianName : null,
                         'seen_at' => null,
                         'created_at' => (new \DateTimeImmutable())->format(DATE_ATOM),

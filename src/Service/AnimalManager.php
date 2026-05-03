@@ -34,16 +34,14 @@ class AnimalManager
 
         // Règle 3 : Le sexe doit être Mâle ou Femelle
         $sexesValides = ['Mâle', 'Femelle'];
-        if ($animal->getSexe() !== null && !in_array($animal->getSexe(), $sexesValides, true)) {
+        if (!in_array($animal->getSexe(), $sexesValides, true)) {
             throw new \InvalidArgumentException("Le sexe doit être 'Mâle' ou 'Femelle'.");
         }
 
         // Règle 4 : La date de naissance ne peut pas être dans le futur
-        if ($animal->getDateNaissance() !== null) {
-            $today = new \DateTime('today');
-            if ($animal->getDateNaissance() > $today) {
-                throw new \InvalidArgumentException('La date de naissance ne peut pas être dans le futur.');
-            }
+        $today = new \DateTime('today');
+        if ($animal->getDateNaissance() > $today) {
+            throw new \InvalidArgumentException('La date de naissance ne peut pas être dans le futur.');
         }
 
         return true;

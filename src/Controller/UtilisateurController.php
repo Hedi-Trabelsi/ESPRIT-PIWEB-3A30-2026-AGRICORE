@@ -1099,6 +1099,38 @@ class UtilisateurController extends AbstractController
     }
 
     /**
+     * Stream the user's avatar so templates don't need to inline ~200-500 KB of base64
+     * on every page. Browser-cacheable. Returns a placeholder when the user has no image.
+     */
+    #[Route('/utilisateurs/avatar/{id}', name: 'app_user_avatar', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function avatar(int $id, UserRepository $userRepo): Response
+    {
+        $user = $userRepo->find($id);
+        $raw = $user !== null ? $user->getImage() : null;
+
+        $binary = null;
+        if (is_string($raw) && $raw !== '') {
+            // Two storage formats observed in production:
+            //  1. Base64-encoded string (newer code path uses base64_encode($imageData))
+            //  2. Raw binary blob (legacy)
+            $binary = mb_check_encoding($raw, 'ASCII')
+                ? (base64_decode($raw, true) ?: null)
+                : $raw;
+        }
+
+        if ($binary === null) {
+            // 1x1 transparent PNG fallback so <img> tags don't break.
+            $binary = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=');
+        }
+
+        $response = new Response($binary);
+        $response->headers->set('Content-Type', 'image/jpeg');
+        $response->headers->set('Cache-Control', 'public, max-age=3600');
+
+        return $response;
+    }
+
+    /**
      * Normalize common Tunisian address typos to improve geocoding success.
      */
     private function normalizeAddress(string $address): string

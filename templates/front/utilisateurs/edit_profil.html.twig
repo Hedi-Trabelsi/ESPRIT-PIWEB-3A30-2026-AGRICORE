@@ -156,13 +156,8 @@
             {# --- Current photo sidebar --- #}
             <div class="col-lg-4 wow fadeIn" data-wow-delay="0.3s">
                 <div class="text-center p-4" style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.06);">
-                    {% if user.image %}
-                        <img src="data:image/jpeg;base64,{{ user.image }}" alt="Photo actuelle"
-                             style="width:150px;height:150px;border-radius:50%;object-fit:cover;border:4px solid #348E38;margin-bottom:20px;">
-                    {% else %}
-                        <img src="{{ asset('img/profile.webp') }}" alt="Photo par defaut"
-                             style="width:150px;height:150px;border-radius:50%;object-fit:cover;border:4px solid #348E38;margin-bottom:20px;">
-                    {% endif %}
+                    <img src="{{ path('app_user_avatar', {id: user.id}) }}" alt="Photo actuelle"
+                         style="width:150px;height:150px;border-radius:50%;object-fit:cover;border:4px solid #348E38;margin-bottom:20px;">
                     <h5 style="font-weight:700;color:#0F4229;">{{ user.prenom }} {{ user.nom }}</h5>
                     <p class="text-muted mb-0" style="font-size:14px;">{{ user.email }}</p>
                 </div>

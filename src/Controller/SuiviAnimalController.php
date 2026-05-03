@@ -160,9 +160,10 @@ final class SuiviAnimalController extends AbstractController
             $alertes = $this->analyserSuivi($suiviAnimal);
 
             if ($animalId) {
+                $alertesJson = json_encode($alertes);
                 return $this->redirectToRoute('app_animal_show', [
                     'idAnimal' => $animalId,
-                    'alertes'  => !empty($alertes) ? base64_encode(json_encode($alertes)) : null,
+                    'alertes'  => !empty($alertes) && is_string($alertesJson) ? base64_encode($alertesJson) : null,
                 ], Response::HTTP_SEE_OTHER);
             }
             return $this->redirectToRoute('app_suivi_animal_index', [], Response::HTTP_SEE_OTHER);
@@ -218,9 +219,10 @@ final class SuiviAnimalController extends AbstractController
             $alertes = $this->analyserSuivi($suiviAnimal);
 
             if (is_scalar($idAnimal) && $idAnimal) {
+                $alertesJson = json_encode($alertes);
                 return $this->redirectToRoute('app_animal_show', [
                     'idAnimal' => (int)$idAnimal,
-                    'alertes'  => !empty($alertes) ? base64_encode(json_encode($alertes)) : null,
+                    'alertes'  => !empty($alertes) && is_string($alertesJson) ? base64_encode($alertesJson) : null,
                 ], Response::HTTP_SEE_OTHER);
             }
             return $this->redirectToRoute('app_suivi_animal_index', [], Response::HTTP_SEE_OTHER);
@@ -263,7 +265,7 @@ final class SuiviAnimalController extends AbstractController
         $alertes = [];
         $animal  = $suivi->getAnimal();
         $code    = $animal ? $animal->getCodeAnimal() : 'Animal';
-        $espece  = $animal !== null ? strtolower($animal->getEspece() ?? '') : '';
+        $espece  = $animal !== null ? strtolower($animal->getEspece()) : '';
 
         $normes = match(true) {
             in_array($espece, ['vache','bovin','bovins'])    => [38.0, 39.5, 48,  84],

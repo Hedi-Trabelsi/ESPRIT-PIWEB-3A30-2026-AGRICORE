@@ -19,11 +19,9 @@ class TacheManager
         }
 
         $date = $tache->getDatePrevue();
-        if ($date instanceof \DateTimeInterface) {
-            $today = (new \DateTimeImmutable('today'));
-            if ($date < $today) {
-                throw new \InvalidArgumentException('La date prévue ne peut pas être antérieure à aujourd\'hui');
-            }
+        $today = new \DateTimeImmutable('today');
+        if ($date < $today) {
+            throw new \InvalidArgumentException('La date prévue ne peut pas être antérieure à aujourd\'hui');
         }
 
         return true;

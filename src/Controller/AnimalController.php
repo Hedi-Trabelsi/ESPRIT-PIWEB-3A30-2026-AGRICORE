@@ -265,7 +265,7 @@ final class AnimalController extends AbstractController
         // Récupérer les alertes passées via URL après création/modification suivi
         $alertesParam = $request->query->get('alertes');
         $alertes = null;
-        if ($alertesParam) {
+        if (is_string($alertesParam) && $alertesParam !== '') {
             $decoded = base64_decode($alertesParam);
             if ($decoded !== false) {
                 $alertes = json_decode($decoded, true);
