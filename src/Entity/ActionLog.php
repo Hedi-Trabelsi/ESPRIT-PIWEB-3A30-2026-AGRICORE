@@ -19,11 +19,7 @@ class ActionLog
     #[ORM\Column(type: Types::INTEGER)]
     private int $user_id = 0;
 
-    /**
-     * Explicitly setting type: 'string' alongside enumType resolves 
-     * the Doctrine Doctor property_type_mismatch warning.
-     */
-    #[ORM\Column(type: 'string', enumType: ActionType::class)]
+    #[ORM\Column(enumType: ActionType::class)]
     private ActionType $action_type = ActionType::CREATE;
 
     #[ORM\Column(type: Types::STRING, length: 255)]

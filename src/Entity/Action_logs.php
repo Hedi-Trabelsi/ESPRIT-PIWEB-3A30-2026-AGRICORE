@@ -17,7 +17,7 @@ class Action_logs
     #[ORM\Column(type: "integer")]
     private int $user_id;
 
-    #[ORM\Column(type: "string", enumType: ActionType::class, length: 50)]
+    #[ORM\Column(enumType: ActionType::class, length: 50)]
     private ActionType $action_type = ActionType::CREATE;
 
     #[ORM\Column(type: "string", length: 50)]

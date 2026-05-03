@@ -112,8 +112,114 @@
 <!-- Navbar End -->
 {% endblock %}
 
+
+<div id="page-content">
 {% block body %}{% endblock %}
+</div>
 {# Navbar End #}
+
+{# Loading Indicator #}
+<div id="ajax-loader" style="
+    position: fixed; top: 0; left: 0; width: 100%;
+    height: 4px; background: linear-gradient(90deg, #16a34a, #22c55e);
+    z-index: 99999; display: none; animation: slideRight 0.5s infinite linear;
+"></div>
+<style>
+    @keyframes slideRight {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+</style>
+
+{# AJAX Navigation Script #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loader = document.getElementById('ajax-loader');
+    
+    function isSameOrigin(url) {
+        try {
+            const urlObj = new URL(url);
+            return urlObj.origin === window.location.origin;
+        } catch (e) {
+            return false;
+        }
+    }
+    
+    function loadPage(url, pushState = true) {
+        if (!isSameOrigin(url)) {
+            window.location.href = url;
+            return;
+        }
+        
+        loader.style.display = 'block';
+        
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network error');
+            return response.text();
+        })
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newContent = doc.getElementById('page-content');
+            
+            if (newContent) {
+                document.getElementById('page-content').innerHTML = newContent.innerHTML;
+                
+                const newTitle = doc.querySelector('title');
+                if (newTitle) document.title = newTitle.textContent;
+                
+                if (pushState) {
+                    history.pushState(null, '', url);
+                }
+                
+                window.scrollTo(0, 0);
+                
+                const scripts = newContent.querySelectorAll('script');
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => {
+                        newScript.setAttribute(attr.name, attr.value);
+                    });
+                    newScript.textContent = oldScript.textContent;
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
+            } else {
+                window.location.href = url;
+            }
+        })
+        .catch(() => {
+            window.location.href = url;
+        })
+        .finally(() => {
+            loader.style.display = 'none';
+        });
+    }
+    
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('a[href]');
+        if (!link) return;
+        
+        if (link.target === '_blank' || 
+            link.hasAttribute('download') || 
+            link.href.includes('javascript:') || 
+            link.href.startsWith('#') ||
+            !isSameOrigin(link.href)) {
+            return;
+        }
+        
+        e.preventDefault();
+        loadPage(link.href);
+    });
+    
+    window.addEventListener('popstate', function() {
+        loadPage(window.location.href, false);
+    });
+});
+</script>
+
 
 {# Footer Start #}
 <div class="container-fluid bg-dark text-light footer mt-5 py-5">
