@@ -17,7 +17,7 @@ use Knp\Component\Pager\PaginatorInterface;
 
 class HomeController extends AbstractController
 {
-    #[Route('/home', name: 'app_home')]
+    #[Route('/', name: 'app_home')]
     public function home(
         Request $request, 
         EntityManagerInterface $em,
@@ -84,11 +84,7 @@ class HomeController extends AbstractController
         ]);
     }
 
-    #[Route('/', name: 'app_root')]
-    public function root(): Response
-    {
-        return $this->redirectToRoute('front_login');
-    }
+   
 
     #[Route('/about', name: 'app_about')]
     public function about(): Response
