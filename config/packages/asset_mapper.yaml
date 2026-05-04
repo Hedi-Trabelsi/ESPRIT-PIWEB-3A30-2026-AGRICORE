@@ -3,7 +3,10 @@ framework:
         # The paths to make available to the asset mapper.
         paths:
             - assets/
-        missing_import_mode: strict
+        # 'warn' instead of 'strict' so a broken extensionless import inside one vendor lib
+        # (e.g. assets/lib/apexcharts/src/modules/Animations.js -> ../utils/Utils) doesn't
+        # 500-cascade across every other asset request.
+        missing_import_mode: warn
 
 when@prod:
     framework:
