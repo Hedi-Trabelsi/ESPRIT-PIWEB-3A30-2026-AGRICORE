@@ -141,18 +141,25 @@ class EvenementController extends AbstractController
 
         // BATCH LOAD: avoid N+1 by fetching all participants and users for all events at once
         $eventIds = array_filter(array_map(fn($e) => $e->getIdEv(), $evenements));
+        /** @var array<int, Participants[]> $participantsByEvent */
         $participantsByEvent = [];
+        /** @var array<int, int> $reservedByEvent */
         $reservedByEvent = [];
+        /** @var array<int, int> $totalByEvent */
         $totalByEvent = [];
+        /** @var array<int, User> $userById */
         $userById = [];
 
         if (!empty($eventIds)) {
             // 1) All participants for these events in one query
-            $allParticipants = $em->getRepository(Participants::class)
+            $participantsResult = $em->getRepository(Participants::class)
                 ->createQueryBuilder('p')
                 ->where('p.evenement IN (:ids)')
                 ->setParameter('ids', $eventIds)
                 ->getQuery()->getResult();
+            
+            /** @var Participants[] $allParticipants */
+            $allParticipants = $participantsResult ?: [];
 
             $userIds = [];
             foreach ($allParticipants as $p) {
@@ -171,11 +178,14 @@ class EvenementController extends AbstractController
 
             // 2) All users referenced by participants in one query
             if (!empty($userIds)) {
-                $allUsers = $em->getRepository(User::class)
+                $usersResult = $em->getRepository(User::class)
                     ->createQueryBuilder('u')
                     ->where('u.id IN (:ids)')
                     ->setParameter('ids', array_keys($userIds))
                     ->getQuery()->getResult();
+                
+                /** @var User[] $allUsers */
+                $allUsers = $usersResult ?: [];
                 foreach ($allUsers as $u) {
                     $userById[$u->getId()] = $u;
                 }
@@ -199,8 +209,13 @@ class EvenementController extends AbstractController
                 if ($count >= 4) break;
                 $count++;
                 $u = $userById[$p->getIdUtilisateur()] ?? null;
-                if ($u && $u->getImage()) {
-                    $avatarPreviews[] = 'data:image/jpeg;base64,' . base64_encode($u->getImage());
+                if ($u) {
+                    $image = $u->getImage();
+                    if ($image) {
+                        $avatarPreviews[] = 'data:image/jpeg;base64,' . base64_encode($image);
+                    } else {
+                        $avatarPreviews[] = null;
+                    }
                 } else {
                     $avatarPreviews[] = null;
                 }

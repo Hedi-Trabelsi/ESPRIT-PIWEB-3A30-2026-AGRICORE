@@ -40,12 +40,15 @@ class ParticipantsRepository extends ServiceEntityRepository
      */
     public function findWithEvenementByUser(int $userId): array
     {
-        return $this->createQueryBuilder('p')
+        $result = $this->createQueryBuilder('p')
             ->select('p', 'e')
             ->leftJoin('p.evenement', 'e')
             ->where('p.id_utilisateur = :uid')
             ->setParameter('uid', $userId)
             ->getQuery()
             ->getResult();
+        
+        /** @var Participants[] $result */
+        return $result ?: [];
     }
 }
