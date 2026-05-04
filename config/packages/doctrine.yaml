@@ -46,8 +46,9 @@ framework:
 when@test:
     doctrine:
         dbal:
-            # "TEST_TOKEN" is typically set by ParaTest
-            dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+            # No dbname_suffix — tests use the same database as dev. Test classes
+            # are responsible for cleaning up the rows they create (see tearDown).
+            dbname_suffix: ''
 
 when@prod:
     doctrine:
