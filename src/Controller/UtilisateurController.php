@@ -359,8 +359,8 @@ class UtilisateurController extends AbstractController
         }
 
         // Don't fetch image BLOBs for the list view — avatars are served via app_user_avatar route on demand
-        $users = $userRepo->findAllWithoutImage();
-        $currentIds = array_map(fn($u) => $u->getId(), $users);
+        $users = $userRepo->findAllForBackList();
+        $currentIds = array_map(fn($u) => $u['id'], $users);
 
         // Use a file to persist seen IDs across sessions (survives logout)
         $projectDir = $this->getParameter('kernel.project_dir');
@@ -374,7 +374,7 @@ class UtilisateurController extends AbstractController
             $seenIds = is_array($decoded) ? $decoded : [];
 
             foreach ($users as $u) {
-                if (!in_array($u->getId(), $seenIds)) {
+                if (!in_array($u['id'], $seenIds)) {
                     $newUsers[] = $u;
                 }
             }
@@ -675,28 +675,21 @@ class UtilisateurController extends AbstractController
             return new JsonResponse(['results' => []]);
         }
 
-        $all = $userRepo->findAll();
-        $matches = [];
-        $needle = mb_strtolower($q);
+        // DQL projection: SELECT only the small scalar fields we need. No image BLOB loaded.
+        // The template renders avatars via the app_user_avatar route, so no image data in JSON.
+        $needle = '%' . $q . '%';
+        $rows = $userRepo->createQueryBuilder('u')
+            ->select('u.id, u.prenom, u.nom, u.email, u.role')
+            ->where('(LOWER(u.prenom) LIKE :n OR LOWER(u.nom) LIKE :n OR LOWER(u.email) LIKE :n)')
+            ->andWhere('u.id != :selfId')
+            ->andWhere('u.banned = false OR u.banned IS NULL')
+            ->setParameter('n', mb_strtolower($needle))
+            ->setParameter('selfId', $sessionUser->getId())
+            ->setMaxResults(8)
+            ->getQuery()
+            ->getArrayResult();
 
-        foreach ($all as $u) {
-            if ($u->getId() === $sessionUser->getId()) continue; // skip self
-            if ($u->isBanned()) continue;                         // skip banned
-            $haystack = mb_strtolower($u->getPrenom() . ' ' . $u->getNom() . ' ' . $u->getEmail());
-            if (str_contains($haystack, $needle)) {
-                $matches[] = [
-                    'id'     => $u->getId(),
-                    'prenom' => $u->getPrenom(),
-                    'nom'    => $u->getNom(),
-                    'email'  => $u->getEmail(),
-                    'role'   => $u->getRole(),
-                    'image'  => $this->safeImageBase64($u->getImage()),
-                ];
-            }
-            if (count($matches) >= 8) break;
-        }
-
-        return new JsonResponse(['results' => $matches]);
+        return new JsonResponse(['results' => $rows]);
     }
 
     // ===================== FRIEND CONTACT (Full contact + vCard QR) =====================
@@ -708,30 +701,36 @@ class UtilisateurController extends AbstractController
             return new JsonResponse(['error' => 'Not authenticated'], 401);
         }
 
-        $user = $userRepo->find($id);
-        if (!$user || $user->isBanned()) {
+        // Load only the scalar fields we need — never the image BLOB (it's served via app_user_avatar)
+        $rows = $userRepo->createQueryBuilder('u')
+            ->select('u.id, u.prenom, u.nom, u.email, u.numeroT, u.adresse, u.genre, u.role, u.banned')
+            ->where('u.id = :id')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->getArrayResult();
+
+        if (empty($rows) || !empty($rows[0]['banned'])) {
             return new JsonResponse(['error' => 'User not found'], 404);
         }
+        $u = $rows[0];
 
-        $roleLabel = match ($user->getRole()) {
+        $roleLabel = match ((int) $u['role']) {
             0 => 'Administrateur',
             1 => 'Agriculteur',
             2 => 'Technicien',
             default => 'Utilisateur',
         };
 
-        // Build vCard
         $vcard = "BEGIN:VCARD\r\n"
             . "VERSION:3.0\r\n"
-            . "N:" . $user->getNom() . ";" . $user->getPrenom() . "\r\n"
-            . "FN:" . $user->getPrenom() . " " . $user->getNom() . "\r\n"
-            . "EMAIL:" . $user->getEmail() . "\r\n"
-            . "TEL:" . $user->getNumeroT() . "\r\n"
-            . "ADR:;;" . $user->getAdresse() . "\r\n"
+            . "N:" . $u['nom'] . ";" . $u['prenom'] . "\r\n"
+            . "FN:" . $u['prenom'] . " " . $u['nom'] . "\r\n"
+            . "EMAIL:" . $u['email'] . "\r\n"
+            . "TEL:" . $u['numeroT'] . "\r\n"
+            . "ADR:;;" . $u['adresse'] . "\r\n"
             . "ORG:Agricore\r\n"
             . "END:VCARD\r\n";
 
-        // Generate QR as PNG base64
         $builder = new Builder(
             writer: new \Endroid\QrCode\Writer\PngWriter(),
             data: $vcard,
@@ -745,16 +744,15 @@ class UtilisateurController extends AbstractController
         $qrBase64 = base64_encode($builder->build()->getString());
 
         return new JsonResponse([
-            'id'         => $user->getId(),
-            'prenom'     => $user->getPrenom(),
-            'nom'        => $user->getNom(),
-            'email'      => $user->getEmail(),
-            'telephone'  => $user->getNumeroT(),
-            'adresse'    => $user->getAdresse(),
-            'genre'      => $user->getGenre(),
-            'role'       => $user->getRole(),
+            'id'         => $u['id'],
+            'prenom'     => $u['prenom'],
+            'nom'        => $u['nom'],
+            'email'      => $u['email'],
+            'telephone'  => $u['numeroT'],
+            'adresse'    => $u['adresse'],
+            'genre'      => $u['genre'],
+            'role'       => (int) $u['role'],
             'role_label' => $roleLabel,
-            'image'      => $this->safeImageBase64($user->getImage()),
             'qr_png_b64' => $qrBase64,
         ]);
     }

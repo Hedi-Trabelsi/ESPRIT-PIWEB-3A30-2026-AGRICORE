@@ -625,6 +625,7 @@
 
     var searchUrl = '{{ path("api_search_users") }}';
     var contactUrlBase = '{{ path("api_user_contact", {id: 0}) }}';
+    var avatarUrlBase = '{{ path("app_user_avatar", {id: 0}) }}';
     var searchTimer = null;
 
     function roleLabel(r) { return r === 0 ? 'Admin' : (r === 1 ? 'Agriculteur' : 'Technicien'); }
@@ -643,9 +644,7 @@
             return;
         }
         results.innerHTML = list.map(function(u) {
-            var avatar = u.image
-                ? '<img src="data:image/jpeg;base64,' + u.image + '" class="fs-result-avatar" alt="">'
-                : '<div class="fs-result-avatar" style="display:flex;align-items:center;justify-content:center;color:#94a3b8;"><i class="fas fa-user"></i></div>';
+            var avatar = '<img src="' + avatarUrlBase.replace(/0$/, u.id) + '" class="fs-result-avatar" alt="" onerror="this.outerHTML=\'<div class=&quot;fs-result-avatar&quot; style=&quot;display:flex;align-items:center;justify-content:center;color:#94a3b8;&quot;><i class=&quot;fas fa-user&quot;></i></div>\'">';
             return '<div class="fs-result-item" data-id="' + u.id + '">'
                  + avatar
                  + '<div class="fs-result-body">'
@@ -659,9 +658,7 @@
 
     function showContact(data) {
         results.innerHTML = '';
-        var avatar = data.image
-            ? '<img src="data:image/jpeg;base64,' + data.image + '" class="fs-contact-avatar" alt="">'
-            : '<div class="fs-contact-avatar" style="display:flex;align-items:center;justify-content:center;background:#f0fdf4;color:#16a34a;font-size:36px;"><i class="fas fa-user"></i></div>';
+        var avatar = '<img src="' + avatarUrlBase.replace(/0$/, data.id) + '" class="fs-contact-avatar" alt="" onerror="this.outerHTML=\'<div class=&quot;fs-contact-avatar&quot; style=&quot;display:flex;align-items:center;justify-content:center;background:#f0fdf4;color:#16a34a;font-size:36px;&quot;><i class=&quot;fas fa-user&quot;></i></div>\'">';
 
         contact.innerHTML = ''
             + '<button type="button" class="fs-close-btn" onclick="document.getElementById(\'friendContactCard\').style.display=\'none\';document.getElementById(\'friendSearchInput\').focus();"><i class="fas fa-times"></i></button>'

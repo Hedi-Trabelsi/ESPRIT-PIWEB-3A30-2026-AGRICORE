@@ -42,17 +42,17 @@ class UserRepository extends ServiceEntityRepository
     //    }
 
     /**
-     * Fetch all users WITHOUT loading the image BLOB column (which can be 200KB-2MB per user).
-     * Avatars on the back-office list are fetched separately via the app_user_avatar route.
+     * Fetch all users for the back-office list as scalar arrays — never loads image BLOBs.
+     * Avatars are served separately via the app_user_avatar route.
      *
-     * @return User[]
+     * @return array<int,array<string,mixed>>
      */
-    public function findAllWithoutImage(): array
+    public function findAllForBackList(): array
     {
-        $result = $this->createQueryBuilder('u')
-            ->select('partial u.{id, nom, prenom, date, adresse, role, numeroT, email, password, genre, profile_complete, banned}')
+        return $this->createQueryBuilder('u')
+            ->select('u.id, u.nom, u.prenom, u.date, u.adresse, u.role, u.numeroT, u.email, u.genre, u.profile_complete, u.banned')
+            ->orderBy('u.id', 'ASC')
             ->getQuery()
-            ->getResult();
-        return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof User)) : [];
+            ->getArrayResult();
     }
 }
