@@ -24,6 +24,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
@@ -178,7 +180,7 @@ class UtilisateurController extends AbstractController
 
     // ===================== PROFILE (frontend) =====================
     #[Route('/profil', name: 'app_profile')]
-    public function profile(Request $request, UserRepository $userRepo, HttpClientInterface $httpClient): Response
+    public function profile(Request $request, UserRepository $userRepo, HttpClientInterface $httpClient, CacheInterface $cache): Response
     {
         $sessionUser = $request->getSession()->get('user');
         if (!$sessionUser instanceof User) {
@@ -203,82 +205,92 @@ class UtilisateurController extends AbstractController
             $variants = [];
             $variants[] = $address;
             $variants[] = $this->normalizeAddress($address);
-            // Fallback: try just the first word (likely the city)
             $firstWord = trim(explode(',', explode(' ', $address)[0])[0]);
             if ($firstWord && strlen($firstWord) > 2) {
                 $variants[] = $firstWord . ', Tunisie';
             }
-            // Ultimate fallback: default to Tunis
             $variants[] = 'Ville de Tunis';
             $variants = array_values(array_unique(array_filter($variants)));
 
-            // 1. Geocode with LocationIQ via HttpClient — try each variant
-            foreach ($variants as $variant) {
-                try {
-                    $geoResponse = $httpClient->request('GET', 'https://us1.locationiq.com/v1/search', [
-                        'query' => [
-                            'key' => $locationiqKey,
-                            'q' => $variant,
-                            'format' => 'json',
-                            'limit' => 1,
-                        ],
-                        'timeout' => 8,
-                    ]);
-                    if ($geoResponse->getStatusCode() === 200) {
-                        $geoResult = $geoResponse->toArray(false);
-                        if (count($geoResult) > 0 && isset($geoResult[0]) && is_array($geoResult[0]) && isset($geoResult[0]['lat']) && is_scalar($geoResult[0]['lat'])) {
-                            $first = $geoResult[0];
-                            $geoData = [
-                                'lat' => (float) $first['lat'],
-                                'lon' => isset($first['lon']) && is_scalar($first['lon']) ? (float) $first['lon'] : 0.0,
-                                'display_name' => isset($first['display_name']) && is_string($first['display_name']) ? $first['display_name'] : $variant,
-                            ];
-                            break; // success
+            // 1. Geocode — cached for 24h per address (avoids slow external calls on repeat visits)
+            $geoCacheKey = 'geo_' . md5($address);
+            $geoData = $cache->get($geoCacheKey, function (ItemInterface $item) use ($httpClient, $locationiqKey, $variants) {
+                $item->expiresAfter(86400);
+                foreach ($variants as $variant) {
+                    try {
+                        $geoResponse = $httpClient->request('GET', 'https://us1.locationiq.com/v1/search', [
+                            'query' => [
+                                'key' => $locationiqKey,
+                                'q' => $variant,
+                                'format' => 'json',
+                                'limit' => 1,
+                            ],
+                            'timeout' => 3,
+                        ]);
+                        if ($geoResponse->getStatusCode() === 200) {
+                            $geoResult = $geoResponse->toArray(false);
+                            if (count($geoResult) > 0 && isset($geoResult[0]) && is_array($geoResult[0]) && isset($geoResult[0]['lat']) && is_scalar($geoResult[0]['lat'])) {
+                                $first = $geoResult[0];
+                                return [
+                                    'lat' => (float) $first['lat'],
+                                    'lon' => isset($first['lon']) && is_scalar($first['lon']) ? (float) $first['lon'] : 0.0,
+                                    'display_name' => isset($first['display_name']) && is_string($first['display_name']) ? $first['display_name'] : $variant,
+                                ];
+                            }
                         }
+                    } catch (\Throwable) {
+                        // try next variant
                     }
-                } catch (\Throwable) {
-                    // try next variant
                 }
-            }
+                // Don't cache failures for 24h — only 5 minutes so user can retry sooner
+                $item->expiresAfter(300);
+                return null;
+            });
 
             if (!$geoData) {
                 $apiError = 'Adresse "' . $address . '" introuvable. Veuillez la corriger depuis "Modifier profil".';
             }
 
-            // 2. Weather via OpenWeather (only if geocoding succeeded)
+            // 2. Weather — cached for 30min per location
             if ($geoData) {
-                try {
-                    $weatherResponse = $httpClient->request('GET', 'https://api.openweathermap.org/data/2.5/weather', [
-                        'query' => [
-                            'lat' => $geoData['lat'],
-                            'lon' => $geoData['lon'],
-                            'appid' => $openweatherKey,
-                            'units' => 'metric',
-                            'lang' => 'fr',
-                        ],
-                        'timeout' => 8,
-                    ]);
-                    if ($weatherResponse->getStatusCode() === 200) {
-                        $w = $weatherResponse->toArray(false);
-                        $main = $w['main'] ?? null;
-                        if (is_array($main)) {
-                            $weatherList = $w['weather'] ?? [];
-                            $first = is_array($weatherList) && isset($weatherList[0]) && is_array($weatherList[0]) ? $weatherList[0] : [];
-                            $wind = $w['wind'] ?? [];
-                            $weatherData = [
-                                'temp' => round(is_numeric($main['temp'] ?? null) ? (float) $main['temp'] : 0),
-                                'desc' => ucfirst(isset($first['description']) && is_string($first['description']) ? $first['description'] : ''),
-                                'icon' => isset($first['icon']) && is_string($first['icon']) ? $first['icon'] : '01d',
-                                'humidity' => isset($main['humidity']) && is_numeric($main['humidity']) ? (int) $main['humidity'] : 0,
-                                'wind' => round(is_array($wind) && isset($wind['speed']) && is_numeric($wind['speed']) ? (float) $wind['speed'] : 0),
-                                'visibility' => round((isset($w['visibility']) && is_numeric($w['visibility']) ? (float) $w['visibility'] : 10000) / 1000, 1),
-                                'city' => isset($w['name']) && is_string($w['name']) ? $w['name'] : $address,
-                            ];
+                $weatherCacheKey = 'weather_' . md5($geoData['lat'] . ',' . $geoData['lon']);
+                $weatherData = $cache->get($weatherCacheKey, function (ItemInterface $item) use ($httpClient, $openweatherKey, $geoData, $address) {
+                    $item->expiresAfter(1800);
+                    try {
+                        $weatherResponse = $httpClient->request('GET', 'https://api.openweathermap.org/data/2.5/weather', [
+                            'query' => [
+                                'lat' => $geoData['lat'],
+                                'lon' => $geoData['lon'],
+                                'appid' => $openweatherKey,
+                                'units' => 'metric',
+                                'lang' => 'fr',
+                            ],
+                            'timeout' => 3,
+                        ]);
+                        if ($weatherResponse->getStatusCode() === 200) {
+                            $w = $weatherResponse->toArray(false);
+                            $main = $w['main'] ?? null;
+                            if (is_array($main)) {
+                                $weatherList = $w['weather'] ?? [];
+                                $first = is_array($weatherList) && isset($weatherList[0]) && is_array($weatherList[0]) ? $weatherList[0] : [];
+                                $wind = $w['wind'] ?? [];
+                                return [
+                                    'temp' => round(is_numeric($main['temp'] ?? null) ? (float) $main['temp'] : 0),
+                                    'desc' => ucfirst(isset($first['description']) && is_string($first['description']) ? $first['description'] : ''),
+                                    'icon' => isset($first['icon']) && is_string($first['icon']) ? $first['icon'] : '01d',
+                                    'humidity' => isset($main['humidity']) && is_numeric($main['humidity']) ? (int) $main['humidity'] : 0,
+                                    'wind' => round(is_array($wind) && isset($wind['speed']) && is_numeric($wind['speed']) ? (float) $wind['speed'] : 0),
+                                    'visibility' => round((isset($w['visibility']) && is_numeric($w['visibility']) ? (float) $w['visibility'] : 10000) / 1000, 1),
+                                    'city' => isset($w['name']) && is_string($w['name']) ? $w['name'] : $address,
+                                ];
+                            }
                         }
+                    } catch (\Throwable) {
+                        // Don't cache failures for 30min, retry in 5min
+                        $item->expiresAfter(300);
                     }
-                } catch (\Throwable $e) {
-                    // Keep geo data, just no weather
-                }
+                    return null;
+                });
             }
         }
 
@@ -346,7 +358,8 @@ class UtilisateurController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        $users = $userRepo->findAll();
+        // Don't fetch image BLOBs for the list view — avatars are served via app_user_avatar route on demand
+        $users = $userRepo->findAllWithoutImage();
         $currentIds = array_map(fn($u) => $u->getId(), $users);
 
         // Use a file to persist seen IDs across sessions (survives logout)
@@ -362,7 +375,6 @@ class UtilisateurController extends AbstractController
 
             foreach ($users as $u) {
                 if (!in_array($u->getId(), $seenIds)) {
-                    $u->prepareForSession();
                     $newUsers[] = $u;
                 }
             }

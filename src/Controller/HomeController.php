@@ -36,8 +36,8 @@ class HomeController extends AbstractController
             $isAgriculteur = (int)$sessionUser->getRole() === 1;
             
             if ($isAgriculteur && $userId !== null) {
-                // Get subscribed events
-                $participations = $participantsRepo->findBy(['id_utilisateur' => $userId]);
+                // Get subscribed events with Evenement eagerly loaded (avoids N+1)
+                $participations = $participantsRepo->findWithEvenementByUser($userId);
                 foreach ($participations as $p) {
                     $ev = $p->getEvenement();
                     if ($ev && $p->getStatutParticipation() !== 'waitlist') {
@@ -54,9 +54,9 @@ class HomeController extends AbstractController
                         ];
                     }
                 }
-                
-                // Get planned maintenances with their tasks
-                $maintenances = $maintenanceRepo->findBy(['id_agriculteur' => $userId, 'statut' => 'Planifiée']);
+
+                // Get planned maintenances with taches eagerly loaded (avoids N+1)
+                $maintenances = $maintenanceRepo->findWithTachesByAgriculteurAndStatut($userId, 'Planifiée');
                 foreach ($maintenances as $m) {
                     foreach ($m->getTaches() as $tache) {
                         $datePrevue = $tache->getDatePrevue();

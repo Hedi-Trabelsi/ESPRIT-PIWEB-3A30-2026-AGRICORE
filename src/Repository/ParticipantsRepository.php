@@ -31,4 +31,21 @@ class ParticipantsRepository extends ServiceEntityRepository
         $result = $qb->getQuery()->getSingleScalarResult();
         return (int)$result;
     }
+
+    /**
+     * Fetch participations for a user with the related Evenement eagerly loaded.
+     * Avoids N+1 lazy loading when iterating to build calendar events.
+     *
+     * @return Participants[]
+     */
+    public function findWithEvenementByUser(int $userId): array
+    {
+        return $this->createQueryBuilder('p')
+            ->select('p', 'e')
+            ->leftJoin('p.evenement', 'e')
+            ->where('p.id_utilisateur = :uid')
+            ->setParameter('uid', $userId)
+            ->getQuery()
+            ->getResult();
+    }
 }

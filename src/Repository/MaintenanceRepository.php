@@ -42,4 +42,24 @@ class MaintenanceRepository extends ServiceEntityRepository
         $result = $qb->getQuery()->getResult();
         return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof Maintenance)) : [];
     }
+
+    /**
+     * Fetch maintenances for an agriculteur with the given statut and their taches eagerly loaded.
+     * Avoids N+1 lazy loading on $maintenance->getTaches() in calendar building.
+     *
+     * @return Maintenance[]
+     */
+    public function findWithTachesByAgriculteurAndStatut(int $agriculteurId, string $statut): array
+    {
+        $result = $this->createQueryBuilder('m')
+            ->select('m', 't')
+            ->leftJoin('m.taches', 't')
+            ->where('m.id_agriculteur = :uid')
+            ->andWhere('m.statut = :statut')
+            ->setParameter('uid', $agriculteurId)
+            ->setParameter('statut', $statut)
+            ->getQuery()
+            ->getResult();
+        return is_array($result) ? array_values(array_filter($result, fn($r) => $r instanceof Maintenance)) : [];
+    }
 }

@@ -139,41 +139,79 @@ class EvenementController extends AbstractController
             : [];
         $data = [];
 
+        // BATCH LOAD: avoid N+1 by fetching all participants and users for all events at once
+        $eventIds = array_filter(array_map(fn($e) => $e->getIdEv(), $evenements));
+        $participantsByEvent = [];
+        $reservedByEvent = [];
+        $totalByEvent = [];
+        $userById = [];
+
+        if (!empty($eventIds)) {
+            // 1) All participants for these events in one query
+            $allParticipants = $em->getRepository(Participants::class)
+                ->createQueryBuilder('p')
+                ->where('p.evenement IN (:ids)')
+                ->setParameter('ids', $eventIds)
+                ->getQuery()->getResult();
+
+            $userIds = [];
+            foreach ($allParticipants as $p) {
+                $evId = $p->getEvenement()?->getIdEv();
+                if ($evId === null) continue;
+                $participantsByEvent[$evId][] = $p;
+                $totalByEvent[$evId] = ($totalByEvent[$evId] ?? 0) + 1;
+                if ($p->getStatutParticipation() !== 'waitlist') {
+                    $reservedByEvent[$evId] = ($reservedByEvent[$evId] ?? 0) + $p->getNbrPlaces();
+                }
+                $uid = $p->getIdUtilisateur();
+                if ($uid) {
+                    $userIds[$uid] = true;
+                }
+            }
+
+            // 2) All users referenced by participants in one query
+            if (!empty($userIds)) {
+                $allUsers = $em->getRepository(User::class)
+                    ->createQueryBuilder('u')
+                    ->where('u.id IN (:ids)')
+                    ->setParameter('ids', array_keys($userIds))
+                    ->getQuery()->getResult();
+                foreach ($allUsers as $u) {
+                    $userById[$u->getId()] = $u;
+                }
+            }
+        }
+
         foreach ($evenements as $ev) {
             if ($ev->getDateFin() < $now)       $status = 'HISTORIQUE';
             elseif ($ev->getDateDebut() > $now) $status = 'COMING';
             else                                $status = 'EN_COURS';
 
-            $totalReserved   = $this->getTotalReservedPlaces($ev, $em);
+            $evId = $ev->getIdEv();
+            $totalReserved   = $reservedByEvent[$evId] ?? 0;
             $placesRestantes = $ev->getCapaciteMax() - $totalReserved;
 
-            // Fetch up to 4 participant avatars
-            $participants = $em->getRepository(Participants::class)->findBy(['evenement' => $ev], null, 4);
+            // Up to 4 avatars from in-memory map (no extra queries)
+            $eventParticipants = $participantsByEvent[$evId] ?? [];
             $avatarPreviews = [];
-            foreach ($participants as $p) {
-                $user = $em->getRepository(User::class)->find($p->getIdUtilisateur());
-                if ($user && $user->getImage()) {
-                    $raw = $user->getImage();
-                    $avatarPreviews[] = 'data:image/jpeg;base64,' . base64_encode($raw);
+            $count = 0;
+            foreach ($eventParticipants as $p) {
+                if ($count >= 4) break;
+                $count++;
+                $u = $userById[$p->getIdUtilisateur()] ?? null;
+                if ($u && $u->getImage()) {
+                    $avatarPreviews[] = 'data:image/jpeg;base64,' . base64_encode($u->getImage());
                 } else {
-                    $avatarPreviews[] = null; // will show initials fallback
+                    $avatarPreviews[] = null;
                 }
             }
-
-            // Total participant count
-            $totalParticipants = $em->getRepository(Participants::class)
-                ->createQueryBuilder('p')
-                ->select('COUNT(p.id_participant)')
-                ->where('p.evenement = :ev')
-                ->setParameter('ev', $ev)
-                ->getQuery()->getSingleScalarResult();
 
             $data[] = [
                 'evenement'        => $ev,
                 'status'           => $status,
                 'placesRestantes'  => max(0, $placesRestantes),
                 'avatarPreviews'   => $avatarPreviews,
-                'totalParticipants'=> (int) $totalParticipants,
+                'totalParticipants'=> (int) ($totalByEvent[$evId] ?? 0),
             ];
         }
 
