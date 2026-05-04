@@ -354,9 +354,8 @@ class UtilisateurController extends AbstractController
             return $this->redirectToRoute('front_login');
         }
 
-        // Don't fetch image BLOBs for the list view — avatars are served via app_user_avatar route on demand
-        $users = $userRepo->findAllForBackList();
-        $currentIds = array_map(fn($u) => $u['id'], $users);
+        $users = $userRepo->findAll();
+        $currentIds = array_map(fn(User $u) => $u->getId(), $users);
 
         // Use a file to persist seen IDs across sessions (survives logout)
         $projectDir = $this->getParameter('kernel.project_dir');
@@ -370,7 +369,8 @@ class UtilisateurController extends AbstractController
             $seenIds = is_array($decoded) ? $decoded : [];
 
             foreach ($users as $u) {
-                if (!in_array($u['id'], $seenIds)) {
+                if (!in_array($u->getId(), $seenIds)) {
+                    $u->prepareForSession();
                     $newUsers[] = $u;
                 }
             }
@@ -698,20 +698,12 @@ class UtilisateurController extends AbstractController
             return new JsonResponse(['error' => 'Not authenticated'], 401);
         }
 
-        // Load only the scalar fields we need — never the image BLOB (it's served via app_user_avatar)
-        $rows = $userRepo->createQueryBuilder('u')
-            ->select('u.id, u.prenom, u.nom, u.email, u.numeroT, u.adresse, u.genre, u.role, u.banned')
-            ->where('u.id = :id')
-            ->setParameter('id', $id)
-            ->getQuery()
-            ->getArrayResult();
-
-        if (empty($rows) || !empty($rows[0]['banned'])) {
+        $user = $userRepo->find($id);
+        if (!$user instanceof User || $user->isBanned()) {
             return new JsonResponse(['error' => 'User not found'], 404);
         }
-        $u = $rows[0];
 
-        $roleLabel = match ((int) $u['role']) {
+        $roleLabel = match ($user->getRole()) {
             0 => 'Administrateur',
             1 => 'Agriculteur',
             2 => 'Technicien',
@@ -720,11 +712,11 @@ class UtilisateurController extends AbstractController
 
         $vcard = "BEGIN:VCARD\r\n"
             . "VERSION:3.0\r\n"
-            . "N:" . $u['nom'] . ";" . $u['prenom'] . "\r\n"
-            . "FN:" . $u['prenom'] . " " . $u['nom'] . "\r\n"
-            . "EMAIL:" . $u['email'] . "\r\n"
-            . "TEL:" . $u['numeroT'] . "\r\n"
-            . "ADR:;;" . $u['adresse'] . "\r\n"
+            . "N:" . $user->getNom() . ";" . $user->getPrenom() . "\r\n"
+            . "FN:" . $user->getPrenom() . " " . $user->getNom() . "\r\n"
+            . "EMAIL:" . $user->getEmail() . "\r\n"
+            . "TEL:" . $user->getNumeroT() . "\r\n"
+            . "ADR:;;" . $user->getAdresse() . "\r\n"
             . "ORG:Agricore\r\n"
             . "END:VCARD\r\n";
 
@@ -741,14 +733,14 @@ class UtilisateurController extends AbstractController
         $qrBase64 = base64_encode($builder->build()->getString());
 
         return new JsonResponse([
-            'id'         => $u['id'],
-            'prenom'     => $u['prenom'],
-            'nom'        => $u['nom'],
-            'email'      => $u['email'],
-            'telephone'  => $u['numeroT'],
-            'adresse'    => $u['adresse'],
-            'genre'      => $u['genre'],
-            'role'       => (int) $u['role'],
+            'id'         => $user->getId(),
+            'prenom'     => $user->getPrenom(),
+            'nom'        => $user->getNom(),
+            'email'      => $user->getEmail(),
+            'telephone'  => $user->getNumeroT(),
+            'adresse'    => $user->getAdresse(),
+            'genre'      => $user->getGenre(),
+            'role'       => $user->getRole(),
             'role_label' => $roleLabel,
             'qr_png_b64' => $qrBase64,
         ]);
@@ -1087,22 +1079,6 @@ class UtilisateurController extends AbstractController
 
         $this->addFlash('success', 'Email envoye avec succes a ' . $sent . ' utilisateur(s).');
         return $this->redirectToRoute('back_utilisateurs');
-    }
-
-    /**
-     * Ensure image data is safe for JSON output. Images are expected to be base64 text,
-     * but legacy rows may hold raw binary BLOBs which would break json_encode.
-     */
-    private function safeImageBase64(?string $image): ?string
-    {
-        if ($image === null || $image === '') {
-            return null;
-        }
-        // Base64 is pure ASCII. If it's not ASCII, it's raw binary — encode it.
-        if (!mb_check_encoding($image, 'ASCII')) {
-            return base64_encode($image);
-        }
-        return $image;
     }
 
     /**

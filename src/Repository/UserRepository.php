@@ -41,18 +41,4 @@ class UserRepository extends ServiceEntityRepository
     //        ;
     //    }
 
-    /**
-     * Fetch all users for the back-office list as scalar arrays — never loads image BLOBs.
-     * Avatars are served separately via the app_user_avatar route.
-     *
-     * @return array<int,array<string,mixed>>
-     */
-    public function findAllForBackList(): array
-    {
-        return $this->createQueryBuilder('u')
-            ->select('u.id, u.nom, u.prenom, u.date, u.adresse, u.role, u.numeroT, u.email, u.genre, u.profile_complete, u.banned')
-            ->orderBy('u.id', 'ASC')
-            ->getQuery()
-            ->getArrayResult();
-    }
 }
