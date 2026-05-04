@@ -186,16 +186,12 @@ class UtilisateurController extends AbstractController
         if (!$sessionUser instanceof User) {
             return $this->redirectToRoute('front_login');
         }
-        $user = $userRepo->find($sessionUser->getId());
-        if ($user) {
-            $user->prepareForSession();
-            $request->getSession()->set('user', $user);
-        }
 
+        // Use the address from the session — no need to reload full User (with image BLOB) from DB
         $weatherData = null;
         $geoData = null;
         $apiError = null;
-        $address = $user ? trim((string) $user->getAdresse()) : '';
+        $address = trim((string) $sessionUser->getAdresse());
 
         if ($address && strlen($address) > 1) {
             $locationiqKey = $this->getParameter('locationiq_api_key');
@@ -677,14 +673,15 @@ class UtilisateurController extends AbstractController
 
         // DQL projection: SELECT only the small scalar fields we need. No image BLOB loaded.
         // The template renders avatars via the app_user_avatar route, so no image data in JSON.
-        $needle = '%' . $q . '%';
+        $needle = '%' . mb_strtolower($q) . '%';
         $rows = $userRepo->createQueryBuilder('u')
             ->select('u.id, u.prenom, u.nom, u.email, u.role')
-            ->where('(LOWER(u.prenom) LIKE :n OR LOWER(u.nom) LIKE :n OR LOWER(u.email) LIKE :n)')
+            ->where('LOWER(u.prenom) LIKE :n OR LOWER(u.nom) LIKE :n OR LOWER(u.email) LIKE :n')
             ->andWhere('u.id != :selfId')
-            ->andWhere('u.banned = false OR u.banned IS NULL')
-            ->setParameter('n', mb_strtolower($needle))
+            ->andWhere('(u.banned IS NULL OR u.banned = :notBanned)')
+            ->setParameter('n', $needle)
             ->setParameter('selfId', $sessionUser->getId())
+            ->setParameter('notBanned', false)
             ->setMaxResults(8)
             ->getQuery()
             ->getArrayResult();
@@ -1226,7 +1223,7 @@ class UtilisateurController extends AbstractController
              . '&nologo=true&model=flux';
 
         try {
-            $response = $httpClient->request('GET', $url, ['timeout' => 20]);
+            $response = $httpClient->request('GET', $url, ['timeout' => 12]);
             if ($response->getStatusCode() !== 200) {
                 return null;
             }
