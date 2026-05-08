@@ -35,7 +35,6 @@ class EvenementBackController extends AbstractController
         $now = new \DateTime();
 
         if ($filter === 'TOUT') {
-            // Exclude past events from default view
             $qb->andWhere('e.date_fin >= :now')->setParameter('now', $now);
         }
 
@@ -91,10 +90,10 @@ class EvenementBackController extends AbstractController
     }
 
     // =========================
-    // PARTICIPANTS MANAGEMENT
+    // 1. PARTICIPANTS MANAGEMENT (Affichage & Sync initiale)
     // =========================
     #[Route('/back/evenements/{id}/participants', name: 'back_evenements_participants', requirements: ['id' => '\\d+'])]
-    public function participants(Evennementagricole $event, ParticipantsRepository $participantsRepo): Response
+    public function participants(Evennementagricole $event, ParticipantsRepository $participantsRepo, EntityManagerInterface $em): Response
     {
         $participants = $participantsRepo->createQueryBuilder('p')
             ->where('p.evenement = :ev')
@@ -104,10 +103,29 @@ class EvenementBackController extends AbstractController
             ->getQuery()
             ->getResult();
 
-        // Calculate event duration in days
+        // --- SYNCHRONISATION DES STATUTS (WEB & DESKTOP) ---
+        foreach ($participants as $p) {
+            // Si le participant est marqué comme présent, on s'assure
+            // que confirmation = 'OUI' pour ne pas redemander le code
+            if ($p->getStatutParticipation() === 'attended') {
+                $p->setConfirmation('OUI');
+            }
+
+            // Migration : si confirm_token est vide mais nbr_presents > 0,
+            // on initialise le token au format pipe pour le jour 1
+            if (!$p->getConfirmToken() && $p->getNbrPresents() > 0) {
+                $p->setPresenceData(1, $p->getNbrPresents());
+            }
+        }
+        $em->flush();
+
+        // --- CALCUL DE LA DURÉE RÉELLE ---
         $nbrJours = 1;
-        if ($event->getDateDebut() && $event->getDateFin()) {
-            $diff = $event->getDateDebut()->diff($event->getDateFin());
+        $dateDeb  = $event->getDateDebut();
+        $dateFin  = $event->getDateFin();
+
+        if ($dateDeb && $dateFin && $dateFin >= $dateDeb) {
+            $diff     = $dateDeb->diff($dateFin);
             $nbrJours = (int) $diff->format('%a') + 1;
         }
 
@@ -119,12 +137,11 @@ class EvenementBackController extends AbstractController
     }
 
     // =========================
-    // MARK ATTENDED (Initial verification)
+    // 2. MARK ATTENDED (Vérification initiale du code)
     // =========================
     #[Route('/back/participants/{id}/attend', name: 'back_participant_attend', methods: ['POST'])]
     public function markAttended(int $id, Request $request, EntityManagerInterface $em): \Symfony\Component\HttpFoundation\JsonResponse
     {
-        /** @var \App\Entity\Participants|null $participant */
         $participant = $em->getRepository(\App\Entity\Participants::class)->find($id);
         if (!$participant) {
             return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Not found'], 404);
@@ -132,56 +149,81 @@ class EvenementBackController extends AbstractController
 
         $submittedCode = (int) $request->request->get('code');
 
+        // Vérification par rapport au code stocké en DB
         if ($submittedCode !== $participant->getEntry_code()) {
-            return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Code incorrect'], 400);
+            return new \Symfony\Component\HttpFoundation\JsonResponse(['success' => false, 'error' => 'Code incorrect']);
         }
 
-        // Once the code is verified, we allow the admin to start marking individual presences
-        $participant->setConfirmation('attended');
-        $participant->setNbrPresents(0); // Start at 0, admin will click one by one
+        // setPresenceData(day, count) écrit dans confirm_token ET met à jour nbr_presents
+        // car day === 1 → nbr_presents = 1 (voir entity)
+        $participant->setPresenceData(1, 1);
+        $participant->setConfirmation('OUI');
+        $participant->setStatutParticipation('attended');
+
         $em->flush();
-        
+
         return new \Symfony\Component\HttpFoundation\JsonResponse([
-            'success' => true,
-            'nbr_presents' => 0
+            'success'       => true,
+            'presence_data' => $participant->getPresenceData(),
+            'nbr_presents'  => $participant->getNbrPresents(),
+            'status'        => 'OUI',
         ]);
     }
 
     // =========================
-    // UPDATE ATTENDANCE (Granular)
+    // 3. UPDATE ATTENDANCE (Gestion multi-jours + Reset)
     // =========================
     #[Route('/back/participants/{id}/update-attendance', name: 'back_participant_update_attendance', methods: ['POST'])]
     public function updateAttendance(int $id, Request $request, EntityManagerInterface $em): \Symfony\Component\HttpFoundation\JsonResponse
     {
-        /** @var \App\Entity\Participants|null $participant */
         $participant = $em->getRepository(\App\Entity\Participants::class)->find($id);
         if (!$participant) {
             return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Not found'], 404);
         }
 
-        $count = (int) $request->request->get('count');
-        $day   = (int) $request->request->get('day', 1);
-        $resetAll = $request->request->get('reset_all') === '1';
-
-        if ($count < 0 || $count > $participant->getNbrPlaces()) {
-            return new \Symfony\Component\HttpFoundation\JsonResponse(['error' => 'Invalide'], 400);
-        }
-
+        // --- CAS RESET COMPLET ---
+        // On efface confirm_token (données multi-jours) et on remet tout à zéro
+        $resetAll = $request->request->get('reset_all');
         if ($resetAll) {
             $participant->setConfirmToken(null);
             $participant->setNbrPresents(0);
-        } else {
-            $participant->setPresenceData($day, $count);
+            $participant->setConfirmation('confirmed');
+            $participant->setStatutParticipation('confirmed');
+            $em->flush();
+
+            return new \Symfony\Component\HttpFoundation\JsonResponse([
+                'success'       => true,
+                'presence_data' => [],
+                'nbr_presents'  => 0,
+                'status'        => 'confirmed',
+            ]);
         }
-        
-        $participant->setConfirmation($participant->getNbrPresents() > 0 ? 'attended' : 'confirmed');
+
+        // --- CAS MISE À JOUR D'UN JOUR ---
+        $count = (int) $request->request->get('count');
+        $day   = (int) $request->request->get('day', 1);
+
+        // Met à jour le jour concerné dans confirm_token
+        // Si day === 1, met aussi à jour nbr_presents automatiquement (voir entity)
+        $participant->setPresenceData($day, $count);
+
+        // Recalculer le total toutes journées confondues depuis confirm_token
+        $totalPresents = array_sum($participant->getPresenceData());
+        $participant->setNbrPresents($totalPresents);
+
+        // Garder 'OUI' pour le Desktop
+        $participant->setConfirmation('OUI');
+
+        // Statut Web : 'attended' si au moins 1 présent sur n'importe quel jour
+        $participant->setStatutParticipation($totalPresents > 0 ? 'attended' : 'confirmed');
+
         $em->flush();
 
         return new \Symfony\Component\HttpFoundation\JsonResponse([
-            'success' => true,
-            'nbr_presents' => $participant->getNbrPresents(),
+            'success'       => true,
             'presence_data' => $participant->getPresenceData(),
-            'status' => $participant->getConfirmation()
+            'nbr_presents'  => $totalPresents,
+            'status'        => 'OUI',
         ]);
     }
 
@@ -201,8 +243,8 @@ class EvenementBackController extends AbstractController
             : 0;
 
         return $this->render('back/evenements/show.html.twig', [
-            'evenement' => $event,
-            'participants' => $participants,
+            'evenement'       => $event,
+            'participants'    => $participants,
             'placesReservees' => $placesReservees,
             'placesRestantes' => $placesRestantes,
             'tauxRemplissage' => $tauxRemplissage,
@@ -253,7 +295,7 @@ class EvenementBackController extends AbstractController
 
             // Save poster image if provided (stored as base64 in DB)
             // Read directly from $_POST to avoid Symfony request size limits
-            $posterRaw = $_POST['poster_image_data'] ?? $request->request->get('poster_image_data', '');
+            $posterRaw  = $_POST['poster_image_data'] ?? $request->request->get('poster_image_data', '');
             $posterData = is_string($posterRaw) ? $posterRaw : '';
             if (!empty($posterData) && str_starts_with($posterData, 'data:image')) {
                 $event->setImage($posterData);
@@ -326,7 +368,7 @@ class EvenementBackController extends AbstractController
         }
 
         return $this->render('back/evenements/edit.html.twig', [
-            'form' => $form->createView(),
+            'form'  => $form->createView(),
             'event' => $event
         ]);
     }

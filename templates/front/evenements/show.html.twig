@@ -514,7 +514,7 @@
             {% if discountPct > 0 %}
             <div class="mb-3 p-3 rounded-4" style="background:#f0fdf4; border:1px solid #bbf7d0;">
                 <div class="form-check form-switch d-flex align-items-center gap-2">
-                    <input class="form-check-input" type="checkbox" id="useDiscountToggle" name="use_discount" value="1" checked onchange="updatePricingRealTime()">
+                    <input class="form-check-input" type="checkbox" id="useDiscountToggle" name="use_discount" value="1" checked>
                     <label class="form-check-label fw-bold mb-0" for="useDiscountToggle" style="color:#16a34a; cursor:pointer; font-size:14px;">
                         <i class="fas fa-gift me-1"></i> Utiliser mon coupon (-{{ discountPct }}%)
                     </label>
@@ -527,7 +527,7 @@
                     <span style="color:#64748b;font-size:14px;font-weight:600;">Prix unitaire:</span>
                     <span style="color:#1e293b;font-weight:700;">{{ evenement.frais_inscription }} DT</span>
                 </div>
-                <div id="discount_row" style="display:none;">
+                <div id="discount_row" style="display:{% if discountPct > 0 %}block{% else %}none{% endif %};">
                     <div class="d-flex justify-content-between mb-2">
                         <span style="color:#16a34a;font-size:14px;font-weight:700;">
                             <i class="fas fa-tag me-1"></i> Réduction Fidélité ({{ discountPct }}%):
@@ -550,7 +550,7 @@
                     const price = parseFloat("{{ evenement.frais_inscription }}") || 0;
                     const discountPct = parseFloat("{{ discountPct }}") || 0;
                     
-                    const qtyInput = document.querySelector('input[name*="[nbr_places]"]');
+                    const qtyInput = document.querySelector('input[name="participants[nbr_places]"]');
                     const toggle = document.getElementById('useDiscountToggle');
                     const totalDisplay = document.getElementById('final_total_display');
                     const discRow = document.getElementById('discount_row');
@@ -578,7 +578,24 @@
                     }
                 }
                 
-                // Initialize on open
+                // Initialize pricing on document ready
+                document.addEventListener('DOMContentLoaded', function() {
+                    const qtyInput = document.querySelector('input[name="participants[nbr_places]"]');
+                    const toggle = document.getElementById('useDiscountToggle');
+                    
+                    // Attach event listeners
+                    if (qtyInput) {
+                        qtyInput.addEventListener('input', updatePricingRealTime);
+                    }
+                    if (toggle) {
+                        toggle.addEventListener('change', updatePricingRealTime);
+                    }
+                    
+                    // Initial calculation
+                    updatePricingRealTime();
+                });
+                
+                // Initialize on modal open
                 window.refreshPricing = updatePricingRealTime;
             </script>
 

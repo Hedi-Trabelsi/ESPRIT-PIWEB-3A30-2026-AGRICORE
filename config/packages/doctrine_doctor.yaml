@@ -3,7 +3,7 @@
 
 doctrine_doctor:
     # Enable Doctrine Doctor (automatically enabled in dev/test environments)
-    enabled: '%kernel.debug%'
+    enabled: false
 
     # Web Profiler integration
     profiler:
