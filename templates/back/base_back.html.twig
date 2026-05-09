@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function loadPage(url, pushState = true) {
-        if (!isSameOrigin(url)) {
+        if (!isSameOrigin(url) || url.includes('analyse') || url.includes('details') || url.includes('ventes-depenses')) {
             window.location.href = url;
             return;
         }

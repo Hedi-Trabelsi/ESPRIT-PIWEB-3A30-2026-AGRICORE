@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 
 use App\Repository\VenteRepository;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: VenteRepository::class)]
 #[ORM\Table(name: 'vente')]
@@ -30,6 +31,8 @@ class Vente
     }
 
     #[ORM\Column(name: 'prixUnitaire', type: 'integer', nullable: false)]
+    #[Assert\NotBlank(message: "Le prix unitaire est obligatoire.")]
+    #[Assert\Positive(message: "Le prix doit être supérieur à zéro.")]
     private int $prixUnitaire = 0;
 
     public function getPrixUnitaire(): ?int
@@ -44,6 +47,8 @@ class Vente
     }
 
     #[ORM\Column(type: 'integer', nullable: false)]
+    #[Assert\NotBlank(message: "La quantité est obligatoire.")]
+    #[Assert\Positive(message: "La quantité doit être supérieure à zéro.")]
     private int $quantite = 0;
 
     public function getQuantite(): ?int
@@ -72,6 +77,8 @@ class Vente
     }
 
     #[ORM\Column(type: 'date_immutable', nullable: false)]
+    #[Assert\NotBlank(message: "La date est obligatoire.")]
+    #[Assert\LessThanOrEqual("today", message: "La date ne peut pas être dans le futur.")]
     private \DateTimeImmutable $date;
 
     public function __construct()
@@ -91,14 +98,16 @@ class Vente
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private string $produit = '';
+    #[Assert\NotBlank(message: "Le nom du produit est obligatoire.")]
+    #[Assert\Length(min: 3, minMessage: "Le nom du produit doit contenir au moins {{ limit }} caractères.")]
+    private ?string $produit = null;
 
     public function getProduit(): ?string
     {
         return $this->produit;
     }
 
-    public function setProduit(string $produit): self
+    public function setProduit(?string $produit): self
     {
         $this->produit = $produit;
         return $this;

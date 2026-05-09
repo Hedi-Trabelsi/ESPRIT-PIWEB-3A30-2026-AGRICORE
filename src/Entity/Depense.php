@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 
 use App\Repository\DepenseRepository;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: DepenseRepository::class)]
 #[ORM\Table(name: 'depense')]
@@ -30,20 +31,23 @@ class Depense
     }
 
     #[ORM\Column(type: 'string', nullable: false)]
-    private string $type = '';
+    #[Assert\NotBlank(message: "Le type de dépense est obligatoire.")]
+    private ?string $type = null;
 
     public function getType(): ?string
     {
         return $this->type;
     }
 
-    public function setType(string $type): self
+    public function setType(?string $type): self
     {
         $this->type = $type;
         return $this;
     }
 
     #[ORM\Column(type: 'float', nullable: false)]
+    #[Assert\NotBlank(message: "Le montant est obligatoire.")]
+    #[Assert\Positive(message: "Le montant doit être un nombre positif.")]
     private float $montant = 0.0;
 
     public function getMontant(): ?float
@@ -58,6 +62,8 @@ class Depense
     }
 
     #[ORM\Column(type: 'date_immutable', nullable: false)]
+    #[Assert\NotBlank(message: "La date est obligatoire.")]
+    #[Assert\LessThanOrEqual("today", message: "La date ne peut pas être dans le futur.")]
     private \DateTimeImmutable $date;
 
     public function __construct()

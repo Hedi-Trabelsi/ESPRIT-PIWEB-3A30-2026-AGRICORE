@@ -324,57 +324,82 @@
 
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const themeColors = ['#38a169', '#e53e3e', '#3182ce', '#ecc94b', '#805ad5'];
+    (function() {
+        const initCharts = function() {
+            console.log("Initializing charts...");
+            const themeColors = ['#38a169', '#e53e3e', '#3182ce', '#ecc94b', '#805ad5'];
 
-        const pieData = {{ expensesByCategory|json_encode|raw }};
-        new ApexCharts(document.querySelector("#pieChart"), {
-            series: Object.values(pieData),
-            labels: Object.keys(pieData),
-            chart: { type: 'donut', height: 350, fontFamily: 'Plus Jakarta Sans' },
-            colors: themeColors,
-            plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, label: 'Total', formatter: () => '{{ totalExpenses|number_format(0, ".", " ") }} DT' } } } } },
-            legend: { position: 'bottom' }
-        }).render();
+            const pieChartEl = document.querySelector("#pieChart");
+            if (pieChartEl) {
+                const pieData = {{ expensesByCategory|json_encode|raw }};
+                new ApexCharts(pieChartEl, {
+                    series: Object.values(pieData),
+                    labels: Object.keys(pieData),
+                    chart: { type: 'donut', height: 350, fontFamily: 'Plus Jakarta Sans' },
+                    colors: themeColors,
+                    plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, label: 'Total', formatter: () => '{{ totalExpenses|number_format(0, ".", " ") }} DT' } } } } },
+                    legend: { position: 'bottom' }
+                }).render();
+            }
 
-        const monthlyStats = {{ monthlyStats|json_encode|raw }};
-        const months = Object.keys(monthlyStats);
-        new ApexCharts(document.querySelector("#barChart"), {
-            series: [{ name: 'Ventes', data: months.map(m => monthlyStats[m].sales) }, { name: 'Dépenses', data: months.map(m => monthlyStats[m].expenses) }],
-            chart: { type: 'bar', height: 350, toolbar: { show: false } },
-            plotOptions: { bar: { borderRadius: 6, columnWidth: '45%' } },
-            colors: ['#38a169', '#e53e3e'],
-            xaxis: { categories: months.map(m => { const [y, mon] = m.split('-'); return new Date(y, mon-1).toLocaleString('default', { month: 'short' }); }) },
-            grid: { borderColor: '#f1f1f1' }
-        }).render();
+            const barChartEl = document.querySelector("#barChart");
+            if (barChartEl) {
+                const monthlyStats = {{ monthlyStats|json_encode|raw }};
+                const months = Object.keys(monthlyStats);
+                new ApexCharts(barChartEl, {
+                    series: [{ name: 'Ventes', data: months.map(m => monthlyStats[m].sales) }, { name: 'Dépenses', data: months.map(m => monthlyStats[m].expenses) }],
+                    chart: { type: 'bar', height: 350, toolbar: { show: false } },
+                    plotOptions: { bar: { borderRadius: 6, columnWidth: '45%' } },
+                    colors: ['#38a169', '#e53e3e'],
+                    xaxis: { categories: months.map(m => { const [y, mon] = m.split('-'); return new Date(y, mon-1).toLocaleString('default', { month: 'short' }); }) },
+                    grid: { borderColor: '#f1f1f1' }
+                }).render();
+            }
 
-        const zScoreData = {{ anomalyResults|map(r => ({ 'z': r.analysis.score, 'isA': r.analysis.isAnomaly }))|json_encode|raw }};
-        new ApexCharts(document.querySelector("#zScoreChart"), {
-            series: [{ name: 'Z-Score', data: zScoreData.map(r => r.z.toFixed(2)) }],
-            chart: { type: 'bar', height: 350, toolbar: { show: false } },
-            plotOptions: { bar: { distributed: true, borderRadius: 4, columnWidth: '40%' } },
-            colors: zScoreData.map(r => r.isA ? '#e53e3e' : '#38a169'),
-            legend: { show: false },
-            xaxis: { labels: { show: false } }
-        }).render();
+            const zScoreChartEl = document.querySelector("#zScoreChart");
+            if (zScoreChartEl) {
+                const zScoreData = {{ anomalyResults|map(r => ({ 'z': r.analysis.score, 'isA': r.analysis.isAnomaly }))|json_encode|raw }};
+                new ApexCharts(zScoreChartEl, {
+                    series: [{ name: 'Z-Score', data: zScoreData.map(r => r.z.toFixed(2)) }],
+                    chart: { type: 'bar', height: 350, toolbar: { show: false } },
+                    plotOptions: { bar: { distributed: true, borderRadius: 4, columnWidth: '40%' } },
+                    colors: zScoreData.map(r => r.isA ? '#e53e3e' : '#38a169'),
+                    legend: { show: false },
+                    xaxis: { labels: { show: false } }
+                }).render();
+            }
 
-        const historyData = {{ forecastData.history|json_encode|raw }};
-        const forecastData = {{ forecastData.forecast|json_encode|raw }};
-        const allDates = [...historyData.map(h => h.date), ...forecastData.map(f => f.date)];
+            const forecastChartEl = document.querySelector("#forecastChart");
+            if (forecastChartEl) {
+                const historyData = {{ forecastData.history|json_encode|raw }};
+                const forecastData = {{ forecastData.forecast|json_encode|raw }};
+                const allDates = [...historyData.map(h => h.date), ...forecastData.map(f => f.date)];
 
-        new ApexCharts(document.querySelector("#forecastChart"), {
-            series: [
-                { name: 'Historique', type: 'line', data: historyData.map(h => h.value) },
-                { name: 'Prévision', type: 'line', data: [...Array(historyData.length).fill(null), ...forecastData.map(f => f.value)] },
-                { name: 'Intervalle', type: 'area', data: [...Array(historyData.length).fill(null), ...forecastData.map(f => ({ x: f.date, y: [f.lower, f.upper] }))] }
-            ],
-            chart: { height: 350, type: 'line', toolbar: { show: false } },
-            colors: ['#38a169', '#3182ce', '#cbd5e0'],
-            stroke: { width: [4, 4, 0], curve: 'smooth', dashArray: [0, 8, 0] },
-            fill: { type: ['solid', 'solid', 'gradient'], gradient: { opacityFrom: 0.3, opacityTo: 0.1 } },
-            xaxis: { categories: allDates.map(d => { const [y, m] = d.split('-'); return new Date(y, m-1).toLocaleString('default', { month: 'short', year: '2-digit' }); }) },
-            legend: { position: 'top', horizontalAlign: 'right' }
-        }).render();
-    });
+                new ApexCharts(forecastChartEl, {
+                    series: [
+                        { name: 'Historique', type: 'line', data: historyData.map(h => h.value) },
+                        { name: 'Prévision', type: 'line', data: [...Array(historyData.length).fill(null), ...forecastData.map(f => f.value)] },
+                        { name: 'Intervalle', type: 'area', data: [...Array(historyData.length).fill(null), ...forecastData.map(f => ({ x: f.date, y: [f.lower, f.upper] }))] }
+                    ],
+                    chart: { height: 350, type: 'line', toolbar: { show: false } },
+                    colors: ['#38a169', '#3182ce', '#cbd5e0'],
+                    stroke: { width: [4, 4, 0], curve: 'smooth', dashArray: [0, 8, 0] },
+                    fill: { type: ['solid', 'solid', 'gradient'], gradient: { opacityFrom: 0.3, opacityTo: 0.1 } },
+                    xaxis: { categories: allDates.map(d => { const [y, m] = d.split('-'); return new Date(y, m-1).toLocaleString('default', { month: 'short', year: '2-digit' }); }) },
+                    legend: { position: 'top', horizontalAlign: 'right' }
+                }).render();
+            }
+        };
+
+        // Execution immediate car le script est ré-injecté par le système AJAX de base_back.html.twig
+        if (typeof ApexCharts === 'undefined') {
+            const script = document.createElement('script');
+            script.src = "https://cdn.jsdelivr.net/npm/apexcharts";
+            script.onload = initCharts;
+            document.head.appendChild(script);
+        } else {
+            initCharts();
+        }
+    })();
 </script>
 {% endblock %}
