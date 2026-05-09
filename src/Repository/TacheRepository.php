@@ -45,7 +45,7 @@ class TacheRepository extends ServiceEntityRepository
             ->andWhere('m.statut NOT IN (:resolvedStatuses)')
             ->setParameter('technicianId', $technicianId)
             ->setParameter('today', $today)
-            ->setParameter('resolvedStatuses', ['Résolu', 'Résolue'])
+            ->setParameter('resolvedStatuses', ['Resolu', 'Résolu', 'Résolue'])
             ->orderBy('t.date_prevue', 'ASC')
             ->addOrderBy('t.nomTache', 'ASC')
             ->getQuery()

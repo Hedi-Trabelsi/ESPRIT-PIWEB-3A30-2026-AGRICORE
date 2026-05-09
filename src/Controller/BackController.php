@@ -45,13 +45,48 @@ class BackController extends AbstractController
 
         // --- Maintenance Status Breakdown ---
         $maintenances = $maintenanceRepo->findAll();
-        $statusCounts = ['Resolu' => 0, 'Attente' => 0, 'Planifie' => 0, 'Refuse' => 0];
+        $statusCounts = ['Resolu' => 0, 'Attente' => 0, 'Planifie' => 0, 'Refuse' => 0, 'Accepte' => 0];
+        $pendingNotifications = [];
+
         foreach ($maintenances as $m) {
-            $status = $m->getStatut();
-            if (isset($statusCounts[$status])) {
-                $statusCounts[$status]++;
+            $status = mb_strtolower(trim((string) $m->getStatut()));
+
+            if (in_array($status, ['resolu', 'résolu', 'résolue'], true)) {
+                $statusCounts['Resolu']++;
+            } elseif (in_array($status, ['en attente', 'attente'], true)) {
+                $statusCounts['Attente']++;
+                $pendingNotifications[] = $m;
+            } elseif (in_array($status, ['accepter', 'accepté', 'acceptée', 'accepte', 'acceptee'], true)) {
+                $statusCounts['Accepte']++;
+            } elseif (in_array($status, ['planifier', 'planifié', 'planifiée'], true)) {
+                $statusCounts['Planifie']++;
+            } elseif (in_array($status, ['refuse', 'refusé', 'refusée', 'refusee'], true)) {
+                $statusCounts['Refuse']++;
             }
         }
+
+        usort($pendingNotifications, static function ($left, $right): int {
+            $leftDate = $left->getDateDeclaration();
+            $rightDate = $right->getDateDeclaration();
+
+            if ($leftDate && $rightDate) {
+                $compare = $rightDate <=> $leftDate;
+                if ($compare !== 0) {
+                    return $compare;
+                }
+            } elseif ($leftDate) {
+                return -1;
+            } elseif ($rightDate) {
+                return 1;
+            }
+
+            return $right->getId_maintenance() <=> $left->getId_maintenance();
+        });
+
+        $unreadCount = count(array_filter(
+            $pendingNotifications,
+            static fn ($maintenance): bool => !$maintenance->isRead()
+        ));
 
         // --- Animal Health States ---
         $suivis = $suiviRepo->findAll();
@@ -152,6 +187,9 @@ class BackController extends AbstractController
             'healthLabels' => array_keys($healthCounts),
             'healthCounts' => array_values($healthCounts),
             'recentMaintenances' => $recentMaintenances,
+            'pendingNotifications' => $pendingNotifications,
+            'pendingCount' => count($pendingNotifications),
+            'unreadCount' => $unreadCount,
             'upcomingEvents' => $upcomingEvents,
             'metrics' => [
                 'userGrowth' => $userGrowth,

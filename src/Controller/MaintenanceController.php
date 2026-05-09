@@ -19,6 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
 use Knp\Component\Pager\PaginatorInterface;
+use Throwable;
 
 class MaintenanceController extends AbstractController
 {
@@ -28,6 +29,9 @@ public function index(Request $request, MaintenanceRepository $repo): Response
 {
     $search = $request->query->get('q');
     $status = $request->query->get('s');
+    if ($status === 'all') {
+        $status = null;
+    }
 
     $sessionUser = $request->getSession()->get('user');
 
@@ -114,7 +118,7 @@ public function index(Request $request, MaintenanceRepository $repo): Response
         PaginatorInterface $paginator
     ): Response
     {
-        $maintenances = $maintenanceRepository->findBy(['statut' => 'En attente']);
+        $maintenances = $maintenanceRepository->findBy(['statut' => 'accepter']);
 
         $sessionUser = $request->getSession()->get('user');
         $technicianAddress = null;
@@ -159,7 +163,7 @@ public function index(Request $request, MaintenanceRepository $repo): Response
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        $maintenances = $maintenanceRepository->findBy(['statut' => 'En attente']);
+        $maintenances = $maintenanceRepository->findBy(['statut' => 'accepter']);
         $technicianAddress = $technician->getAdresse();
         $limit = max(1, min(5, (int) $request->query->get('limit', 3)));
 
@@ -178,7 +182,7 @@ public function index(Request $request, MaintenanceRepository $repo): Response
         MaintenanceProximityService $proximityService,
         Request $request
     ): Response {
-        $maintenances = $maintenanceRepository->findBy(['statut' => 'Planifiée']);
+        $maintenances = $maintenanceRepository->findBy(['statut' => 'planifier']);
 
         $sessionUser = $request->getSession()->get('user');
         $technicianAddress = $sessionUser instanceof User
@@ -197,7 +201,7 @@ public function index(Request $request, MaintenanceRepository $repo): Response
     #[Route('/maintenance/historique', name: 'app_maintenance_historique')]
     public function Hmaintenance(MaintenanceRepository $maintenanceRepository): Response
     {
-        $maintenancesResolues = $maintenanceRepository->findBy(['statut' => 'Résolue']);
+        $maintenancesResolues = $maintenanceRepository->findBy(['statut' => 'Resolu']);
 
         return $this->render('front/maintenance/HistoriqueMaintenances.html.twig', [
             'listeMaintenances' => $maintenancesResolues,
@@ -504,11 +508,17 @@ public function add(Request $request, EntityManagerInterface $em): Response
 #[Route('/back/maintenance/supprimer/{id_maintenance}', name: 'app_maintenance_delete_back', methods: ['POST'])]
 public function deleteBack(Request $request, Maintenance $maintenance, EntityManagerInterface $em): Response
 {
-    if ($this->isCsrfTokenValid('delete'.$maintenance->getId_maintenance(), (string) $request->request->get('_token', ''))) {
+    if (!$this->isCsrfTokenValid('delete'.$maintenance->getId_maintenance(), (string) $request->request->get('_token', ''))) {
+        $this->addFlash('danger', 'Action de suppression invalide (token CSRF).');
+        return $this->redirectToRoute('app_maintenance_back_list');
+    }
+
+    try {
         $em->remove($maintenance);
         $em->flush();
-
-        
+        $this->addFlash('success', 'Maintenance supprimée avec succès.');
+    } catch (Throwable $exception) {
+        $this->addFlash('danger', 'Impossible de supprimer cette maintenance pour le moment.');
     }
 
     return $this->redirectToRoute('app_maintenance_back_list');
@@ -640,14 +650,27 @@ public function assignAiBack(
     }
 
     $technicianId = (int) $request->request->get('technicien_id', 0);
-    if ($technicianId <= 0) {
-        $this->addFlash('warning', 'Veuillez choisir un technicien.');
-        return $this->redirectToRoute('app_maintenance_detail_back', ['id_maintenance' => $maintenance->getId_maintenance()]);
+    $technician = null;
+
+    if ($technicianId > 0) {
+        $candidate = $entityManager->getRepository(User::class)->find($technicianId);
+        if ($candidate instanceof User && (int) $candidate->getRole() === 2 && !$candidate->isBanned()) {
+            $technician = $candidate;
+        }
     }
 
-    $technician = $entityManager->getRepository(User::class)->find($technicianId);
-    if (!$technician instanceof User || (int) $technician->getRole() !== 2) {
-        $this->addFlash('warning', 'Technicien invalide.');
+    if (!$technician instanceof User) {
+        $availableTechnicians = $entityManager->getRepository(User::class)->findBy(['role' => 2], ['id' => 'ASC']);
+        foreach ($availableTechnicians as $candidateTech) {
+            if ($candidateTech instanceof User && !$candidateTech->isBanned()) {
+                $technician = $candidateTech;
+                break;
+            }
+        }
+    }
+
+    if (!$technician instanceof User) {
+        $this->addFlash('warning', 'Aucun technicien disponible pour une affectation IA.');
         return $this->redirectToRoute('app_maintenance_detail_back', ['id_maintenance' => $maintenance->getId_maintenance()]);
     }
 
@@ -671,8 +694,8 @@ public function assignAiBack(
     $tache->setIdMaintenance($maintenance);
     $tache->setIdTechnicien($technician);
 
-    if (!in_array($maintenance->getStatut(), ['Résolue', 'Résolu', 'Refusée', 'Refusé'], true)) {
-        $maintenance->setStatut('Planifiée');
+    if (!in_array($maintenance->getStatut(), ['Résolue', 'Résolu'], true)) {
+        $maintenance->setStatut('planifier');
     }
 
     $existingDescription = trim((string) $maintenance->getDescription());
@@ -684,10 +707,13 @@ public function assignAiBack(
     );
     $maintenance->setDescription($existingDescription !== '' ? ($existingDescription . "\n\n" . $assignmentNote) : $assignmentNote);
 
-    $entityManager->persist($tache);
-    $entityManager->flush();
-
-    $this->addFlash('success', 'Affectation IA effectuée et tâche générée automatiquement.');
+    try {
+        $entityManager->persist($tache);
+        $entityManager->flush();
+        $this->addFlash('success', 'Affectation IA effectuée et tâche générée automatiquement.');
+    } catch (Throwable) {
+        $this->addFlash('danger', 'Échec de l\'affectation IA. Veuillez réessayer.');
+    }
 
     return $this->redirectToRoute('app_maintenance_detail_back', ['id_maintenance' => $maintenance->getId_maintenance()]);
 }
@@ -696,26 +722,45 @@ public function statsBack(MaintenanceRepository $repo, TacheRepository $tacheRep
 {
     $maintenances = $repo->findAll();
     
-    $statsStatut = ['Resolu' => 0, 'Attente' => 0, 'Planifie' => 0, 'Refuse' => 0];
+    $statsStatut = ['Resolu' => 0, 'Attente' => 0, 'Accepte' => 0, 'Planifie' => 0, 'Refuse' => 0];
     $statsPriorite = ['Urgente' => 0, 'Normale' => 0, 'Faible' => 0];
     $statsParJour = [];
 
+    $normalize = static function (?string $value): string {
+        $value = trim((string) $value);
+        $value = mb_strtolower($value);
+        $value = str_replace(
+            ['à', 'á', 'â', 'ä', 'ç', 'é', 'è', 'ê', 'ë', 'î', 'ï', 'ô', 'ö', 'ù', 'û', 'ü'],
+            ['a', 'a', 'a', 'a', 'c', 'e', 'e', 'e', 'e', 'i', 'i', 'o', 'o', 'u', 'u', 'u'],
+            $value
+        );
+
+        return $value;
+    };
+
     foreach ($maintenances as $m) {
         // --- Stats Statut ---
-        $s = $m->getStatut();
-        if (in_array($s, ['Résolu', 'Résolue'])) $statsStatut['Resolu']++;
-        elseif (in_array($s, ['En attente', 'Attente', 'En Attente'])) $statsStatut['Attente']++;
-        elseif (in_array($s, ['Planifié', 'Planifiée'])) $statsStatut['Planifie']++;
-        elseif (in_array($s, ['Refusé', 'Refusée'])) $statsStatut['Refuse']++;
+        $s = $normalize($m->getStatut());
+        if (in_array($s, ['resolu', 'resolue'], true)) {
+            $statsStatut['Resolu']++;
+        } elseif (in_array($s, ['en attente', 'attente'], true)) {
+            $statsStatut['Attente']++;
+        } elseif (in_array($s, ['accepter', 'accepte'], true)) {
+            $statsStatut['Accepte']++;
+        } elseif (in_array($s, ['planifier', 'planifie', 'planifiee'], true)) {
+            $statsStatut['Planifie']++;
+        } elseif (in_array($s, ['refuse', 'refusee'], true)) {
+            $statsStatut['Refuse']++;
+        }
 
        
-        $p = trim($m->getPriorite()); 
+        $p = $normalize($m->getPriorite()); 
         
-        if (in_array($p, ['Urgente', 'Urgent', 'urgente'])) {
+        if (in_array($p, ['urgente', 'urgent'], true)) {
             $statsPriorite['Urgente']++;
-        } elseif (in_array($p, ['Normale', 'Normal', 'normale', 'moyenne'])) {
+        } elseif (in_array($p, ['normale', 'normal', 'moyenne'], true)) {
             $statsPriorite['Normale']++;
-        } elseif (in_array($p, ['Faible', 'Low', 'faible'])) {
+        } elseif (in_array($p, ['faible', 'low'], true)) {
             $statsPriorite['Faible']++;
         }
 
@@ -833,7 +878,17 @@ public function markNotificationReadBack(int $id_maintenance, MaintenanceReposit
 #[Route('/back/maintenance/notifications/mark-all-read', name: 'app_maintenance_notification_mark_all_read_back', methods: ['POST'])]
 public function markAllNotificationsReadBack(MaintenanceRepository $repo, EntityManagerInterface $entityManager): Response
 {
-    $pendingNotifications = $repo->findBy(['statut' => 'En attente'], ['date_declaration' => 'DESC']);
+    $pendingNotifications = array_values(array_filter(
+        $repo->findAll(),
+        static function (Maintenance $maintenance): bool {
+            return in_array(mb_strtolower(trim((string) $maintenance->getStatut())), ['en attente', 'attente'], true);
+        }
+    ));
+
+    usort($pendingNotifications, static function (Maintenance $left, Maintenance $right): int {
+        return $right->getDateDeclaration() <=> $left->getDateDeclaration();
+    });
+
     foreach ($pendingNotifications as $maintenance) {
         if (!$maintenance->isRead()) {
             $maintenance->setIsRead(true);
@@ -846,7 +901,18 @@ public function markAllNotificationsReadBack(MaintenanceRepository $repo, Entity
 #[Route('/back/maintenance/refuser/{id_maintenance}', name: 'app_maintenance_refuse_back', methods: ['POST'])]
 public function refuseBack(Maintenance $maintenance, EntityManagerInterface $em): Response
 {
-    $maintenance->setStatut('Refusée'); 
+    // Mark the maintenance as refused in the database (canonical value) and redirect back to list
+    $maintenance->setStatut('refusee');
+
+    $em->flush();
+
+    return $this->redirectToRoute('app_maintenance_back_list');
+}
+
+#[Route('/back/maintenance/accepter/{id_maintenance}', name: 'app_maintenance_accept_back', methods: ['POST'])]
+public function acceptBack(Maintenance $maintenance, EntityManagerInterface $em): Response
+{
+    $maintenance->setStatut('accepter'); 
     
     $em->flush();
    
@@ -869,10 +935,30 @@ public function countPendingNotifications(MaintenanceRepository $repo): Response
  */
 private function buildMaintenanceNotificationContext(MaintenanceRepository $repo): array
 {
-    $pendingNotifications = $repo->findBy(
-        ['statut' => 'En attente'],
-        ['date_declaration' => 'DESC', 'id_maintenance' => 'DESC']
-    );
+    $pendingNotifications = array_values(array_filter(
+        $repo->findAll(),
+        static function (Maintenance $maintenance): bool {
+            return in_array(mb_strtolower(trim((string) $maintenance->getStatut())), ['en attente', 'attente'], true);
+        }
+    ));
+
+    usort($pendingNotifications, static function (Maintenance $left, Maintenance $right): int {
+        $leftDate = $left->getDateDeclaration();
+        $rightDate = $right->getDateDeclaration();
+
+        if ($leftDate && $rightDate) {
+            $compare = $rightDate <=> $leftDate;
+            if ($compare !== 0) {
+                return $compare;
+            }
+        } elseif ($leftDate) {
+            return -1;
+        } elseif ($rightDate) {
+            return 1;
+        }
+
+        return $right->getId_maintenance() <=> $left->getId_maintenance();
+    });
 
     $unreadCount = count(array_filter(
         $pendingNotifications,
@@ -975,7 +1061,7 @@ private function buildCalendarTaskData(Tache $task, string $todayKey): array
     $taskDate = $task->getDatePrevue();
     $maintenance = $task->getIdMaintenance();
     $maintenanceStatus = $maintenance?->getStatut() ?? 'Inconnue';
-    $isResolved = in_array($maintenanceStatus, ['Résolu', 'Résolue'], true);
+    $isResolved = in_array($maintenanceStatus, ['Resolu', 'Résolu', 'Résolue'], true);
     $dateKey = $taskDate->format('Y-m-d');
     $etat = $task->getEtat() ?? 0;
     $isOverdue = !$isResolved && ($etat === -1 || ($dateKey < $todayKey && $etat !== 1));

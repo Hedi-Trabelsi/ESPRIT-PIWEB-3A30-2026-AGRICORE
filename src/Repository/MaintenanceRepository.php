@@ -30,8 +30,15 @@ class MaintenanceRepository extends ServiceEntityRepository
         }
 
         if ($status) {
-            $qb->andWhere('m.statut = :status')
-                ->setParameter('status', $status);
+            $acceptedStatuses = ['accepter', 'Acceptée', 'Acceptee', 'Accepté', 'Accepte', 'Accepter'];
+
+            if (in_array($status, $acceptedStatuses, true)) {
+                $qb->andWhere('m.statut IN (:acceptedStatuses)')
+                    ->setParameter('acceptedStatuses', $acceptedStatuses);
+            } else {
+                $qb->andWhere('m.statut = :status')
+                    ->setParameter('status', $status);
+            }
         }
 
         if ($userId) {

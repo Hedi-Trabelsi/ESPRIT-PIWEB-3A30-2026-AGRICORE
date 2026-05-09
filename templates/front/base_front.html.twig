@@ -135,6 +135,16 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const loader = document.getElementById('ajax-loader');
+
+  function cleanupTransientOverlays() {
+    document.querySelectorAll('.modal-backdrop, .offcanvas-backdrop').forEach(function(backdrop) {
+      backdrop.remove();
+    });
+
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+  }
     
     function isSameOrigin(url) {
         try {
@@ -150,6 +160,8 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = url;
             return;
         }
+
+      cleanupTransientOverlays();
         
         loader.style.display = 'block';
         
@@ -167,6 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (newContent) {
                 document.getElementById('page-content').innerHTML = newContent.innerHTML;
+              cleanupTransientOverlays();
                 
                 const newTitle = doc.querySelector('title');
                 if (newTitle) document.title = newTitle.textContent;
@@ -217,6 +230,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('popstate', function() {
         loadPage(window.location.href, false);
     });
+
+    cleanupTransientOverlays();
 });
 </script>
 

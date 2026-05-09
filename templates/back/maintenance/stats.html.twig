@@ -146,10 +146,10 @@ new Chart(document.getElementById('chartTechnicians'), {
     new Chart(document.getElementById('chartStatus'), {
         type: 'doughnut',
         data: {
-            labels: ['Résolu', 'Attente', 'Planifié', 'Refusé'],
+            labels: ['Résolu', 'Attente', 'Acceptée', 'Planifié', 'Refusé'],
             datasets: [{
-                data: [{{ statsStatut.Resolu }}, {{ statsStatut.Attente }}, {{ statsStatut.Planifie }}, {{ statsStatut.Refuse }}],
-                backgroundColor: ['#13deb9', '#ffae1f', '#5d87ff', '#fa896b']
+                data: [{{ statsStatut.Resolu }}, {{ statsStatut.Attente }}, {{ statsStatut.Accepte }}, {{ statsStatut.Planifie }}, {{ statsStatut.Refuse }}],
+                backgroundColor: ['#13deb9', '#ffae1f', '#fff3cd', '#5d87ff', '#fa896b']
             }]
         },
         options: { 

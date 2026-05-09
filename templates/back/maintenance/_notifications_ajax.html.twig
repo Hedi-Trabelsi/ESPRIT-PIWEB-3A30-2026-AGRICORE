@@ -88,14 +88,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    if (bell) {
-        bell.style.cursor = 'pointer';
-        bell.addEventListener('click', function (event) {
-            event.preventDefault();
-            window.location.href = '{{ path('app_maintenance_notifications_back') }}';
-        });
-    }
-
     refreshNotificationState();
     window.addEventListener('pageshow', function (event) {
         refreshNotificationState();

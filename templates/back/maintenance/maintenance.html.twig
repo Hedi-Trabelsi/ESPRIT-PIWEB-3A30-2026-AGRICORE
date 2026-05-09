@@ -15,6 +15,7 @@
     .bg-status-refuse { background-color: #fdeced !important; color: #dc3545 !important; }
     .bg-status-attente { background-color: #f1f3f5 !important; color: #6c757d !important; }
     .bg-status-planifie { background-color: #e7f1ff !important; color: #0d6efd !important; }
+    .bg-status-accepter { background-color: #fff3cd !important; color: #8a5a00 !important; }
     .small-label { font-size: 0.65rem; text-transform: uppercase; color: #94a3b8; display: block; margin-bottom: -2px; }
     .data-text { font-size: 0.9rem; font-weight: 600; color: #2a3547; }
     
@@ -143,9 +144,11 @@
                 <select name="s" class="form-select" onchange="this.form.submit()">
                     <option value="">Tous les statuts</option>
                     <option value="En attente" {{ app.request.query.get('s') == 'En attente' ? 'selected' : '' }}>En attente</option>
-                    <option value="Planifiée" {{ app.request.query.get('s') == 'Planifiée' ? 'selected' : '' }}>Planifiée</option>
-                    <option value="Résolue" {{ app.request.query.get('s') == 'Résolue' ? 'selected' : '' }}>Résolue</option>
-                    <option value="Refusée" {{ app.request.query.get('s') == 'Refusée' ? 'selected' : '' }}>Refusée</option>
+                    <option value="accepter" {{ app.request.query.get('s') == 'accepter' ? 'selected' : '' }}>Acceptée</option>
+                    <option value="planifier" {{ app.request.query.get('s') == 'planifier' ? 'selected' : '' }}>Planifiée</option>
+                    <option value="Resolu" {{ app.request.query.get('s') == 'Resolu' ? 'selected' : '' }}>Résolue</option>
+                    <option value="refusee" {{ app.request.query.get('s') == 'refusee' ? 'selected' : '' }}>Refusée</option>
+
                 </select>
             </div>
 
@@ -200,16 +203,22 @@
                                 <span class="badge {{ badgePrio }}" style="font-size: 0.7rem; font-weight: 600;">{{ maintenance.Priorite }}</span>
                             </div>
                             <div class="col-md-2 text-center">
+                                {% set displayStatus = maintenance.Statut %}
                                 {% set statusClass = 'bg-status-attente' %}
-                                {% if maintenance.Statut in ['Résolu', 'Résolue'] %}{% set statusClass = 'bg-status-resolu' %}
-                                {% elseif maintenance.Statut in ['Refusé', 'Refusée'] %}{% set statusClass = 'bg-status-refuse' %}
-                                {% elseif maintenance.Statut in ['Planifié', 'Planifiée'] %}{% set statusClass = 'bg-status-planifie' %}
+                                {% if maintenance.Statut in ['Resolu', 'Résolu', 'Résolue'] %}{% set statusClass = 'bg-status-resolu' %}{% set displayStatus = 'Résolue' %}
+                                {% elseif maintenance.Statut|lower == 'accepter' %}{% set statusClass = 'bg-status-accepter' %}{% set displayStatus = 'Acceptée' %}
+                                {% elseif maintenance.Statut|lower starts with 'refus' %}{% set statusClass = 'bg-status-refuse' %}{% set displayStatus = 'Refusée' %}
+                                {% elseif maintenance.Statut|lower == 'planifier' %}{% set statusClass = 'bg-status-planifie' %}{% set displayStatus = 'Planifiée' %}
                                 {% endif %}
-                                <span class="status-badge {{ statusClass }}">{{ maintenance.Statut }}</span>
+                                <span class="status-badge {{ statusClass }}">{{ displayStatus }}</span>
                             </div>
                             
                             <div class="col-md-2 text-end d-flex justify-content-end gap-2">
                                 {% if maintenance.Statut|lower in ['en attente', 'attente'] %}
+                                    <button type="button" class="btn btn-sm btn-light-success rounded-circle shadow-none" 
+                                            onclick="showAccept(event, '{{ m_id }}')" title="Accepter">
+                                        <i class="ti ti-check fs-4"></i>
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-light-warning rounded-circle shadow-none" 
                                             onclick="showRefuse(event, '{{ m_id }}')" title="Refuser">
                                         <i class="ti ti-x fs-4"></i>
@@ -227,12 +236,24 @@
             </div>
 
             {# Barres de confirmation #}
+            <div id="acceptBar{{ m_id }}" class="confirm-bar confirm-bar-green d-none">
+                <div class="d-flex justify-content-between align-items-center p-2">
+                    <span class="small" style="color: #198754;"><strong>Accepter</strong> cette demande ?</span>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-light btn-sm" onclick="cancelAction(event, 'acceptBar{{ m_id }}')">Annuler</button>
+                        <form method="post" action="{{ path('app_maintenance_accept_back', {'id_maintenance': m_id}) }}" onsubmit="event.stopPropagation();">
+                            <button type="submit" class="btn btn-success btn-sm">Accepter</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <div id="refuseBar{{ m_id }}" class="confirm-bar confirm-bar-orange d-none">
                 <div class="d-flex justify-content-between align-items-center p-2">
                     <span class="small" style="color: #ffae1f;">Confirmer le <strong>refus</strong> ?</span>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-light btn-sm" onclick="cancelAction(event, 'refuseBar{{ m_id }}')">Annuler</button>
-                        <form method="post" action="{{ path('app_maintenance_refuse_back', {'id_maintenance': m_id}) }}">
+                        <button type="button" class="btn btn-light btn-sm" onclick="cancelAction(event, 'refuseBar{{ m_id }}')">Annuler</button>
+                        <form method="post" action="{{ path('app_maintenance_refuse_back', {'id_maintenance': m_id}) }}" onsubmit="event.stopPropagation();">
                             <button type="submit" class="btn btn-warning btn-sm" style="background-color: #ffae1f; border:none;">Refuser</button>
                         </form>
                     </div>
@@ -243,8 +264,8 @@
                 <div class="d-flex justify-content-between align-items-center p-2">
                     <span class="small text-danger">Confirmer la <strong>suppression</strong> ?</span>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-light btn-sm" onclick="cancelAction(event, 'confirmBar{{ m_id }}')">Annuler</button>
-                        <form method="post" action="{{ path('app_maintenance_delete_back', {'id_maintenance': m_id}) }}">
+                        <button type="button" class="btn btn-light btn-sm" onclick="cancelAction(event, 'confirmBar{{ m_id }}')">Annuler</button>
+                        <form method="post" action="{{ path('app_maintenance_delete_back', {'id_maintenance': m_id}) }}" onsubmit="event.stopPropagation();">
                             <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ m_id) }}">
                             <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
                         </form>
@@ -291,18 +312,28 @@
     }
 
     function showConfirm(event, id) {
+        event.preventDefault();
         event.stopPropagation();
         hideAllBars();
         document.getElementById('confirmBar' + id).classList.remove('d-none');
     }
 
     function showRefuse(event, id) {
+        event.preventDefault();
         event.stopPropagation();
         hideAllBars();
         document.getElementById('refuseBar' + id).classList.remove('d-none');
     }
 
+    function showAccept(event, id) {
+        event.preventDefault();
+        event.stopPropagation();
+        hideAllBars();
+        document.getElementById('acceptBar' + id).classList.remove('d-none');
+    }
+
     function cancelAction(event, barId) {
+        event.preventDefault();
         event.stopPropagation();
         document.getElementById(barId).classList.add('d-none');
     }

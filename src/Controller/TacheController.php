@@ -38,11 +38,15 @@ public function new(
 
     // Vérification de la session utilisateur
     $sessionUser = $request->getSession()->get('user');
-    if (!$sessionUser instanceof User) {
+    $userId = $sessionUser instanceof User
+        ? $sessionUser->getId()
+        : (is_array($sessionUser) && isset($sessionUser['id']) && is_scalar($sessionUser['id']) ? (int) $sessionUser['id'] : null);
+
+    if (!$userId) {
         return $this->redirectToRoute('front_login');
     }
 
-    $technicien = $em->getRepository(User::class)->find($sessionUser->getId());
+    $technicien = $em->getRepository(User::class)->find((int) $userId);
     if (!$technicien) {
         return $this->redirectToRoute('front_login');
     }
@@ -65,8 +69,8 @@ public function new(
 
     if ($form->isSubmitted() && $form->isValid()) {
         $maintenance = $tache->getIdMaintenance();
-        if ($maintenance && $maintenance->getStatut() !== 'Planifiée' && $maintenance->getStatut() !== 'Résolue') {
-            $maintenance->setStatut('Planifiée');
+        if ($maintenance && $maintenance->getStatut() !== 'planifier' && $maintenance->getStatut() !== 'Resolu') {
+            $maintenance->setStatut('planifier');
         }
 
         $em->persist($tache);
@@ -131,10 +135,22 @@ public function new(
             return new JsonResponse(['error' => 'Date manquante'], Response::HTTP_BAD_REQUEST);
         }
 
-        $date = \DateTimeImmutable::createFromFormat('Y-m-d', $dateValue);
-        $dateErrors = \DateTimeImmutable::getLastErrors();
-        if (!$date || ($dateErrors !== false && ($dateErrors['warning_count'] > 0 || $dateErrors['error_count'] > 0))) {
-            return new JsonResponse(['error' => 'Date invalide'], Response::HTTP_BAD_REQUEST);
+        $date = null;
+        foreach (['Y-m-d', 'd/m/Y', 'm/d/Y'] as $format) {
+            $candidate = \DateTimeImmutable::createFromFormat($format, $dateValue);
+            $dateErrors = \DateTimeImmutable::getLastErrors();
+            if ($candidate && ($dateErrors === false || ($dateErrors['warning_count'] === 0 && $dateErrors['error_count'] === 0))) {
+                $date = $candidate;
+                break;
+            }
+        }
+
+        if (!$date) {
+            try {
+                $date = new \DateTimeImmutable($dateValue);
+            } catch (\Throwable) {
+                return new JsonResponse(['error' => 'Date invalide'], Response::HTTP_BAD_REQUEST);
+            }
         }
 
         $technician = $em->getRepository(User::class)->find($userId);
@@ -336,7 +352,7 @@ public function generateDescription(
             ]);
         }
 
-        $maintenance->setStatut('Résolue');
+        $maintenance->setStatut('Resolu');
         $em->flush();
        
 

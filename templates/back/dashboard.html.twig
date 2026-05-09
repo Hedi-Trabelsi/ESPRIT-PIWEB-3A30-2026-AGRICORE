@@ -1,5 +1,7 @@
 {% extends 'back/base_back.html.twig' %}
 
+{% block notifications %}{% endblock %}
+
 {% block title %}Agricore | Precision Intelligence{% endblock %}
 
 {% block content %}
@@ -281,8 +283,8 @@
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2 fw-bold text-dark" style="font-size: 0.8rem;">
-                                        <span class="d-inline-block" style="width: 8px; height: 8px; border-radius: 50%; background: {{ m.statut == 'Resolu' ? '#10b981' : '#f59e0b' }};"></span>
-                                        {{ m.statut }}
+                                        <span class="d-inline-block" style="width: 8px; height: 8px; border-radius: 50%; background: {{ m.statut == 'Resolu' or m.statut == 'Résolue' ? '#10b981' : '#f59e0b' }};"></span>
+                                        {{ m.statut == 'Resolu' ? 'Résolue' : m.statut }}
                                     </div>
                                 </td>
                             </tr>

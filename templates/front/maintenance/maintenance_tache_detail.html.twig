@@ -143,12 +143,12 @@
         <div>
             <h1 class="fw-bold m-0">{{ maintenance.nomMaintenance }}</h1>
             <div class="mt-2">
-                Statut : <span class="{% if maintenance.Statut in ['Résolu', 'Résolue'] %}text-success fw-bold{% else %}text-warning{% endif %}">{{ maintenance.Statut }}</span>
+                Statut : <span class="{% if maintenance.Statut in ['Resolu', 'Résolu', 'Résolue'] %}text-success fw-bold{% else %}text-warning{% endif %}">{{ maintenance.Statut == 'Resolu' ? 'Résolue' : maintenance.Statut }}</span>
             </div>
         </div>
         
         <div class="d-flex gap-2">
-            {% if maintenance.Statut not in ['Résolu', 'Résolue'] %}
+            {% if maintenance.Statut not in ['Resolu', 'Résolu', 'Résolue'] %}
                 <a href="{{ path('app_maintenance_edit', {'id_maintenance': maintenance.Id_maintenance}) }}" class="btn-action-simple btn-edit-text">
                     <i class="fas fa-edit me-1"></i> Modifier
                 </a>
@@ -254,7 +254,7 @@
                                 </div>
                             </div>
 
-                            {% if maintenance.Statut in ['Résolu', 'Résolue'] %}
+                            {% if maintenance.Statut in ['Resolu', 'Résolu', 'Résolue'] %}
                                 <div class="vote-section d-flex align-items-center justify-content-between">
                                     <span class="small fw-bold text-dark">Votre avis :</span>
                                     <div class="d-flex gap-2">

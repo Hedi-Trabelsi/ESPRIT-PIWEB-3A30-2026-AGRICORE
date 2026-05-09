@@ -123,7 +123,7 @@
     <div class="header-section d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
        <div class="mt-2">
     Statut : 
-    <span class="{% if maintenance.Statut in ['Résolu', 'Résolue'] %}text-success fw-bold{% else %}text-warning fw-bold{% endif %}">
+    <span class="{% if maintenance.Statut in ['Resolu', 'Résolu', 'Résolue'] %}text-success fw-bold{% else %}text-warning fw-bold{% endif %}">
         {{ maintenance.Statut }}
     </span>
 
@@ -256,7 +256,7 @@
                                 <small class="text-muted d-block mb-1">Notes techniques :</small>
                                 <p class="small text-secondary mb-0">{{ tache.description|nl2br }}</p>
                             </div>
-                            {% if maintenance.Statut in ['Résolu', 'Résolue'] %}
+                            {% if maintenance.Statut in ['Resolu', 'Résolu', 'Résolue'] %}
     <div class="mt-3 pt-2 border-top">
         <small class="text-muted d-block mb-2">Avis client :</small>
 
@@ -305,7 +305,7 @@
                 <form method="post" action="{{ path('app_maintenance_assign_ai_back', {'id_maintenance': maintenance.id_maintenance}) }}" id="assignAiForm" class="d-flex align-items-center gap-2 w-100 justify-content-end">
                     <input type="hidden" name="technicien_id" id="selectedTechnicianId" value="">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-success" id="confirmAssignAiBtn" disabled>Confirmer l'affectation</button>
+                    <button type="submit" class="btn btn-success" id="confirmAssignAiBtn">Confirmer l'affectation</button>
                 </form>
             </div>
         </div>
@@ -347,16 +347,17 @@
         const emptyEl = document.getElementById('aiTechEmpty');
         const listEl = document.getElementById('aiTechList');
         const selectedTechnicianInput = document.getElementById('selectedTechnicianId');
+        const formEl = document.getElementById('assignAiForm');
         const confirmBtn = document.getElementById('confirmAssignAiBtn');
         let loadingInProgress = false;
 
-        if (!modalEl || !listEl || !selectedTechnicianInput || !confirmBtn || !openBtn) {
+        if (!modalEl || !listEl || !selectedTechnicianInput || !confirmBtn || !openBtn || !formEl) {
             return;
         }
 
         const clearSelection = () => {
             selectedTechnicianInput.value = '';
-            confirmBtn.disabled = true;
+            confirmBtn.disabled = false;
         };
 
         const renderList = (recommendations) => {
@@ -364,6 +365,7 @@
             clearSelection();
 
             if (!Array.isArray(recommendations) || recommendations.length === 0) {
+                emptyEl.textContent = 'Aucun technicien recommandé. En confirmant, le système tentera une affectation automatique.';
                 emptyEl.classList.remove('d-none');
                 return;
             }
@@ -412,7 +414,7 @@
 
                 radio.addEventListener('change', () => {
                     selectedTechnicianInput.value = radio.value;
-                    confirmBtn.disabled = !radio.value;
+                    confirmBtn.disabled = false;
                 });
             });
 
@@ -476,6 +478,11 @@
             modalEl.removeAttribute('aria-hidden');
             loadRecommendations();
         };
+
+        formEl.addEventListener('submit', function () {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Affectation en cours...';
+        });
 
         openBtn.addEventListener('click', window.openAssignAiModal);
         modalEl.addEventListener('show.bs.modal', loadRecommendations);
