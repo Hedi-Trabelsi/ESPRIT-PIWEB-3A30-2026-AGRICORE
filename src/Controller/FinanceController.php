@@ -494,7 +494,7 @@ class FinanceController extends AbstractController
     // ===================== BACKEND: MANUAL ANOMALY ALERT =====================
 
     #[Route('/back/depense/{id}/send-alert', name: 'back_send_anomaly_alert')]
-    public function sendManualAlert(int $id, DepenseRepository $depenseRepository, AnomalyService $anomalyService, EmailService $emailService): Response
+    public function sendManualAlert(int $id, Request $request, DepenseRepository $depenseRepository, AnomalyService $anomalyService, EmailService $emailService): Response
     {
         $depense = $depenseRepository->find($id);
         if (!$depense) throw $this->createNotFoundException('Dépense non trouvée');
@@ -508,9 +508,17 @@ class FinanceController extends AbstractController
         $analysis = $anomalyService->analyzeDepense(array_values($history), $depense);
 
         if ($emailService->sendAnomalyAlert($user, $depense, $analysis)) {
-            $this->addFlash('success', 'Alerte envoyée à ' . $user->getEmail() . '.');
+            $message = 'Alerte envoyée à ' . $user->getEmail() . '.';
+            if ($request->isXmlHttpRequest()) {
+                return new JsonResponse(['success' => true, 'message' => $message]);
+            }
+            $this->addFlash('success', $message);
         } else {
-            $this->addFlash('error', 'Envoi de l\'alerte échoué : ' . ($emailService->lastError ?: 'erreur inconnue'));
+            $message = 'Envoi de l\'alerte échoué : ' . ($emailService->lastError ?: 'erreur inconnue');
+            if ($request->isXmlHttpRequest()) {
+                return new JsonResponse(['success' => false, 'message' => $message], 500);
+            }
+            $this->addFlash('error', $message);
         }
 
         return $this->redirectToRoute('back_user_details', ['id' => $user->getId()]);

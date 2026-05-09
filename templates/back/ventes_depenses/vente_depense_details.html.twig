@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 <!-- Plus Jakarta Sans Font -->
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
     :root {
@@ -268,21 +270,7 @@
 </style>
 
 <div class="details-container">
-    {% for msg in app.flashes('success') %}
-        <div class="alert alert-success" style="border-radius:10px;">
-            <i class="bi bi-check-circle"></i> {{ msg }}
-        </div>
-    {% endfor %}
-    {% for msg in app.flashes('warning') %}
-        <div class="alert alert-warning" style="border-radius:10px;">
-            <i class="bi bi-exclamation-triangle"></i> {{ msg }}
-        </div>
-    {% endfor %}
-    {% for msg in app.flashes('error') %}
-        <div class="alert alert-danger" style="border-radius:10px;">
-            <i class="bi bi-x-circle"></i> {{ msg }}
-        </div>
-    {% endfor %}
+    {# Les messages flash sont maintenant gérés par SweetAlert2 ou masqués selon la demande #}
 
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -702,6 +690,52 @@
             }
         });
         calendar.render();
+
+        // SweetAlert2 for Anomaly Alert
+        document.querySelectorAll('.btn-alert').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = this.href;
+
+                Swal.fire({
+                    title: 'Envoyer une alerte ?',
+                    text: "Un email sera envoyé à l'utilisateur pour l'informer de cette anomalie.",
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e53e3e',
+                    cancelButtonColor: '#718096',
+                    confirmButtonText: 'Oui, envoyer',
+                    cancelButtonText: 'Annuler',
+                    showLoaderOnConfirm: true,
+                    preConfirm: () => {
+                        return fetch(url, {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => { throw new Error(err.message || response.statusText) });
+                            }
+                            return response.json()
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(`Erreur: ${error.message}`)
+                        })
+                    },
+                    allowOutsideClick: () => !Swal.isLoading()
+                }).then((result) => {
+                    if (result.isConfirmed && result.value) {
+                        Swal.fire({
+                            title: 'Succès !',
+                            text: result.value.message,
+                            icon: 'success',
+                            confirmButtonColor: '#38a169'
+                        });
+                    }
+                });
+            });
+        });
     });
 </script>
 {% endblock %}
