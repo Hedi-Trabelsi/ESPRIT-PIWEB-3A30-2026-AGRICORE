@@ -112,6 +112,8 @@ class BackEquipementController extends AbstractController
                 $equipement->setUser($em->getReference(User::class, $sessionUser->getId()));
             }
 
+            $this->copyUploadedImageToBlob($equipement);
+
             $em->persist($equipement);
             $em->flush();
             $this->addFlash('admin_success', 'Equipement cree.');
@@ -137,6 +139,7 @@ class BackEquipementController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            $this->copyUploadedImageToBlob($equipement);
             $em->flush();
             $this->addFlash('admin_success', 'Equipement modifie.');
 
@@ -164,6 +167,53 @@ class BackEquipementController extends AbstractController
         }
 
         return $this->redirectToRoute('back_equipement_index');
+    }
+
+    /**
+     * Read the uploaded image's bytes (resize to max 800px) and copy them
+     * into the entity's `image` BLOB column. This keeps the picture visible
+     * to the Java desktop app, which reads from the same column.
+     *
+     * Vich still handles file-system storage in parallel — we end up with
+     * the picture in BOTH places, which is a deliberate (cheap) safety net.
+     */
+    private function copyUploadedImageToBlob(Equipement $equipement): void
+    {
+        $file = $equipement->getImageFile();
+        if ($file === null) {
+            return;
+        }
+        $path = $file->getPathname();
+        if (!is_readable($path)) {
+            return;
+        }
+
+        // Try a GD resize for compactness; if GD isn't available, fall back to raw bytes.
+        $bytes = @file_get_contents($path);
+        if ($bytes === false || $bytes === '') {
+            return;
+        }
+
+        if (function_exists('imagecreatefromstring') && function_exists('imagejpeg')) {
+            $src = @imagecreatefromstring($bytes);
+            if ($src !== false) {
+                $maxDim = 800;
+                $w = imagesx($src);
+                $h = imagesy($src);
+                $ratio = min($maxDim / max(1, $w), $maxDim / max(1, $h), 1.0);
+                $nw = max(1, (int) round($w * $ratio));
+                $nh = max(1, (int) round($h * $ratio));
+                $dst = imagecreatetruecolor($nw, $nh);
+                imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+                ob_start();
+                imagejpeg($dst, null, 82);
+                $bytes = ob_get_clean();
+                imagedestroy($src);
+                imagedestroy($dst);
+            }
+        }
+
+        $equipement->setImage($bytes);
     }
 
     private function ensureLegacySupplierExists(User $sessionUser, EntityManagerInterface $em): void

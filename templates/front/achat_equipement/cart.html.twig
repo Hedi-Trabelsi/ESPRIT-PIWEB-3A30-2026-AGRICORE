@@ -340,7 +340,9 @@
                             data-remove-url="{{ path('app_cart_remove', {id: item.equipement.id}) }}"
                         >
                             <div class="cart-product">
-                                {% if item.equipement.imageFilename %}
+                                {% if item.equipement.hasImageBlob %}
+                                    <img src="{{ item.equipement.imageBase64 }}" alt="{{ item.equipement.nom }}" class="cart-thumb">
+                                {% elseif item.equipement.imageFilename %}
                                     <img src="{{ vich_uploader_asset(item.equipement, 'imageFile') }}" alt="{{ item.equipement.nom }}" class="cart-thumb">
                                 {% else %}
                                     <div class="cart-thumb cart-thumb-fallback">AG</div>

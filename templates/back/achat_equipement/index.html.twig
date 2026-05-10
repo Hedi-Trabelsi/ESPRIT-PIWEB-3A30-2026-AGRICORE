@@ -588,7 +588,9 @@
                     {% for eq in equipements %}
                         <article class="equip-item">
                             <div class="equip-media">
-                                {% if eq.imageFilename %}
+                                {% if eq.hasImageBlob %}
+                                    <img src="{{ eq.imageBase64 }}" class="equip-thumb" alt="{{ eq.nom }}">
+                                {% elseif eq.imageFilename %}
                                     <img src="{{ vich_uploader_asset(eq, 'imageFile') }}" class="equip-thumb" alt="{{ eq.nom }}">
                                 {% else %}
                                     <div class="equip-thumb equip-thumb-fallback">AG</div>

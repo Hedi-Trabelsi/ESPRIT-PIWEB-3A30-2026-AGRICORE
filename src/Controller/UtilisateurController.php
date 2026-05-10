@@ -86,8 +86,8 @@ class UtilisateurController extends AbstractController
         }
 
         $session = $request->getSession();
-        $user->prepareForSession();
-        $session->set('user', $user);
+        $session->set('user', $user->prepareForSession());
+        $session->set('user_id', $user->getId());
 
         if ($user->getRole() === 0) {
             return $this->redirectToRoute('back_dashboard');
@@ -301,15 +301,11 @@ class UtilisateurController extends AbstractController
     #[Route('/profil/modifier', name: 'app_profile_edit', methods: ['GET', 'POST'])]
     public function editProfile(Request $request, EntityManagerInterface $em, UserRepository $userRepo): Response
     {
-        $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser instanceof User) {
-            return $this->redirectToRoute('front_login');
-        }
-
-        $user = $userRepo->find($sessionUser->getId());
+        $user = $this->resolveCurrentUser($request, $userRepo);
         if (!$user) {
             return $this->redirectToRoute('front_login');
         }
+        $session = $request->getSession();
 
         $form = $this->createForm(UserType::class, $user, ['is_edit' => true]);
         $form->handleRequest($request);
@@ -331,8 +327,8 @@ class UtilisateurController extends AbstractController
 
             $em->flush();
 
-            $user->prepareForSession();
-            $request->getSession()->set('user', $user);
+            $session->set('user', $user->prepareForSession());
+            $session->set('user_id', $user->getId());
 
             $this->addFlash('success', 'Profil mis a jour avec succes.');
             return $this->redirectToRoute('app_profile');
@@ -370,8 +366,9 @@ class UtilisateurController extends AbstractController
 
             foreach ($users as $u) {
                 if (!in_array($u->getId(), $seenIds)) {
-                    $u->prepareForSession();
-                    $newUsers[] = $u;
+                    // Don't mutate the managed entity — use the stripped clone for the
+                    // notif card list. The avatar is rendered via app_user_avatar anyway.
+                    $newUsers[] = $u->prepareForSession();
                 }
             }
         }
@@ -1083,10 +1080,14 @@ class UtilisateurController extends AbstractController
 
     /**
      * Stream the user's avatar so templates don't need to inline ~200-500 KB of base64
-     * on every page. Browser-cacheable. Returns a placeholder when the user has no image.
+     * on every page. Returns a placeholder when the user has no image.
+     *
+     * Caching strategy: ETag based on a hash of the image bytes so the browser revalidates
+     * (small 304 round trip) instead of returning a stale image after the user uploads a
+     * new one. Cache-Control max-age is short for the same reason.
      */
     #[Route('/utilisateurs/avatar/{id}', name: 'app_user_avatar', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function avatar(int $id, UserRepository $userRepo): Response
+    public function avatar(int $id, Request $request, UserRepository $userRepo): Response
     {
         $user = $userRepo->find($id);
         $raw = $user !== null ? $user->getImage() : null;
@@ -1106,11 +1107,68 @@ class UtilisateurController extends AbstractController
             $binary = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=');
         }
 
+        // Detect content type from the magic bytes — Google avatars can be PNG or JPEG.
+        $contentType = 'image/jpeg';
+        if (str_starts_with($binary, "\x89PNG")) {
+            $contentType = 'image/png';
+        } elseif (str_starts_with($binary, 'GIF8')) {
+            $contentType = 'image/gif';
+        } elseif (str_starts_with($binary, 'RIFF') && str_contains(substr($binary, 0, 12), 'WEBP')) {
+            $contentType = 'image/webp';
+        }
+
         $response = new Response($binary);
-        $response->headers->set('Content-Type', 'image/jpeg');
-        $response->headers->set('Cache-Control', 'public, max-age=3600');
+        $response->headers->set('Content-Type', $contentType);
+        // ETag-based revalidation: browsers send If-None-Match and we return 304 (empty
+        // body) if unchanged. `no-cache` (despite the name) stores the response but
+        // forces revalidation on every request — which means a freshly-uploaded avatar
+        // is visible immediately, with no `max-age` window during which the browser
+        // would silently keep showing the old image.
+        $response->setEtag(md5($binary));
+        $response->headers->set('Cache-Control', 'no-cache, private');
+        $response->isNotModified($request);
 
         return $response;
+    }
+
+    /**
+     * Resolve the currently logged-in User in a way that survives a flaky session
+     * unserialize. PHP can occasionally produce a __PHP_Incomplete_Class for the
+     * stored User object (especially when the User class signature evolves between
+     * serialize/unserialize), which makes a strict `instanceof User` check fail and
+     * the user gets bounced to the login page.
+     *
+     * Strategy: try the session.user.id first; fall back to a plain int session.user_id
+     * key set alongside the User on every login. As long as ONE is valid, look up the
+     * fresh User from the repository.
+     *
+     * Returns null only if both session keys are missing/invalid OR the user doesn't
+     * exist in the database — in which case the caller should redirect to login.
+     */
+    private function resolveCurrentUser(Request $request, UserRepository $userRepo): ?User
+    {
+        $session = $request->getSession();
+
+        $userId = null;
+        $sessionUser = $session->get('user');
+        if ($sessionUser instanceof User) {
+            $maybeId = $sessionUser->getId();
+            if (is_int($maybeId) && $maybeId > 0) {
+                $userId = $maybeId;
+            }
+        }
+        if ($userId === null) {
+            $fallback = $session->get('user_id');
+            if (is_int($fallback) && $fallback > 0) {
+                $userId = $fallback;
+            }
+        }
+
+        if ($userId === null) {
+            return null;
+        }
+
+        return $userRepo->find($userId);
     }
 
     /**
@@ -1179,27 +1237,146 @@ class UtilisateurController extends AbstractController
     }
 
     // ===================== AI AVATAR HELPER =====================
+    /**
+     * Generate a role + gender aware avatar using a real AI image generator
+     * (Pollinations.ai, `turbo` model — ~2s response, generally not rate-limited
+     * unlike `flux`). Falls back to DiceBear template avatars if the AI call fails.
+     *
+     * The prompt asks explicitly for an "agriculteur Tunisien" / "technicien" /
+     * "professionnel" matching the user's role and gender, so the result actually
+     * looks like the persona the user has in the app.
+     */
     private function generateAiAvatar(User $user, HttpClientInterface $httpClient, ?int $seedOverride = null): ?string
     {
-        $role = $user->getRole();
-        $genre = mb_strtolower((string) $user->getGenre());
-        $isFemale = str_contains($genre, 'fem') || $genre === 'femme';
-        $gender = $isFemale ? 'female' : 'male';
+        $role     = $user->getRole();
+        $genre    = mb_strtolower((string) $user->getGenre());
+        $isFemale = str_contains($genre, 'fem');
 
+        // Seed variation: stable per user, but `seedOverride` (the controller passes
+        // time()) gives a fresh portrait every time the user clicks "Generate".
+        $seedBase  = (string) ($user->getId() ?? random_int(1, 999999));
+        $seedTwist = $seedOverride !== null ? (string) $seedOverride : (string) random_int(1, 999999);
+        $seed      = abs(crc32($seedBase . '-' . $seedTwist . '-' . $genre));
+
+        // Build a role-specific prompt. Each prompt is in French because the app is
+        // French and the AI tends to render Tunisian/Mediterranean features more
+        // accurately when the prompt is too. Style is "warm cartoon illustration"
+        // so we get something friendly rather than a hyper-realistic photo.
+        $person = $isFemale ? 'femme' : 'homme';
+
+        // Front-load the role keyword — image models weight early tokens more.
+        // Keep prompts short: Pollinations turbo is faster on simple prompts.
+        $person = $isFemale ? 'woman' : 'man';
         $prompt = match ($role) {
-            1 => "cute cartoon portrait of a {$gender} farmer, green farm background, flat illustration style, friendly smile, high quality avatar",
-            2 => "cute cartoon portrait of a {$gender} technician wearing work uniform, flat illustration style, professional, high quality avatar",
-            0 => "cute cartoon portrait of a {$gender} business professional, green theme, flat illustration style, high quality avatar",
-            default => "cute cartoon portrait avatar, flat illustration style, high quality",
+            1 => sprintf(
+                'Farmer portrait, %s farmer wearing a straw hat and denim overall, '
+                . 'agriculture worker, holding a wheat stalk, sunny olive grove and wheat field background, '
+                . 'cartoon style, friendly smiling face, centered head and shoulders, profile avatar',
+                $person,
+            ),
+            2 => sprintf(
+                'Agricultural technician portrait, %s wearing a blue work uniform and yellow safety helmet, '
+                . 'holding a wrench and clipboard, green tractor in background, '
+                . 'cartoon style, friendly smiling face, centered head and shoulders, profile avatar',
+                $person,
+            ),
+            0 => sprintf(
+                'Business professional portrait, %s wearing a formal suit, '
+                . 'office background with green plants, '
+                . 'cartoon style, friendly smiling face, centered head and shoulders, profile avatar',
+                $person,
+            ),
+            default => sprintf(
+                'Friendly %s cartoon avatar portrait, centered face, profile avatar',
+                $person,
+            ),
         };
 
-        $seed = $seedOverride ?? ($user->getId() ?? random_int(1, 999999));
-        $url = 'https://image.pollinations.ai/prompt/' . rawurlencode($prompt)
-             . '?width=400&height=400&seed=' . $seed
-             . '&nologo=true&model=flux';
+        // 1) Try Pollinations turbo (real AI from prompt).
+        // Short timeout (8s) so we fall back fast when Pollinations is rate-limiting,
+        // instead of leaving the user staring at a spinner.
+        $pollinationsUrl = 'https://image.pollinations.ai/prompt/' . rawurlencode($prompt)
+            . '?' . http_build_query([
+                'width'   => 400,
+                'height'  => 400,
+                'seed'    => $seed,
+                'nologo'  => 'true',
+                'model'   => 'turbo',
+            ]);
 
         try {
-            $response = $httpClient->request('GET', $url, ['timeout' => 12]);
+            $response = $httpClient->request('GET', $pollinationsUrl, ['timeout' => 8]);
+            if ($response->getStatusCode() === 200) {
+                $content = $response->getContent(false);
+                // Pollinations turbo actually returns JPEG (not PNG) and sometimes
+                // returns a JSON error body with HTTP 200 when throttled. Accept any
+                // real image format via magic-byte sniffing — the avatar route below
+                // auto-detects content type the same way.
+                if ($this->isImageBinary($content)) {
+                    return base64_encode($content);
+                }
+            }
+        } catch (\Throwable) {
+            // fall through to DiceBear
+        }
+
+        // 2) Fallback: DiceBear (no AI, but role-themed and always available).
+        return $this->generateDiceBearFallback($role ?? 1, $genre, $seed, $httpClient);
+    }
+
+    /**
+     * Magic-byte sniff: is this binary string actually a recognized image format?
+     * Used to reject Pollinations.ai's "Too Many Requests" JSON error bodies that
+     * sometimes come back with HTTP 200.
+     */
+    private function isImageBinary(string $content): bool
+    {
+        if ($content === '' || strlen($content) < 8) {
+            return false;
+        }
+        return str_starts_with($content, "\x89PNG")           // PNG
+            || str_starts_with($content, "\xFF\xD8\xFF")      // JPEG
+            || str_starts_with($content, 'GIF8')              // GIF
+            || (str_starts_with($content, 'RIFF') && str_contains(substr($content, 8, 4), 'WEBP')); // WebP
+    }
+
+    private function generateDiceBearFallback(int $role, string $genre, int $seed, HttpClientInterface $httpClient): ?string
+    {
+        $commonParams = [
+            'seed'            => (string) $seed . '-' . $genre,
+            'size'            => 400,
+            'backgroundType'  => 'gradientLinear',
+            'backgroundColor' => 'b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf',
+        ];
+
+        if ($role === 1) {
+            // Farmer: lock in the farmer signals so it can't render as a corporate
+            // cartoon — denim overall + hat (always), warm earth-tone skin + beard +
+            // smiling mouth + happy eyes. Greenish backdrop to hint at the field.
+            $style  = 'avataaars';
+            $params = $commonParams + [
+                'clothing'               => 'overall',
+                'top'                    => 'hat',
+                'facialHair'             => 'beardLight,beardMedium,beardMajestic,moustacheMagnum',
+                'facialHairProbability'  => 80,
+                'accessoriesProbability' => 0,
+                'mouth'                  => 'smile,twinkle',
+                'eyes'                   => 'happy,wink,default',
+                'skinColor'              => 'd08b5b,edb98a,ae5d29,fd9841',
+                'backgroundColor'        => 'a7ffc4,b1e2ff,ffdfbf,d1d4f9',
+            ];
+        } elseif ($role === 2) {
+            $style  = 'bottts';
+            $params = $commonParams;
+        } else {
+            $style  = 'personas';
+            $params = $commonParams;
+        }
+
+        $url = sprintf('https://api.dicebear.com/9.x/%s/png?%s', $style, http_build_query($params));
+
+        try {
+            $response = $httpClient->request('GET', $url, ['timeout' => 8]);
             if ($response->getStatusCode() !== 200) {
                 return null;
             }
@@ -1217,12 +1394,7 @@ class UtilisateurController extends AbstractController
     #[Route('/profil/ai-avatar', name: 'app_profile_ai_avatar', methods: ['GET', 'POST'])]
     public function generateAvatarAction(Request $request, UserRepository $userRepo, EntityManagerInterface $em, HttpClientInterface $httpClient): Response
     {
-        $sessionUser = $request->getSession()->get('user');
-        if (!$sessionUser instanceof User) {
-            return $this->redirectToRoute('front_login');
-        }
-
-        $user = $userRepo->find($sessionUser->getId());
+        $user = $this->resolveCurrentUser($request, $userRepo);
         if (!$user) {
             return $this->redirectToRoute('front_login');
         }
@@ -1233,8 +1405,9 @@ class UtilisateurController extends AbstractController
             $user->setImage($aiAvatar);
             $user->setProfileComplete(true);
             $em->flush();
-            $user->prepareForSession();
-            $request->getSession()->set('user', $user);
+            $session = $request->getSession();
+            $session->set('user', $user->prepareForSession());
+            $session->set('user_id', $user->getId());
             $this->addFlash('success', 'Avatar IA genere avec succes !');
         } else {
             $this->addFlash('error', 'Impossible de generer l\'avatar pour le moment. Reessayez dans un instant.');

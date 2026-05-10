@@ -434,7 +434,9 @@
                     <div class="col-md-6 col-xl-3">
                         <div class="card equipment-card h-100">
                             <div class="equipment-thumb-wrap">
-                                {% if eq.imageFilename %}
+                                {% if eq.hasImageBlob %}
+                                    <img src="{{ eq.imageBase64 }}" class="equipment-thumb" alt="{{ eq.nom }}">
+                                {% elseif eq.imageFilename %}
                                     <img src="{{ vich_uploader_asset(eq, 'imageFile') }}" class="equipment-thumb" alt="{{ eq.nom }}">
                                 {% else %}
                                     <div class="equipment-thumb d-flex align-items-center justify-content-center text-muted">Pas d'image</div>

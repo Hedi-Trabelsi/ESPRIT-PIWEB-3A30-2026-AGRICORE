@@ -46,6 +46,10 @@ class UserType extends AbstractType
                     'Femme' => 'Femme',
                 ],
                 'placeholder' => 'Choisir...',
+                // Without empty_data, selecting the placeholder submits null, which the
+                // setGenre(string) signature rejects with a TypeError before Assert\NotBlank
+                // can run. Empty string lets validation produce a friendly error message.
+                'empty_data' => '',
             ])
             ->add('date', DateType::class, [
                 'label' => 'Date de naissance',

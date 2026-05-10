@@ -465,7 +465,13 @@
                         <span class="equip-hint">Un bon visuel rend la fiche produit plus credibile et plus vivante.</span>
 
                         <div class="equip-preview">
-                            {% if equipement.imageFilename %}
+                            {% if equipement.hasImageBlob %}
+                                <img
+                                    id="equip-image-preview"
+                                    src="{{ equipement.imageBase64 }}"
+                                    alt="{{ equipement.nom ?: 'Apercu equipement' }}"
+                                >
+                            {% elseif equipement.imageFilename %}
                                 <img
                                     id="equip-image-preview"
                                     src="{{ vich_uploader_asset(equipement, 'imageFile') }}"

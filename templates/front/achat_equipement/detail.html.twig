@@ -425,7 +425,9 @@
                 <div class="detail-visual">
                     <div class="detail-visual-frame">
                         <span class="detail-floating-badge">{{ equipement.type }}</span>
-                        {% if equipement.imageFilename %}
+                        {% if equipement.hasImageBlob %}
+                            <img src="{{ equipement.imageBase64 }}" alt="{{ equipement.nom }}">
+                        {% elseif equipement.imageFilename %}
                             <img src="{{ vich_uploader_asset(equipement, 'imageFile') }}" alt="{{ equipement.nom }}">
                         {% else %}
                             <div class="detail-empty">Pas d'image disponible</div>

@@ -11,7 +11,7 @@
 {# ===== Hero Section ===== #}
 <div class="profile-hero">
     <div class="container">
-        {% if app.session.get('user') %}
+        {% if app.session.get('user') and app.session.get('user').id %}
             <img src="{{ path('app_user_avatar', {id: app.session.get('user').id}) }}" alt="Photo" class="profile-hero-avatar">
         {% else %}
             <img src="{{ asset('img/profile.webp') }}" alt="Photo" class="profile-hero-avatar">

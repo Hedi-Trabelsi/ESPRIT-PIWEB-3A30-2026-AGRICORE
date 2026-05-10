@@ -66,10 +66,12 @@ class OAuthController extends AbstractController
                 return $this->redirectToRoute('front_login');
             }
 
-            // Match the existing manual-login session pattern (UtilisateurController.php lines 81-93)
-            $user->prepareForSession();
+            // Match the existing manual-login session pattern (UtilisateurController.php lines 81-93).
+            // Also store user_id separately so controllers can recover from a flaky
+            // session-unserialize without bouncing the user to the login page.
             $session = $request->getSession();
-            $session->set('user', $user);
+            $session->set('user', $user->prepareForSession());
+            $session->set('user_id', $user->getId());
 
             $this->addFlash('success', 'Connexion reussie via ' . ucfirst($provider) . ' !');
 

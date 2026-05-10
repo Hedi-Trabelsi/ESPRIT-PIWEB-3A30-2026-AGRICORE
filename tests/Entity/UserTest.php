@@ -91,19 +91,31 @@ class UserTest extends TestCase
         $this->assertNull($user->getImage());
     }
 
-    public function testPrepareForSessionStripsImage(): void
+    public function testSerializationStripsImage(): void
     {
         $user = new User();
         $user->setImage('some_large_blob_data');
-        $this->assertNotNull($user->getImage());
+        $user->setNom('Trabelsi')->setPrenom('Hedi')->setEmail('hedi@example.com');
 
-        $user->prepareForSession();
-        $this->assertNull($user->getImage());
+        // Round-trip through PHP session serialization.
+        /** @var User $restored */
+        $restored = unserialize(serialize($user));
+
+        // Image is dropped by __serialize() — it's served via /utilisateurs/avatar/{id}.
+        $this->assertNull($restored->getImage());
+        // …but the original entity is untouched, so a subsequent Doctrine flush() can't
+        // accidentally wipe the BLOB from the database.
+        $this->assertSame('some_large_blob_data', $user->getImage());
+        // Identity properties survive the round-trip.
+        $this->assertSame('Trabelsi', $restored->getNom());
+        $this->assertSame('Hedi', $restored->getPrenom());
+        $this->assertSame('hedi@example.com', $restored->getEmail());
     }
 
-    public function testPrepareForSessionReturnsSelf(): void
+    public function testPrepareForSessionIsBackwardCompatibleNoOp(): void
     {
         $user = new User();
+        // The legacy method just returns $this — actual stripping happens in __serialize().
         $this->assertSame($user, $user->prepareForSession());
     }
 

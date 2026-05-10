@@ -157,16 +157,50 @@ class User
     }
 
     /**
-     * Strip the avatar BLOB before the User object is serialized into the session.
-     * The avatar is served via the dedicated `app_user_avatar` route instead, so dragging
-     * 200-500 KB of base64 through every session read/write is wasteful. Templates that
-     * previously did `<img src="data:image/...;base64,{{ user.image }}">` should use
-     * `<img src="{{ path('app_user_avatar', {id: user.id}) }}">` instead.
+     * Kept for backward compatibility with callers that do
+     * `$session->set('user', $user->prepareForSession())`. The actual session
+     * stripping (image BLOB + Doctrine collection proxies) is now handled by
+     * __serialize() / __unserialize() below. Returns $this — safe, no-op.
      */
     public function prepareForSession(): self
     {
-        $this->image = null;
         return $this;
+    }
+
+    /**
+     * Control session serialization. Returning a property-name list tells PHP to
+     * serialize ONLY those properties using its standard format — which means:
+     *  - image (BLOB) is excluded → small session payload
+     *  - $depenses/$equipements/$maintenances/$ventes (Doctrine PersistentCollection
+     *    proxies that break on cross-request unserialize) are excluded → no more
+     *    "first request after login fails the instanceof User check" bug
+     *  - Standard format = backward-compatible with sessions written before this
+     *    method existed (unlike __serialize, which uses an incompatible boxed format)
+     *
+     * Code that needs the related collections must reload the User from its repository.
+     *
+     * @return list<string>
+     */
+    public function __sleep(): array
+    {
+        return [
+            'id', 'nom', 'prenom', 'email', 'role', 'genre',
+            'numeroT', 'adresse', 'date', 'password',
+            'profile_complete', 'banned',
+        ];
+    }
+
+    /**
+     * Re-initialize properties excluded from __sleep so getter calls don't hit
+     * "uninitialized typed property" errors.
+     */
+    public function __wakeup(): void
+    {
+        $this->image        = null;
+        $this->depenses     = new ArrayCollection();
+        $this->equipements  = new ArrayCollection();
+        $this->maintenances = new ArrayCollection();
+        $this->ventes       = new ArrayCollection();
     }
 
     #[ORM\Column(name: 'password', type: 'string', nullable: false)]
@@ -197,9 +231,12 @@ class User
         return $this->genre;
     }
 
-    public function setGenre(string $genre): self
+    public function setGenre(?string $genre): self
     {
-        $this->genre = $genre;
+        // Symfony ChoiceType with a `placeholder` option submits null when no choice
+        // is selected. Coalesce to '' so the non-nullable property and Assert\NotBlank
+        // can do their job without a TypeError before validation runs.
+        $this->genre = $genre ?? '';
         return $this;
     }
 

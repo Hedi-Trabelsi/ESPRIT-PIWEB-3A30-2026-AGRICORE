@@ -99,7 +99,7 @@
         </div>
         <div>
           <a class="d-flex align-items-center gap-2 text-decoration-none" href="{{ path('back_profile') }}" >
-            {% if app.session.get('user') %}
+            {% if app.session.get('user') and app.session.get('user').id %}
               <img src="{{ path('app_user_avatar', {id: app.session.get('user').id}) }}" alt="" width="40" height="40" class="rounded-circle" style="object-fit:cover;" />
             {% else %}
               <img src="{{ asset('img/profile.webp') }}" alt="" width="40" height="40" class="rounded-circle" />

@@ -92,6 +92,15 @@ class Equipement
     #[Vich\UploadableField(mapping: 'equipement_images', fileNameProperty: 'imageFilename')]
     private ?File $imageFile = null;
 
+    /**
+     * Image BLOB shared with the Java desktop app (column added by
+     * `db/migration_equipement_image_blob.sql` in the Java project).
+     * Bytes are written here on form submit alongside the Vich filename
+     * so both apps see the same picture.
+     */
+    #[ORM\Column(name: 'image', type: 'blob', nullable: true)]
+    private mixed $image = null;
+
     #[ORM\Column(name: 'updated_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
@@ -120,6 +129,51 @@ class Equipement
     public function getImageFile(): ?File
     {
         return $this->imageFile;
+    }
+
+    public function getImage(): mixed
+    {
+        return $this->image;
+    }
+
+    public function setImage($image): self
+    {
+        $this->image = $image;
+        return $this;
+    }
+
+    /**
+     * Returns the image as a base64 data URI, suitable for direct embedding in
+     * `<img src="...">`. Empty string if no BLOB stored.
+     */
+    public function getImageBase64(): string
+    {
+        if ($this->image === null) {
+            return '';
+        }
+        // Doctrine returns blobs as PHP stream resources by default.
+        if (is_resource($this->image)) {
+            rewind($this->image);
+            $data = stream_get_contents($this->image);
+            // Re-wind so subsequent calls still work in the same request.
+            rewind($this->image);
+        } else {
+            $data = (string) $this->image;
+        }
+        if ($data === '' || $data === false) {
+            return '';
+        }
+        // Detect mime from the bytes; default to JPEG (Java side encodes JPEG).
+        $mime = 'image/jpeg';
+        if (str_starts_with($data, "\x89PNG"))      { $mime = 'image/png'; }
+        elseif (str_starts_with($data, 'GIF8'))     { $mime = 'image/gif'; }
+        elseif (str_starts_with($data, 'RIFF'))     { $mime = 'image/webp'; }
+        return 'data:' . $mime . ';base64,' . base64_encode($data);
+    }
+
+    public function hasImageBlob(): bool
+    {
+        return $this->image !== null;
     }
 
     public function getUpdatedAt(): ?\DateTimeImmutable
