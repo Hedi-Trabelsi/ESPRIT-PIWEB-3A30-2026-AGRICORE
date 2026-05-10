@@ -683,6 +683,7 @@ body { background: #f8fafc; }
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const budgetDisplay = document.getElementById('budgetDisplay');
+    const budgetRange = document.getElementById('budgetRange');
     if (budgetRange) {
         budgetRange.addEventListener('input', () => {
             budgetDisplay.textContent = budgetRange.value;
