@@ -448,8 +448,11 @@ async function loadSentiment() {
         const data = await res.json();
         loading.style.display = 'none';
 
-        if (data.error) {
-            result.innerHTML = `<div class="sentiment-card sentiment-empty"><p style="color:#dc2626;">❌ ${data.error}</p></div>`;
+        if (!res.ok || data.error) {
+            const errorMsg = data.error || 'Erreur lors de l\'analyse. Vérifiez les logs serveur.';
+            result.innerHTML = `<div class="sentiment-card sentiment-empty"><p style="color:#dc2626;">❌ ${errorMsg}</p></div>`;
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-magic"></i> Analyser le chat';
             return;
         }
 
@@ -489,7 +492,7 @@ async function loadSentiment() {
         result.innerHTML = html;
     } catch(e) {
         loading.style.display = 'none';
-        result.innerHTML = `<div class="sentiment-card sentiment-empty"><p style="color:#dc2626;">❌ Erreur réseau.</p></div>`;
+        result.innerHTML = `<div class="sentiment-card sentiment-empty"><p style="color:#dc2626;">❌ Erreur réseau: ${e.message}</p></div>`;
     }
 
     btn.disabled = false;

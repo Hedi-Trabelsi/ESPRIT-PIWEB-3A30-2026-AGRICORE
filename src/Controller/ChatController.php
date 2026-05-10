@@ -105,7 +105,7 @@ class ChatController extends AbstractController
     public function adminChat(Evennementagricole $ev, Request $request, EntityManagerInterface $em): Response
     {
         $admin = $request->getSession()->get('user');
-        if (!$admin instanceof User || $admin->getId() === null) return $this->redirectToRoute('back_login');
+        if (!$admin instanceof User || $admin->getId() === null) return $this->redirectToRoute('front_login');
 
         $messages = $em->getRepository(Messages::class)
             ->createQueryBuilder('m')
