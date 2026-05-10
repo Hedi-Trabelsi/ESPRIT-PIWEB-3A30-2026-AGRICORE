@@ -1,16 +1,148 @@
 {% extends 'front/base_front.html.twig' %}
-{% block title %}Modifier Suivi{% endblock %}
+{% block title %}Modifier le Suivi{% endblock %}
 
 {% block body %}
-<h1>Modifier le suivi</h1>
+<div style="max-width:780px;margin:0 auto;padding:2rem 2.5rem;">
 
-{{ include('front/suivi_animal/suivi_animal/_form.html.twig', {'button_label': 'Mettre à jour'}) }}
+  {# ── Header ── #}
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;padding-bottom:1rem;border-bottom:2px solid #C0DD97;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:42px;height:42px;background:linear-gradient(135deg,#b45309,#d97706);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(180,83,9,.3);">
+        <span style="font-size:20px;">✏️</span>
+      </div>
+      <div>
+        <h1 style="font-size:22px;font-weight:700;color:#27500A;margin:0;">Modifier le suivi</h1>
+        <p style="font-size:13px;color:#639922;margin:0;">
+          {% if animalCode is defined and animalCode %}
+            Animal : <strong>{{ animalCode }}</strong>
+          {% else %}
+            Mise à jour du bilan sanitaire
+          {% endif %}
+        </p>
+      </div>
+    </div>
+    {% if animalId is defined and animalId %}
+      <a href="{{ path('app_animal_show', {idAnimal: animalId}) }}"
+         style="background:transparent;color:#3B6D11;border:1.5px solid #3B6D11;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:600;text-decoration:none;">
+        ← Retour à la fiche
+      </a>
+    {% else %}
+      <a href="{{ path('app_suivi_animal_index') }}"
+         style="background:transparent;color:#3B6D11;border:1.5px solid #3B6D11;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:600;text-decoration:none;">
+        ← Retour à la liste
+      </a>
+    {% endif %}
+  </div>
 
-{% if animalId is defined and animalId %}
-  <a href="{{ path('app_animal_show', {idAnimal: animalId}) }}">← Retour à la fiche animal</a>
-{% else %}
-  <a href="{{ path('app_suivi_animal_index') }}">← Retour à la liste</a>
-{% endif %}
+  {# ── Carte formulaire ── #}
+  <div style="background:#fff;border:1px solid #d4edba;border-radius:20px;overflow:hidden;box-shadow:0 8px 32px rgba(59,109,17,.08);">
 
-{{ include('front/suivi_animal/suivi_animal/_delete_form.html.twig') }}
+    <div style="background:linear-gradient(135deg,#fff8e1,#fef3c7);padding:18px 24px;border-bottom:1px solid #fde68a;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:22px;">📝</span>
+      <div>
+        <p style="font-size:15px;font-weight:700;color:#92400e;margin:0;">Modification du suivi</p>
+        <p style="font-size:12px;color:#b45309;margin:0;">Modifiez les paramètres vitaux</p>
+      </div>
+    </div>
+
+    {{ form_start(form, {'attr': {'novalidate': true, 'style': 'padding:24px;'}}) }}
+
+    <style>
+      .sf-form-row { margin-bottom:18px; }
+      .sf-label { display:block;font-size:12px;font-weight:700;color:#639922;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px; }
+      .sf-input { width:100%;background:#f8fdf4;border:1.5px solid #C0DD97;border-radius:10px;padding:11px 14px;font-size:14px;color:#27500A;box-sizing:border-box;outline:none;transition:all .2s; }
+      .sf-input:focus { border-color:#3B6D11;background:#fff;box-shadow:0 0 0 4px rgba(59,109,17,.08); }
+      .sf-error { color:#dc2626;font-size:12px;font-weight:600;margin-top:5px;padding:5px 10px;background:#fff1f2;border-left:3px solid #dc2626;border-radius:4px;display:block; }
+      .sf-grid-2 { display:grid;grid-template-columns:1fr 1fr;gap:18px; }
+      .sf-grid-3 { display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px; }
+      @media(max-width:600px){ .sf-grid-2,.sf-grid-3{grid-template-columns:1fr;} }
+    </style>
+
+    {% if animalCode is defined and animalCode %}
+    <div class="sf-form-row">
+      <label class="sf-label">🐾 Animal</label>
+      <input type="text" value="{{ animalCode }}" readonly
+             style="width:100%;background:#f3f4f6;border:1.5px solid #e5e7eb;border-radius:10px;padding:11px 14px;font-size:14px;color:#6b7280;box-sizing:border-box;cursor:not-allowed;">
+    </div>
+    {% elseif form.animal is defined %}
+    <div class="sf-form-row">
+      <label class="sf-label">🐾 Animal</label>
+      {{ form_widget(form.animal, {'attr': {'class': 'sf-input'}}) }}
+      {% for error in form.animal.vars.errors %}<span class="sf-error">⚠ {{ error.message }}</span>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="sf-form-row">
+      <label class="sf-label">📅 Date du suivi</label>
+      {{ form_widget(form.dateSuivi, {'attr': {'class': 'sf-input'}}) }}
+      {% for error in form.dateSuivi.vars.errors %}<span class="sf-error">⚠ {{ error.message }}</span>{% endfor %}
+    </div>
+
+    <div class="sf-grid-3 sf-form-row">
+      <div>
+        <label class="sf-label">🌡️ Température (°C)</label>
+        {{ form_widget(form.temperature, {'attr': {'class': 'sf-input'}}) }}
+        {% for error in form.temperature.vars.errors %}<span class="sf-error">⚠ {{ error.message }}</span>{% endfor %}
+      </div>
+      <div>
+        <label class="sf-label">⚖️ Poids (kg)</label>
+        {{ form_widget(form.poids, {'attr': {'class': 'sf-input'}}) }}
+        {% for error in form.poids.vars.errors %}<span class="sf-error">⚠ {{ error.message }}</span>{% endfor %}
+      </div>
+      <div>
+        <label class="sf-label">❤️ Rythme cardiaque (bpm)</label>
+        {{ form_widget(form.rythmeCardiaque, {'attr': {'class': 'sf-input'}}) }}
+        {% for error in form.rythmeCardiaque.vars.errors %}<span class="sf-error">⚠ {{ error.message }}</span>{% endfor %}
+      </div>
+    </div>
+
+    <div class="sf-grid-2 sf-form-row">
+      <div>
+        <label class="sf-label">🏃 Niveau d'activité</label>
+        {{ form_widget(form.niveauActivite, {'attr': {'class': 'sf-input'}}) }}
+        {% for error in form.niveauActivite.vars.errors %}<span class="sf-error">⚠ {{ error.message }}</span>{% endfor %}
+      </div>
+      <div>
+        <label class="sf-label">🩺 État de santé</label>
+        {{ form_widget(form.etatSante, {'attr': {'class': 'sf-input'}}) }}
+        {% for error in form.etatSante.vars.errors %}<span class="sf-error">⚠ {{ error.message }}</span>{% endfor %}
+      </div>
+    </div>
+
+    <div class="sf-form-row">
+      <label class="sf-label">💬 Remarque (optionnel)</label>
+      {{ form_widget(form.remarque, {'attr': {'class': 'sf-input', 'rows': 3, 'style': 'resize:vertical;min-height:80px;'}}) }}
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:16px;border-top:1px solid #e8f5d8;margin-top:8px;">
+      <button type="submit"
+              style="background:linear-gradient(135deg,#b45309,#d97706);color:white;border:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 14px rgba(180,83,9,.3);">
+        💾 Mettre à jour
+      </button>
+      {% if animalId is defined and animalId %}
+        <a href="{{ path('app_animal_show', {idAnimal: animalId}) }}"
+           style="color:#6c757d;font-size:13px;text-decoration:none;padding:8px 16px;border:1px solid #e5e7eb;border-radius:9px;">
+          Annuler
+        </a>
+      {% else %}
+        <a href="{{ path('app_suivi_animal_index') }}"
+           style="color:#6c757d;font-size:13px;text-decoration:none;padding:8px 16px;border:1px solid #e5e7eb;border-radius:9px;">
+          Annuler
+        </a>
+      {% endif %}
+    </div>
+
+    {{ form_end(form) }}
+  </div>
+
+  {# Supprimer #}
+  <div style="margin-top:1.5rem;padding:16px 20px;background:#fff1f2;border:1px solid #fecaca;border-radius:14px;display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <p style="font-size:14px;font-weight:700;color:#dc2626;margin:0;">🗑️ Zone de suppression</p>
+      <p style="font-size:12px;color:#ef4444;margin:0;">Cette action est irréversible</p>
+    </div>
+    {{ include('front/suivi_animal/suivi_animal/_delete_form.html.twig') }}
+  </div>
+
+</div>
 {% endblock %}

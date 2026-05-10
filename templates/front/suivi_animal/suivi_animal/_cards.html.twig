@@ -1,44 +1,107 @@
 {% for suivi_animal in suivi_animals %}
-<div class="ag-card">
-  <div class="ag-card-header">
-    <span class="ag-badge">{{ suivi_animal.animal ? suivi_animal.animal.codeAnimal : '—' }}</span>
-    <span class="ag-date"><i class="far fa-calendar-alt me-1"></i>{{ suivi_animal.dateSuivi ? suivi_animal.dateSuivi|date('d/m/Y H:i') : '' }}</span>
+
+{# ── Emoji + couleur par état de santé ── #}
+{% if suivi_animal.etatSante == 'Bon' %}
+  {% set etat_emoji = '✅' %}
+  {% set etat_color = '#16a34a' %}
+  {% set etat_bg    = '#f0fdf4' %}
+  {% set etat_border= '#bbf7d0' %}
+  {% set card_border= '#bbf7d0' %}
+{% elseif suivi_animal.etatSante == 'Moyen' %}
+  {% set etat_emoji = '⚠️' %}
+  {% set etat_color = '#ca8a04' %}
+  {% set etat_bg    = '#fefce8' %}
+  {% set etat_border= '#fde68a' %}
+  {% set card_border= '#fde68a' %}
+{% else %}
+  {% set etat_emoji = '🚨' %}
+  {% set etat_color = '#dc2626' %}
+  {% set etat_bg    = '#fff1f2' %}
+  {% set etat_border= '#fecaca' %}
+  {% set card_border= '#fecaca' %}
+{% endif %}
+
+{# ── Emoji par niveau d'activité ── #}
+{% if suivi_animal.niveauActivite == 'Élevé' %}
+  {% set activite_emoji = '🏃' %}
+{% elseif suivi_animal.niveauActivite == 'Modéré' %}
+  {% set activite_emoji = '🚶' %}
+{% else %}
+  {% set activite_emoji = '😴' %}
+{% endif %}
+
+<div class="ag-card" style="border-radius:18px;overflow:hidden;background:#fff;border:1.5px solid {{ card_border }};box-shadow:0 4px 18px rgba(0,0,0,0.06);transition:transform .2s,box-shadow .2s;margin:0 4px;">
+
+  {# ── Header avec code animal + date ── #}
+  <div style="background:linear-gradient(135deg,#EAF3DE,#d4edba);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">
+    <span style="background:#3B6D11;color:white;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;">
+      🐾 {{ suivi_animal.animal ? suivi_animal.animal.codeAnimal : '—' }}
+    </span>
+    <span style="font-size:11px;color:#27500A;font-weight:500;">
+      📅 {{ suivi_animal.dateSuivi ? suivi_animal.dateSuivi|date('d/m/Y H:i') : '' }}
+    </span>
   </div>
+
+  {# ── Badge état de santé ── #}
+  <div style="padding:12px 16px 0;display:flex;justify-content:center;">
+    <span style="background:{{ etat_bg }};color:{{ etat_color }};border:1.5px solid {{ etat_border }};font-size:13px;font-weight:700;padding:6px 18px;border-radius:20px;display:inline-flex;align-items:center;gap:6px;">
+      {{ etat_emoji }} {{ suivi_animal.etatSante }}
+    </span>
+  </div>
+
+  {# ── Vitaux ── #}
   <div style="padding:14px 16px;">
-    <div class="ag-vitals">
-      <div class="ag-vital">
-        <div class="ag-vital-label">Temp.</div>
-        <div class="ag-vital-value">{{ suivi_animal.temperature }}<span class="ag-vital-unit">°C</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #e8f5d8;border-radius:12px;overflow:hidden;margin-bottom:12px;">
+      <div style="padding:12px 6px;text-align:center;border-right:1px solid #e8f5d8;">
+        <div style="font-size:18px;margin-bottom:2px;">🌡️</div>
+        <div style="font-size:10px;color:#639922;text-transform:uppercase;font-weight:600;letter-spacing:.4px;">Temp.</div>
+        <div style="font-size:16px;font-weight:700;color:#27500A;">{{ suivi_animal.temperature }}<span style="font-size:10px;color:#6c757d;">°C</span></div>
       </div>
-      <div class="ag-vital">
-        <div class="ag-vital-label">Poids</div>
-        <div class="ag-vital-value">{{ suivi_animal.poids }}<span class="ag-vital-unit">kg</span></div>
+      <div style="padding:12px 6px;text-align:center;border-right:1px solid #e8f5d8;">
+        <div style="font-size:18px;margin-bottom:2px;">⚖️</div>
+        <div style="font-size:10px;color:#639922;text-transform:uppercase;font-weight:600;letter-spacing:.4px;">Poids</div>
+        <div style="font-size:16px;font-weight:700;color:#27500A;">{{ suivi_animal.poids }}<span style="font-size:10px;color:#6c757d;">kg</span></div>
       </div>
-      <div class="ag-vital">
-        <div class="ag-vital-label">BPM</div>
-        <div class="ag-vital-value">{{ suivi_animal.rythmeCardiaque }}</div>
+      <div style="padding:12px 6px;text-align:center;">
+        <div style="font-size:18px;margin-bottom:2px;">❤️</div>
+        <div style="font-size:10px;color:#639922;text-transform:uppercase;font-weight:600;letter-spacing:.4px;">BPM</div>
+        <div style="font-size:16px;font-weight:700;color:#27500A;">{{ suivi_animal.rythmeCardiaque }}</div>
       </div>
     </div>
-    <div class="ag-info-row">
-      <span><span class="ag-dot"></span>Activité</span>
-      <strong>{{ suivi_animal.niveauActivite }}</strong>
+
+    {# ── Activité ── #}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f8fdf4;border-radius:10px;border:1px solid #e8f5d8;margin-bottom:8px;">
+      <span style="font-size:12px;color:#639922;font-weight:500;">{{ activite_emoji }} Activité</span>
+      <strong style="font-size:12px;color:#27500A;">{{ suivi_animal.niveauActivite }}</strong>
     </div>
-    <div class="ag-info-row" style="border:none;">
-      <span><span class="ag-dot"></span>État de santé</span>
-      <span class="{{ suivi_animal.etatSante == 'Bon' ? 'ag-state-bon' : 'ag-state-bad' }}">{{ suivi_animal.etatSante }}</span>
-    </div>
+
+    {# ── Remarque ── #}
     {% if suivi_animal.remarque %}
-      <div class="ag-remarque">{{ suivi_animal.remarque }}</div>
+    <div style="padding:8px 12px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:0 8px 8px 0;font-size:12px;color:#92400e;font-style:italic;">
+      💬 {{ suivi_animal.remarque }}
+    </div>
     {% endif %}
   </div>
-  <div class="ag-card-footer">
-    <a href="{{ path('app_suivi_animal_edit', {'idSuivi': suivi_animal.idSuivi}) }}" class="ag-btn-edit">Modifier</a>
-    <a href="{{ path('app_suivi_animal_show', {'idSuivi': suivi_animal.idSuivi}) }}" class="ag-btn-show">Détails</a>
+
+  {# ── Footer boutons ── #}
+  <div style="padding:10px 16px 14px;display:flex;gap:8px;">
+    <a href="{{ path('app_suivi_animal_edit', {'idSuivi': suivi_animal.idSuivi}) }}"
+       style="flex:1;text-align:center;padding:8px;border:1.5px solid #3B6D11;color:#3B6D11;border-radius:9px;font-size:12px;font-weight:600;text-decoration:none;transition:all .2s;"
+       onmouseover="this.style.background='#3B6D11';this.style.color='white';"
+       onmouseout="this.style.background='transparent';this.style.color='#3B6D11';">
+      ✏️ Modifier
+    </a>
+    <a href="{{ path('app_suivi_animal_show', {'idSuivi': suivi_animal.idSuivi}) }}"
+       style="flex:1;text-align:center;padding:8px;background:#3B6D11;color:white;border-radius:9px;font-size:12px;font-weight:600;text-decoration:none;">
+      👁️ Détails
+    </a>
   </div>
 </div>
+
 {% else %}
-<div style="grid-column:1/-1;text-align:center;padding:3rem;color:#639922;">
-  <i class="fas fa-search fa-3x mb-3" style="opacity:.4;display:block;"></i>
-  <p>Aucun résultat trouvé.</p>
+<div style="grid-column:1/-1;text-align:center;padding:4rem 2rem;color:#639922;background:#f8fdf4;border-radius:16px;border:2px dashed #C0DD97;">
+  <div style="font-size:56px;margin-bottom:1rem;">🩺</div>
+  <p style="font-size:16px;font-weight:600;color:#27500A;">Aucun suivi trouvé</p>
+  <p style="font-size:13px;color:#639922;">Essayez de modifier vos critères de recherche</p>
 </div>
 {% endfor %}

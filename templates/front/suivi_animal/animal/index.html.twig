@@ -1,6 +1,7 @@
 {% extends 'front/base_front.html.twig' %}
 {% block title %}Inventaire du Cheptel{% endblock %}
 {% block body %}
+<div style="max-width:1200px;margin:0 auto;padding:2rem 2.5rem;">
 <style>
   .ag-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:2px solid #C0DD97;}
   .ag-title-wrap{display:flex;align-items:center;gap:10px;}
@@ -169,6 +170,7 @@
 <div class="d-flex justify-content-center mt-4">
   {{ knp_pagination_render(animals) }}
 </div>
+</div>{# fin max-width container #}
 
 <script>
 (function(){
