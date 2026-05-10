@@ -35,12 +35,20 @@ class AiController extends AbstractController
             . "Réponds uniquement avec la description. En français.";
 
         try {
-            $response = $this->httpClient->request('POST', 'https://text.pollinations.ai/', [
+            $response = $this->httpClient->request('POST', 'https://text.pollinations.ai/v1/chat/completions', [
                 'headers' => ['Content-Type' => 'application/json'],
                 'json'    => ['messages' => [['role' => 'user', 'content' => $prompt]], 'model' => 'openai', 'seed' => 42],
                 'timeout' => 30,
             ]);
-            $text = trim($response->getContent());
+            
+            // Parse OpenAI response format
+            $decoded = json_decode($response->getContent(), true);
+            if (isset($decoded['choices'][0]['message']['content'])) {
+                $text = trim($decoded['choices'][0]['message']['content']);
+            } else {
+                $text = trim($response->getContent());
+            }
+            
             if (empty($text)) return new JsonResponse(['error' => 'Réponse vide.'], 500);
             return new JsonResponse(['description' => $text]);
         } catch (\Exception $e) {
@@ -153,24 +161,38 @@ class AiController extends AbstractController
             . "Messages:\n" . $chatText;
 
         try {
-            $response = $this->httpClient->request('POST', 'https://text.pollinations.ai/', [
+            $response = $this->httpClient->request('POST', 'https://text.pollinations.ai/v1/chat/completions', [
                 'headers' => ['Content-Type' => 'application/json'],
                 'json'    => ['messages' => [['role' => 'user', 'content' => $prompt]], 'model' => 'openai', 'seed' => 1],
                 'timeout' => 30,
             ]);
             $raw = trim($response->getContent());
+            
+            // Try parsing JSON with standard OpenAI format
+            $decoded = json_decode($raw, true);
+            if (isset($decoded['choices'][0]['message']['content'])) {
+                $raw = $decoded['choices'][0]['message']['content'];
+            }
+            
+            // Extract JSON from response
             if (preg_match('/\{.*\}/s', $raw, $m)) $raw = $m[0];
             $data = json_decode($raw, true);
-            if (!is_array($data) || !isset($data['sentiment'])) throw new \Exception('Invalid JSON');
+            if (!is_array($data)) {
+                // If not JSON format, try parsing with sentiment key
+                $data = ['sentiment' => 'mixed', 'summary' => $raw, 'bad_messages' => [], 'good_messages' => []];
+            }
+            if (!isset($data['sentiment'])) {
+                $data['sentiment'] = 'mixed';
+            }
 
             return new JsonResponse([
-                'status'  => $data['sentiment'],
+                'status'  => $data['sentiment'] ?? 'mixed',
                 'summary' => $data['summary'] ?? '',
                 'bad'     => $data['bad_messages'] ?? [],
                 'good'    => $data['good_messages'] ?? [],
             ]);
         } catch (\Exception $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 500);
+            return new JsonResponse(['error' => 'Erreur API: ' . $e->getMessage()], 500);
         }
     }
 }

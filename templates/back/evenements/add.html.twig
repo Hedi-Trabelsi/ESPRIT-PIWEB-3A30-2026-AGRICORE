@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     aiBtn.addEventListener('click', async function() {
         const titre    = document.querySelector('input[name*="titre"]')?.value?.trim() || '';
-        const lieu     = document.getElementById('{{ form.lieu.vars.id }}')?.value?.trim() || '';
+        const lieu     = document.getElementById('lieu-input')?.value?.trim() || '';
         const dateDebut= document.querySelector('input[name*="date_debut"]')?.value?.trim() || '';
         const prix     = document.querySelector('input[name*="frais_inscription"]')?.value?.trim() || '';
         const capacite = document.querySelector('input[name*="capacite_max"]')?.value?.trim() || '';

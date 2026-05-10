@@ -57,8 +57,24 @@ class ChatController extends AbstractController
     #[Route('/evenement/{id}/chat', name: 'app_event_chat')]
     public function chat(Evennementagricole $ev, Request $request, EntityManagerInterface $em): Response
     {
-        $user = $request->getSession()->get('user');
-        if (!$user instanceof User || $user->getId() === null) return $this->redirectToRoute('front_login');
+        $session = $request->getSession();
+        $user = $session->get('user');
+        
+        // If user is not an instance of User, try to get the user_id and reload
+        if (!$user instanceof User) {
+            $userId = $session->get('user_id');
+            if (!$userId) {
+                return $this->redirectToRoute('front_login');
+            }
+            $user = $em->getRepository(User::class)->find($userId);
+            if (!$user) {
+                return $this->redirectToRoute('front_login');
+            }
+        }
+        
+        if ($user->getId() === null) {
+            return $this->redirectToRoute('front_login');
+        }
 
         $participant = $em->getRepository(Participants::class)->findOneBy([
             'evenement' => $ev, 'id_utilisateur' => $user->getId()
@@ -104,8 +120,24 @@ class ChatController extends AbstractController
     #[Route('/back/evenements/{id}/chat', name: 'back_event_chat')]
     public function adminChat(Evennementagricole $ev, Request $request, EntityManagerInterface $em): Response
     {
-        $admin = $request->getSession()->get('user');
-        if (!$admin instanceof User || $admin->getId() === null) return $this->redirectToRoute('front_login');
+        $session = $request->getSession();
+        $admin = $session->get('user');
+        
+        // If user is not an instance of User, try to get the user_id and reload
+        if (!$admin instanceof User) {
+            $userId = $session->get('user_id');
+            if (!$userId) {
+                return $this->redirectToRoute('front_login');
+            }
+            $admin = $em->getRepository(User::class)->find($userId);
+            if (!$admin) {
+                return $this->redirectToRoute('front_login');
+            }
+        }
+        
+        if ($admin->getId() === null) {
+            return $this->redirectToRoute('front_login');
+        }
 
         $messages = $em->getRepository(Messages::class)
             ->createQueryBuilder('m')
@@ -137,8 +169,22 @@ class ChatController extends AbstractController
     #[Route('/evenement/{id}/chat/send', name: 'app_event_chat_send', methods: ['POST'])]
     public function send(Evennementagricole $ev, Request $request, EntityManagerInterface $em): JsonResponse
     {
-        $user = $request->getSession()->get('user');
-        if (!$user instanceof User || $user->getId() === null) {
+        $session = $request->getSession();
+        $user = $session->get('user');
+        
+        // If user is not an instance of User, try to get the user_id and reload
+        if (!$user instanceof User) {
+            $userId = $session->get('user_id');
+            if (!$userId) {
+                return new JsonResponse(['error' => 'Non connecté'], 401);
+            }
+            $user = $em->getRepository(User::class)->find($userId);
+            if (!$user) {
+                return new JsonResponse(['error' => 'Utilisateur introuvable'], 401);
+            }
+        }
+        
+        if ($user->getId() === null) {
             return new JsonResponse(['error' => 'Non connecté'], 401);
         }
 
@@ -195,8 +241,24 @@ class ChatController extends AbstractController
     #[Route('/evenement/{id}/chat/messages', name: 'app_event_chat_poll', methods: ['GET'])]
     public function poll(Evennementagricole $ev, Request $request, EntityManagerInterface $em): JsonResponse
     {
-        $user = $request->getSession()->get('user');
-        if (!$user instanceof User || $user->getId() === null) return new JsonResponse(['error' => 'Non connecté'], 401);
+        $session = $request->getSession();
+        $user = $session->get('user');
+        
+        // If user is not an instance of User, try to get the user_id and reload
+        if (!$user instanceof User) {
+            $userId = $session->get('user_id');
+            if (!$userId) {
+                return new JsonResponse(['error' => 'Non connecté'], 401);
+            }
+            $user = $em->getRepository(User::class)->find($userId);
+            if (!$user) {
+                return new JsonResponse(['error' => 'Utilisateur introuvable'], 401);
+            }
+        }
+        
+        if ($user->getId() === null) {
+            return new JsonResponse(['error' => 'Non connecté'], 401);
+        }
 
         $since = (int) $request->query->get('since', 0);
 
